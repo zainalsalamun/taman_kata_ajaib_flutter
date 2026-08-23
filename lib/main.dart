@@ -9,6 +9,7 @@ import 'screens/map_screen.dart';
 import 'screens/tracing_screen.dart';
 import 'screens/train_screen.dart';
 import 'screens/balloon_screen.dart';
+import 'screens/quiz_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,6 +94,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         _mascotText = 'Susun gerbong suku kata agar kereta bisa melaju!';
       } else if (route == 'balloon') {
         _mascotText = 'Letuskan balon kata yang tepat ya!';
+      } else if (route == 'quiz') {
+        _mascotText = 'Dengarkan soalnya, lalu pencet gambar yang benar!';
       }
     });
   }
@@ -174,6 +177,11 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         );
       case 'balloon':
         return BalloonScreen(
+          onVictory: _addStars,
+          onBack: () => _navigateTo('map'),
+        );
+      case 'quiz':
+        return QuizScreen(
           onVictory: _addStars,
           onBack: () => _navigateTo('map'),
         );
