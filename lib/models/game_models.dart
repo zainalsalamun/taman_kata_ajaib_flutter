@@ -42,6 +42,20 @@ class BalloonWordData {
   });
 }
 
+class QuizQuestionData {
+  final String question;
+  final String answerKey;
+  final String answerName;
+  final List<String> choices;
+
+  QuizQuestionData({
+    required this.question,
+    required this.answerKey,
+    required this.answerName,
+    required this.choices,
+  });
+}
+
 class StickerItemData {
   final String id;
   final String name;
@@ -176,6 +190,82 @@ class GameRepository {
       target: "RUMAH",
       illustrationKey: "rumah",
       choices: ["RUMAH", "RUMPUT", "RUSA", "ROTI"],
+    ),
+  ];
+
+  // 12 Contoh Soal Kuis Sentuh Pintar (Tinggal Pencet)
+  static final List<QuizQuestionData> quizQuestions = [
+    QuizQuestionData(
+      question: "Mana gambar APEL?",
+      answerKey: "apel",
+      answerName: "APEL",
+      choices: ["apel", "balon", "bola"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar MOBIL?",
+      answerKey: "mobil",
+      answerName: "MOBIL",
+      choices: ["mobil", "rumah", "roti"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar KUCING?",
+      answerKey: "kucing",
+      answerName: "KUCING",
+      choices: ["kucing", "domba", "kuda"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar BUKU?",
+      answerKey: "buku",
+      answerName: "BUKU",
+      choices: ["buku", "ceri", "pisang"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar BOLA?",
+      answerKey: "bola",
+      answerName: "BOLA",
+      choices: ["bola", "apel", "mobil"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar RUMAH?",
+      answerKey: "rumah",
+      answerName: "RUMAH",
+      choices: ["rumah", "buku", "roti"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar PISANG?",
+      answerKey: "pisang",
+      answerName: "PISANG",
+      choices: ["pisang", "ceri", "apel"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar ROTI?",
+      answerKey: "roti",
+      answerName: "ROTI",
+      choices: ["roti", "domba", "mata"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar CERI?",
+      answerKey: "ceri",
+      answerName: "CERI",
+      choices: ["ceri", "balon", "pisang"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar DOMBA?",
+      answerKey: "domba",
+      answerName: "DOMBA",
+      choices: ["domba", "kucing", "kuda"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar KUDA?",
+      answerKey: "kuda",
+      answerName: "KUDA",
+      choices: ["kuda", "mobil", "kucing"],
+    ),
+    QuizQuestionData(
+      question: "Mana gambar MATA?",
+      answerKey: "mata",
+      answerName: "MATA",
+      choices: ["mata", "bola", "rumah"],
     ),
   ];
 
