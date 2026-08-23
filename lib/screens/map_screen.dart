@@ -54,7 +54,7 @@ class MapScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              // 3 Islands Horizontal Scroll / Responsive Row
+              // 4 Islands Horizontal Scroll / Responsive Row
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -70,7 +70,7 @@ class MapScreen extends StatelessWidget {
                       illustrationKey: 'apel',
                       onTap: () => onSelectGame('tracing'),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     _buildIslandCard(
                       context,
                       title: 'Kereta Suku Kata',
@@ -81,7 +81,7 @@ class MapScreen extends StatelessWidget {
                       illustrationKey: 'bola',
                       onTap: () => onSelectGame('train'),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     _buildIslandCard(
                       context,
                       title: 'Balon Kata Ajaib',
@@ -91,6 +91,17 @@ class MapScreen extends StatelessWidget {
                       borderColor: const Color(0xFFFBCFE8),
                       illustrationKey: 'balon',
                       onTap: () => onSelectGame('balloon'),
+                    ),
+                    const SizedBox(width: 14),
+                    _buildIslandCard(
+                      context,
+                      title: 'Kuis Sentuh Pintar',
+                      age: 'Semua Usia',
+                      desc: 'Dengarkan suaranya, tinggal pencet gambar yang benar!',
+                      colorGrad: const [Color(0xFFEDE9FE), Colors.white],
+                      borderColor: const Color(0xFFDDD6FE),
+                      illustrationKey: 'kucing',
+                      onTap: () => onSelectGame('quiz'),
                     ),
                   ],
                 ),
@@ -113,7 +124,7 @@ class MapScreen extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Container(
-      width: 220,
+      width: 210,
       height: 270,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -162,13 +173,13 @@ class MapScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const SizedBox(height: 6),
-                ObjectIllustrationWidget(illustrationKey: illustrationKey, size: 60),
+                ObjectIllustrationWidget(illustrationKey: illustrationKey, size: 58),
                 Column(
                   children: [
                     Text(
                       title,
                       style: GoogleFonts.fredoka(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFF1E293B),
                       ),
