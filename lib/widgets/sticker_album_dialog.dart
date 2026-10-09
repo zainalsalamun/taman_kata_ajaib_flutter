@@ -8,12 +8,14 @@ class StickerAlbumDialog extends StatefulWidget {
   final int currentStars;
   final List<String> unlockedStickers;
   final Function(int newStars, List<String> newUnlocked) onUpdate;
+  final VoidCallback? onGoToPlayground;
 
   const StickerAlbumDialog({
     super.key,
     required this.currentStars,
     required this.unlockedStickers,
     required this.onUpdate,
+    this.onGoToPlayground,
   });
 
   @override
@@ -182,28 +184,65 @@ class _StickerAlbumDialogState extends State<StickerAlbumDialog> {
             ),
             const SizedBox(height: 14),
 
-            // Close
-            SizedBox(
-              width: double.infinity,
-              height: 42,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            // Footer Buttons
+            Row(
+              children: [
+                if (widget.onGoToPlayground != null) ...[
+                  Expanded(
+                    flex: 3,
+                    child: SizedBox(
+                      height: 42,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          widget.onGoToPlayground!();
+                        },
+                        icon: const Icon(Icons.park_rounded, color: Colors.white, size: 20),
+                        label: Text(
+                          'Hias Taman Stiker',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 42,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF1F5F9),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Tutup',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF475569),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                child: Text(
-                  'Tutup Album',
-                  style: GoogleFonts.fredoka(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF475569),
-                  ),
-                ),
-              ),
+              ],
             ),
           ],
         ),
