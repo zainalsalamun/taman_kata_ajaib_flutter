@@ -25,6 +25,7 @@ class _TracingScreenState extends State<TracingScreen> {
   final List<Offset> _userStrokes = [];
   bool _isCompleted = false;
   final AudioService _audio = AudioService();
+  final ScrollController _scrollController = ScrollController();
 
   LetterTracingData get _current => _letters[_currentIndex];
 
@@ -34,6 +35,12 @@ class _TracingScreenState extends State<TracingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startLetter();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _startLetter() {
@@ -49,6 +56,18 @@ class _TracingScreenState extends State<TracingScreen> {
       _currentIndex = index;
     });
     _startLetter();
+    _scrollToCurrentLetter();
+  }
+
+  void _scrollToCurrentLetter() {
+    if (_scrollController.hasClients) {
+      final target = (_currentIndex * 42.0) - 100.0;
+      _scrollController.animateTo(
+        target.clamp(0.0, _scrollController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutQuad,
+      );
+    }
   }
 
   void _onPanUpdate(DragUpdateDetails details, RenderBox box) {
@@ -74,7 +93,7 @@ class _TracingScreenState extends State<TracingScreen> {
     }
 
     final rate = hits / _current.guidePoints.length;
-    if (rate >= 0.85 && !_isCompleted) {
+    if (rate >= 0.75 && !_isCompleted) {
       _isCompleted = true;
       _audio.speakPraise();
       widget.onVictory(3);
@@ -87,10 +106,7 @@ class _TracingScreenState extends State<TracingScreen> {
           title: 'Huruf ${_current.letter} Berhasil!',
           subtitle: 'Hebat sekali! Huruf ${_current.letter} untuk ${_current.word}!',
           onNext: () {
-            setState(() {
-              _currentIndex = (_currentIndex + 1) % _letters.length;
-            });
-            _startLetter();
+            _selectLetter((_currentIndex + 1) % _letters.length);
           },
         ),
       );
@@ -103,52 +119,59 @@ class _TracingScreenState extends State<TracingScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         children: [
-          // Top Letter Selector & Reset
+          // Top Letter Selector Ribbon & Reset
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Selector
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(220),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: List.generate(_letters.length, (idx) {
-                    final isSel = idx == _currentIndex;
-                    return GestureDetector(
-                      onTap: () => _selectLetter(idx),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: isSel ? const Color(0xFFFACC15) : Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSel ? const Color(0xFFEAB308) : const Color(0xFFCBD5E1),
-                            width: 2,
-                          ),
-                          boxShadow: isSel
-                              ? [const BoxShadow(color: Color(0xFFCA8A04), offset: Offset(0, 2))]
-                              : null,
-                        ),
-                        child: Center(
-                          child: Text(
-                            _letters[idx].letter,
-                            style: GoogleFonts.fredoka(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF1E293B),
+              // Scrollable Ribbon
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(220),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                    ),
+                    child: Row(
+                      children: List.generate(_letters.length, (idx) {
+                        final isSel = idx == _currentIndex;
+                        return GestureDetector(
+                          onTap: () => _selectLetter(idx),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: isSel ? const Color(0xFFFACC15) : Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSel ? const Color(0xFFEAB308) : const Color(0xFFCBD5E1),
+                                width: 2,
+                              ),
+                              boxShadow: isSel
+                                  ? [const BoxShadow(color: Color(0xFFCA8A04), offset: Offset(0, 2))]
+                                  : null,
+                            ),
+                            child: Center(
+                              child: Text(
+                                _letters[idx].letter,
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  }),
+                        );
+                      }),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(width: 12),
 
               // Reset Button
               ElevatedButton.icon(
@@ -159,7 +182,7 @@ class _TracingScreenState extends State<TracingScreen> {
                 },
                 icon: const VectorIconWidget(icon: 'reload', size: 16, color: Color(0xFFEA580C)),
                 label: Text(
-                  'Hapus Jejak',
+                  'Hapus',
                   style: GoogleFonts.fredoka(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -173,6 +196,7 @@ class _TracingScreenState extends State<TracingScreen> {
                     side: const BorderSide(color: Color(0xFFF97316), width: 2),
                   ),
                   elevation: 2,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
               ),
             ],
@@ -188,8 +212,8 @@ class _TracingScreenState extends State<TracingScreen> {
                 GestureDetector(
                   onTap: () => _audio.speak('${_current.letter}! ${_current.word}!'),
                   child: Container(
-                    width: 200,
-                    padding: const EdgeInsets.all(16),
+                    width: 210,
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
@@ -203,39 +227,76 @@ class _TracingScreenState extends State<TracingScreen> {
                       ],
                     ),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Sentuh untuk suara',
+                          'Sentuh untuk suara 🔊',
                           style: GoogleFonts.fredoka(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: const Color(0xFF64748B),
                           ),
                         ),
-                        const SizedBox(height: 10),
                         ObjectIllustrationWidget(
                           illustrationKey: _current.illustrationKey,
-                          size: 70,
+                          size: 64,
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          '${_current.letter} - ${_current.word}',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF0284C7),
-                          ),
+                        Column(
+                          children: [
+                            Text(
+                              '${_current.letter} - ${_current.word}',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFF0284C7),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _current.hint,
+                              style: GoogleFonts.fredoka(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          _current.hint,
-                          style: GoogleFonts.fredoka(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF64748B),
+                        // Prev / Next Navigation Arrows
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F9FF),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          textAlign: TextAlign.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back_ios_rounded, size: 16),
+                                color: _currentIndex > 0 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                                onPressed: _currentIndex > 0 ? () => _selectLetter(_currentIndex - 1) : null,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                              Text(
+                                '${_currentIndex + 1} / ${_letters.length}',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF0369A1),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                                color: _currentIndex < _letters.length - 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                                onPressed: _currentIndex < _letters.length - 1 ? () => _selectLetter(_currentIndex + 1) : null,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
