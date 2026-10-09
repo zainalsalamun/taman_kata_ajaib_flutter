@@ -183,8 +183,26 @@ class _ObjectPainter extends CustomPainter {
       case 'rumah':
         _drawHouse(canvas);
         break;
+      case 'ikan':
+        _drawFish(canvas);
+        break;
+      case 'jeruk':
+        _drawOrange(canvas);
+        break;
+      case 'topi':
+        _drawHat(canvas);
+        break;
+      case 'sepatu':
+        _drawShoe(canvas);
+        break;
+      case 'pesawat':
+        _drawPlane(canvas);
+        break;
+      case 'sepeda':
+        _drawBicycle(canvas);
+        break;
       default:
-        _drawApple(canvas);
+        _drawSmartBadge(canvas, key);
     }
 
     canvas.restore();
@@ -361,6 +379,228 @@ class _ObjectPainter extends CustomPainter {
     canvas.drawPath(roof, Paint()..color = const Color(0xFFC62828)..style = PaintingStyle.stroke..strokeWidth = 3.5);
 
     canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(42, 60, 16, 28), const Radius.circular(3)), Paint()..color = const Color(0xFF8D6E63));
+  }
+
+  void _drawFish(Canvas canvas) {
+    // Fish Body
+    final body = Path()
+      ..moveTo(82, 50)
+      ..quadraticBezierTo(52, 22, 24, 50)
+      ..quadraticBezierTo(52, 78, 82, 50);
+    canvas.drawPath(body, Paint()..color = const Color(0xFF38BDF8));
+    canvas.drawPath(body, Paint()..color = const Color(0xFF0284C7)..style = PaintingStyle.stroke..strokeWidth = 3.5);
+
+    // Tail Fin
+    final tail = Path()
+      ..moveTo(24, 50)
+      ..lineTo(10, 32)
+      ..quadraticBezierTo(16, 50, 10, 68)
+      ..close();
+    canvas.drawPath(tail, Paint()..color = const Color(0xFF0284C7));
+
+    // Eye
+    canvas.drawCircle(const Offset(68, 44), 4.5, Paint()..color = Colors.white);
+    canvas.drawCircle(const Offset(70, 44), 2.5, Paint()..color = const Color(0xFF0F172A));
+  }
+
+  void _drawOrange(Canvas canvas) {
+    // Leaf & Stem
+    canvas.drawLine(const Offset(50, 24), const Offset(50, 12), Paint()..color = const Color(0xFF78350F)..strokeWidth = 3.5..strokeCap = StrokeCap.round);
+    final leaf = Path()..moveTo(50, 18)..quadraticBezierTo(68, 12, 70, 22)..quadraticBezierTo(58, 26, 50, 18);
+    canvas.drawPath(leaf, Paint()..color = const Color(0xFF22C55E));
+
+    // Orange Sphere
+    canvas.drawCircle(const Offset(50, 56), 34, Paint()..color = const Color(0xFFFB923C));
+    canvas.drawCircle(const Offset(50, 56), 34, Paint()..color = const Color(0xFFEA580C)..style = PaintingStyle.stroke..strokeWidth = 3.5);
+    canvas.drawCircle(const Offset(38, 44), 6, Paint()..color = const Color(0x66FFFFFF));
+  }
+
+  void _drawHat(Canvas canvas) {
+    // Cap Dome
+    final dome = Path()
+      ..moveTo(22, 60)
+      ..cubicTo(24, 28, 76, 28, 78, 60)
+      ..close();
+    canvas.drawPath(dome, Paint()..color = const Color(0xFF6366F1));
+    canvas.drawPath(dome, Paint()..color = const Color(0xFF4338CA)..style = PaintingStyle.stroke..strokeWidth = 3.5);
+
+    // Visor / Brim
+    final visor = Path()
+      ..moveTo(20, 60)
+      ..quadraticBezierTo(50, 65, 88, 56)
+      ..quadraticBezierTo(86, 68, 20, 64)
+      ..close();
+    canvas.drawPath(visor, Paint()..color = const Color(0xFFFBBF24));
+    canvas.drawPath(visor, Paint()..color = const Color(0xFFD97706)..style = PaintingStyle.stroke..strokeWidth = 2.5);
+
+    // Button on top
+    canvas.drawCircle(const Offset(50, 28), 4, Paint()..color = const Color(0xFFFBBF24));
+  }
+
+  void _drawShoe(Canvas canvas) {
+    // Sneaker Sole
+    final sole = Path()
+      ..moveTo(14, 68)..lineTo(86, 68)..quadraticBezierTo(88, 76, 84, 78)..lineTo(16, 78)..close();
+    canvas.drawPath(sole, Paint()..color = Colors.white);
+    canvas.drawPath(sole, Paint()..color = const Color(0xFF64748B)..style = PaintingStyle.stroke..strokeWidth = 2.5);
+
+    // Shoe Upper
+    final upper = Path()
+      ..moveTo(18, 68)
+      ..lineTo(22, 42)
+      ..quadraticBezierTo(40, 42, 52, 54)
+      ..lineTo(84, 60)
+      ..lineTo(84, 68)
+      ..close();
+    canvas.drawPath(upper, Paint()..color = const Color(0xFFEF4444));
+    canvas.drawPath(upper, Paint()..color = const Color(0xFFB91C1C)..style = PaintingStyle.stroke..strokeWidth = 3);
+  }
+
+  void _drawPlane(Canvas canvas) {
+    // Fuselage
+    final body = Path()
+      ..moveTo(14, 52)..lineTo(76, 36)..quadraticBezierTo(88, 38, 86, 48)..lineTo(14, 60)..close();
+    canvas.drawPath(body, Paint()..color = Colors.white);
+    canvas.drawPath(body, Paint()..color = const Color(0xFF0284C7)..style = PaintingStyle.stroke..strokeWidth = 3);
+
+    // Wings
+    final wing = Path()..moveTo(42, 45)..lineTo(32, 20)..lineTo(48, 22)..lineTo(62, 43)..close();
+    canvas.drawPath(wing, Paint()..color = const Color(0xFF38BDF8));
+
+    // Tail
+    final tail = Path()..moveTo(16, 52)..lineTo(10, 32)..lineTo(22, 34)..close();
+    canvas.drawPath(tail, Paint()..color = const Color(0xFF0284C7));
+  }
+
+  void _drawBicycle(Canvas canvas) {
+    final wheelPaint = Paint()..color = const Color(0xFF334155)..style = PaintingStyle.stroke..strokeWidth = 4;
+    // Wheels
+    canvas.drawCircle(const Offset(28, 62), 16, wheelPaint);
+    canvas.drawCircle(const Offset(72, 62), 16, wheelPaint);
+
+    // Frame
+    final framePaint = Paint()..color = const Color(0xFF10B981)..style = PaintingStyle.stroke..strokeWidth = 3.5;
+    canvas.drawLine(const Offset(28, 62), const Offset(46, 44), framePaint);
+    canvas.drawLine(const Offset(46, 44), const Offset(70, 44), framePaint);
+    canvas.drawLine(const Offset(70, 44), const Offset(72, 62), framePaint);
+    canvas.drawLine(const Offset(28, 62), const Offset(54, 62), framePaint);
+    canvas.drawLine(const Offset(54, 62), const Offset(46, 44), framePaint);
+
+    // Seat & Handle
+    canvas.drawLine(const Offset(42, 38), const Offset(50, 38), Paint()..color = const Color(0xFF0F172A)..strokeWidth = 3.5..strokeCap = StrokeCap.round);
+    canvas.drawLine(const Offset(68, 36), const Offset(74, 36), Paint()..color = const Color(0xFF0F172A)..strokeWidth = 3.5..strokeCap = StrokeCap.round);
+  }
+
+  void _drawSmartBadge(Canvas canvas, String rawKey) {
+    final keyLower = rawKey.toLowerCase();
+    // Choose emoji or icon matching common words
+    String symbol = '⭐';
+    Color bg1 = const Color(0xFFFEF08A);
+    Color bg2 = const Color(0xFFFDE047);
+    Color border = const Color(0xFFEAB308);
+
+    if (keyLower.contains('elang')) {
+      symbol = '🦅';
+      bg1 = const Color(0xFFE0E7FF);
+      bg2 = const Color(0xFFC7D2FE);
+      border = const Color(0xFF6366F1);
+    } else if (keyLower.contains('gajah')) {
+      symbol = '🐘';
+      bg1 = const Color(0xFFF1F5F9);
+      bg2 = const Color(0xFFE2E8F0);
+      border = const Color(0xFF64748B);
+    } else if (keyLower.contains('harimau')) {
+      symbol = '🐯';
+      bg1 = const Color(0xFFFFEDD5);
+      bg2 = const Color(0xFFFED7AA);
+      border = const Color(0xFFF97316);
+    } else if (keyLower.contains('zebra')) {
+      symbol = '🦓';
+      bg1 = const Color(0xFFF8FAFC);
+      bg2 = const Color(0xFFE2E8F0);
+      border = const Color(0xFF334155);
+    } else if (keyLower.contains('sapi')) {
+      symbol = '🐮';
+      bg1 = const Color(0xFFDCFCE7);
+      bg2 = const Color(0xFFBBF7D0);
+      border = const Color(0xFF22C55E);
+    } else if (keyLower.contains('wortel')) {
+      symbol = '🥕';
+      bg1 = const Color(0xFFFFEDD5);
+      bg2 = const Color(0xFFFDBA74);
+      border = const Color(0xFFEA580C);
+    } else if (keyLower.contains('udang')) {
+      symbol = '🦐';
+      bg1 = const Color(0xFFFFE4E6);
+      bg2 = const Color(0xFFFECDD3);
+      border = const Color(0xFFF43F5E);
+    } else if (keyLower.contains('lemon')) {
+      symbol = '🍋';
+      bg1 = const Color(0xFFFEF9C3);
+      bg2 = const Color(0xFFFDE047);
+      border = const Color(0xFFCA8A04);
+    } else if (keyLower.contains('nanas')) {
+      symbol = '🍍';
+      bg1 = const Color(0xFFFEF3C7);
+      bg2 = const Color(0xFFFDE68A);
+      border = const Color(0xFFD97706);
+    } else if (keyLower.contains('obat')) {
+      symbol = '💊';
+      bg1 = const Color(0xFFE0F2FE);
+      bg2 = const Color(0xFFBAE6FD);
+      border = const Color(0xFF0284C7);
+    } else if (keyLower.contains('foto')) {
+      symbol = '📸';
+      bg1 = const Color(0xFFF3E8FF);
+      bg2 = const Color(0xFFE9D5FF);
+      border = const Color(0xFFA855F7);
+    } else if (keyLower.contains('vas')) {
+      symbol = '🏺';
+      bg1 = const Color(0xFFEDE9FE);
+      bg2 = const Color(0xFFDDD6FE);
+      border = const Color(0xFF7C3AED);
+    } else if (keyLower.contains('yoyo')) {
+      symbol = '🪀';
+      bg1 = const Color(0xFFFCE7F3);
+      bg2 = const Color(0xFFFBCFE8);
+      border = const Color(0xFFEC4899);
+    } else if (keyLower.contains('xilofon')) {
+      symbol = '🎵';
+      bg1 = const Color(0xFFCCFBF1);
+      bg2 = const Color(0xFF99F6E4);
+      border = const Color(0xFF0D9488);
+    } else if (keyLower.contains('burung')) {
+      symbol = '🐦';
+      bg1 = const Color(0xFFBAE6FD);
+      bg2 = const Color(0xFF7DD3FC);
+      border = const Color(0xFF0284C7);
+    } else if (keyLower.contains('kereta')) {
+      symbol = '🚂';
+      bg1 = const Color(0xFFFEE2E2);
+      bg2 = const Color(0xFFFECACA);
+      border = const Color(0xFFEF4444);
+    } else {
+      symbol = rawKey.isNotEmpty ? rawKey.substring(0, 1).toUpperCase() : '✨';
+    }
+
+    // Badge Background
+    final rrect = RRect.fromRectAndRadius(const Rect.fromLTWH(10, 10, 80, 80), const Radius.circular(22));
+    final bgPaint = Paint()
+      ..shader = LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [bg1, bg2])
+          .createShader(const Rect.fromLTWH(10, 10, 80, 80));
+    canvas.drawRRect(rrect, bgPaint);
+    canvas.drawRRect(rrect, Paint()..color = border..style = PaintingStyle.stroke..strokeWidth = 3.5);
+
+    // Draw Emoji / Icon
+    final tp = TextPainter(
+      text: TextSpan(
+        text: symbol,
+        style: const TextStyle(fontSize: 42),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    tp.paint(canvas, Offset(50 - tp.width / 2, 50 - tp.height / 2));
   }
 
   @override
