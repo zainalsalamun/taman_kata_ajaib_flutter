@@ -10,6 +10,7 @@ import 'screens/tracing_screen.dart';
 import 'screens/train_screen.dart';
 import 'screens/balloon_screen.dart';
 import 'screens/quiz_screen.dart';
+import 'screens/sticker_playground_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -96,6 +97,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         _mascotText = 'Letuskan balon kata yang tepat ya!';
       } else if (route == 'quiz') {
         _mascotText = 'Dengarkan soalnya, lalu pencet gambar yang benar!';
+      } else if (route == 'playground') {
+        _mascotText = 'Tempel dan geser stikermu untuk menghias taman ajaib!';
       }
     });
   }
@@ -114,6 +117,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           StorageService.saveStars(_stars);
           StorageService.saveUnlockedStickers(_unlockedStickers);
         },
+        onGoToPlayground: () => _navigateTo('playground'),
       ),
     );
   }
@@ -184,6 +188,12 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         return QuizScreen(
           onVictory: _addStars,
           onBack: () => _navigateTo('map'),
+        );
+      case 'playground':
+        return StickerPlaygroundScreen(
+          unlockedStickers: _unlockedStickers,
+          onBack: () => _navigateTo('map'),
+          onOpenAlbum: _openStickersAlbum,
         );
       case 'map':
       default:
