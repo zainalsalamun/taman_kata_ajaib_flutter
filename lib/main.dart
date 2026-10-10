@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -5,6 +6,7 @@ import 'services/storage_service.dart';
 import 'widgets/ui_header.dart';
 import 'widgets/sticker_album_dialog.dart';
 import 'widgets/parental_gate_dialog.dart';
+import 'widgets/rest_time_dialog.dart';
 import 'screens/map_screen.dart';
 import 'screens/tracing_screen.dart';
 import 'screens/train_screen.dart';
@@ -60,21 +62,84 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
   String _currentRoute = 'map';
   String _mascotText = 'Hai! Ayo bertualang dan belajar membaca bersama Miko!';
 
+  // Screen Time Limiter variables
+  int _limitMinutes = 0;
+  int _todayPlayTimeSeconds = 0;
+  Timer? _playTimer;
+  bool _isRestDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
     _loadStoredData();
   }
 
+  @override
+  void dispose() {
+    _playTimer?.cancel();
+    super.dispose();
+  }
+
   void _loadStoredData() async {
     final stars = await StorageService.getStars();
     final stickers = await StorageService.getUnlockedStickers();
+    final limit = await StorageService.getScreenTimeLimit();
+    final todaySec = await StorageService.getTodayPlayTimeSeconds();
     if (mounted) {
       setState(() {
         _stars = stars;
         _unlockedStickers = stickers;
+        _limitMinutes = limit;
+        _todayPlayTimeSeconds = todaySec;
       });
+      _startPlayTimer();
     }
+  }
+
+  void _startPlayTimer() {
+    _playTimer?.cancel();
+    _playTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _todayPlayTimeSeconds++;
+      if (_todayPlayTimeSeconds % 60 == 0) {
+        StorageService.addPlayTimeSeconds(60);
+      }
+      _checkScreenTimeLimit();
+    });
+  }
+
+  void _checkScreenTimeLimit() {
+    if (_limitMinutes > 0 &&
+        _todayPlayTimeSeconds >= _limitMinutes * 60 &&
+        !_isRestDialogOpen &&
+        mounted) {
+      _triggerRestDialog();
+    }
+  }
+
+  void _triggerRestDialog() {
+    _isRestDialogOpen = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => RestTimeDialog(
+        onAdd15Minutes: () {
+          setState(() {
+            _limitMinutes += 15;
+          });
+          StorageService.saveScreenTimeLimit(_limitMinutes);
+          _isRestDialogOpen = false;
+        },
+        onDismissLimit: () {
+          setState(() {
+            _limitMinutes = 0;
+          });
+          StorageService.saveScreenTimeLimit(0);
+          _isRestDialogOpen = false;
+        },
+      ),
+    ).then((_) {
+      _isRestDialogOpen = false;
+    });
   }
 
   void _addStars(int count) {
@@ -125,7 +190,15 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
   void _openParentalGate() {
     showDialog(
       context: context,
-      builder: (_) => ParentalGateDialog(totalStars: _stars),
+      builder: (_) => ParentalGateDialog(
+        totalStars: _stars,
+        onLimitChanged: (newLimit) {
+          setState(() {
+            _limitMinutes = newLimit;
+          });
+          _checkScreenTimeLimit();
+        },
+      ),
     );
   }
 
