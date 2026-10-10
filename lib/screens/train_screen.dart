@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
@@ -65,6 +66,7 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
   void _onSyllableTapped(String syl) {
     if (_filledSlots.length >= _current.syllables.length) return;
 
+    HapticFeedback.lightImpact();
     _audio.speak(syl);
 
     setState(() {
@@ -76,8 +78,10 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
       final formed = _filledSlots.join('');
       if (formed == _current.word) {
         // Success
+        HapticFeedback.mediumImpact();
+        _audio.playSfx('tuut');
         Future.delayed(const Duration(milliseconds: 300), () {
-          _audio.speak('${_current.word}! Hebat sekali!');
+          _audio.speak('Tuut tuut! ${_current.word}! Kereta meluncur!');
           _trainAnimController.forward();
 
           Future.delayed(const Duration(milliseconds: 1400), () {
