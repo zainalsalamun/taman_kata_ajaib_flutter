@@ -1,10 +1,17 @@
-import 'dart:math';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/storage_service.dart';
 
 class ParentalGateDialog extends StatefulWidget {
   final int totalStars;
-  const ParentalGateDialog({super.key, required this.totalStars});
+  final Function(int newLimitMinutes)? onLimitChanged;
+
+  const ParentalGateDialog({
+    super.key,
+    required this.totalStars,
+    this.onLimitChanged,
+  });
 
   @override
   State<ParentalGateDialog> createState() => _ParentalGateDialogState();
@@ -16,16 +23,54 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
   late int _answer;
   final TextEditingController _controller = TextEditingController();
   bool _isUnlocked = false;
+  int _limitMinutes = 0;
+  int _todaySeconds = 0;
 
   @override
   void initState() {
     super.initState();
     _generateMath();
+    _loadScreenTime();
+  }
+
+  void _loadScreenTime() async {
+    final limit = await StorageService.getScreenTimeLimit();
+    final todaySec = await StorageService.getTodayPlayTimeSeconds();
+    if (mounted) {
+      setState(() {
+        _limitMinutes = limit;
+        _todaySeconds = todaySec;
+      });
+    }
+  }
+
+  void _setLimit(int minutes) {
+    setState(() {
+      _limitMinutes = minutes;
+    });
+    StorageService.saveScreenTimeLimit(minutes);
+    widget.onLimitChanged?.call(minutes);
+  }
+
+  void _resetTodayTime() async {
+    await StorageService.resetTodayPlayTime();
+    if (mounted) {
+      setState(() {
+        _todaySeconds = 0;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Waktu bermain hari ini telah di-reset.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _generateMath() {
-    _a = Random().nextInt(7) + 4;
-    _b = Random().nextInt(7) + 3;
+    final rand = math.Random();
+    _a = rand.nextInt(7) + 4;
+    _b = rand.nextInt(7) + 3;
     _answer = _a + _b;
   }
 
@@ -179,30 +224,120 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                 ],
               ),
             ] else ...[
+              // 1. Screen Time Control Section
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
+                  color: const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '⏱️ Batas Waktu Main Harian',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF6B21A8),
+                          ),
+                        ),
+                        if (_todaySeconds > 0)
+                          GestureDetector(
+                            onTap: _resetTodayTime,
+                            child: Text(
+                              'Reset Hari Ini',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF9333EA),
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Minute Chips
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [0, 15, 30, 45, 60].map((mins) {
+                          final isSel = _limitMinutes == mins;
+                          return GestureDetector(
+                            onTap: () => _setLimit(mins),
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: isSel ? const Color(0xFF7E22CE) : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isSel ? const Color(0xFF6B21A8) : const Color(0xFFD8B4FE),
+                                ),
+                              ),
+                              child: Text(
+                                mins == 0 ? 'Mati' : '$mins Menit',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSel ? Colors.white : const Color(0xFF6B21A8),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Status Indicator
+                    Text(
+                      _limitMinutes == 0
+                          ? '• Status: Bermain bebas tanpa batas waktu.'
+                          : '• Waktu hari ini: ${(_todaySeconds / 60).floor()} menit / $_limitMinutes menit (Sisa: ${math.max(0, _limitMinutes - (_todaySeconds / 60).floor())} mnt).',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF581C87),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 2. Child Progress Statistics
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('• Bintang Terkumpul: ${widget.totalStars} Bintang ⭐', style: _statStyle()),
-                    const SizedBox(height: 6),
-                    Text('• Materi Dikuasai: Fonik Huruf A–D, Suku Kata 2 Kata.', style: _statStyle()),
-                    const SizedBox(height: 6),
-                    Text('• Mode: 100% Offline (Local-First), Bebas Iklan.', style: _statStyle()),
-                    const SizedBox(height: 6),
-                    Text('• Rekomendasi: Ajak anak menyebutkan kata berawalan B & C di rumah.', style: _statStyle()),
+                    const SizedBox(height: 4),
+                    Text('• Materi: Fonik Huruf A–Z (26 Huruf), Kereta Suku Kata (16 Kata).', style: _statStyle()),
+                    const SizedBox(height: 4),
+                    Text('• Mode: 100% Offline (Local-First), Aman & Bebas Iklan.', style: _statStyle()),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
+
               SizedBox(
                 width: double.infinity,
-                height: 44,
+                height: 42,
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
@@ -214,7 +349,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                   child: Text(
                     'Kembali ke Game',
                     style: GoogleFonts.fredoka(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
