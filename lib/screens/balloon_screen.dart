@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
@@ -97,12 +98,16 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
   void _onBalloonTapped(_BalloonItem item) {
     if (_poppedWords.contains(item.word)) return;
 
+    HapticFeedback.lightImpact();
+
     setState(() {
       _poppedWords.add(item.word);
     });
 
     if (item.word == _current.target) {
-      _audio.speak('${item.word}! Benar!');
+      HapticFeedback.mediumImpact();
+      _audio.playSfx('pop');
+      _audio.speak('Pop! ${item.word}! Benar!');
 
       Future.delayed(const Duration(milliseconds: 400), () {
         widget.onVictory(3);
