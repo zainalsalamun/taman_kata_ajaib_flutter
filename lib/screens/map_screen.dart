@@ -214,6 +214,7 @@ class MapScreen extends StatelessWidget {
                   height: 38,
                   child: ElevatedButton(
                     onPressed: () {
+                      AudioService().playSfx('whoosh');
                       AudioService().speak('Ayo main $title!');
                       onTap();
                     },
