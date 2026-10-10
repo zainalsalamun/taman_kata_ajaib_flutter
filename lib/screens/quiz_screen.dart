@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
@@ -47,6 +48,8 @@ class _QuizScreenState extends State<QuizScreen> {
   void _onChoiceTapped(String choiceKey) {
     if (_isAnswered) return;
 
+    HapticFeedback.lightImpact();
+
     setState(() {
       _selectedKey = choiceKey;
     });
@@ -55,6 +58,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
     if (choiceKey == _current.answerKey) {
       // Correct!
+      HapticFeedback.mediumImpact();
+      _audio.playSfx('ding');
       setState(() {
         _isAnswered = true;
       });
