@@ -53,6 +53,7 @@ class AudioService {
   }
 
   bool get isMuted => _isMuted;
+  String get engineStatus => _platform.getEngineStatus();
 
   bool toggleMute() {
     _isMuted = !_isMuted;
