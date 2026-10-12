@@ -13,6 +13,7 @@ import 'screens/train_screen.dart';
 import 'screens/balloon_screen.dart';
 import 'screens/quiz_screen.dart';
 import 'screens/sticker_playground_screen.dart';
+import 'screens/storybook_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -164,6 +165,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         _mascotText = 'Dengarkan soalnya, lalu pencet gambar yang benar!';
       } else if (route == 'playground') {
         _mascotText = 'Tempel dan geser stikermu untuk menghias taman ajaib!';
+      } else if (route == 'storybook') {
+        _mascotText = 'Buka bukunya dan dengarkan dongeng ajaib bersama Miko!';
       }
     });
   }
@@ -267,6 +270,11 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           unlockedStickers: _unlockedStickers,
           onBack: () => _navigateTo('map'),
           onOpenAlbum: _openStickersAlbum,
+        );
+      case 'storybook':
+        return StorybookScreen(
+          onVictory: _addStars,
+          onBack: () => _navigateTo('map'),
         );
       case 'map':
       default:
