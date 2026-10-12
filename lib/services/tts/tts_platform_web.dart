@@ -5,6 +5,19 @@ import 'tts_platform.dart';
 @JS('speechSynthesis')
 external SpeechSynthesis? get _synth;
 
+@JS('MmsTtsEngine')
+external JSMmsTtsEngine? get _mmsEngine;
+
+@JS()
+extension type JSMmsTtsEngine._(JSObject _) implements JSObject {
+  external JSPromise<JSBoolean> speak(String text);
+  external void stop();
+  external bool isReady();
+  external String getStatus();
+  external String getStatusMessage();
+  external void setMmsEnabled(bool enabled);
+}
+
 @JS()
 extension type SpeechSynthesis._(JSObject _) implements JSObject {
   external void cancel();
@@ -83,11 +96,24 @@ class TtsPlatformWeb implements TtsPlatform {
   @override
   Future<void> speak(String text) async {
     try {
-      final synth = _getSynth();
-      if (synth == null) return;
-
       final cleaned = _sanitizeText(text);
       if (cleaned.isEmpty) return;
+
+      // 1. Prioritize Meta MMS-TTS Engine if available and ready
+      final mms = _mmsEngine;
+      if (mms != null && mms.isReady()) {
+        try {
+          final jsPromise = mms.speak(cleaned);
+          final res = await jsPromise.toDart;
+          if (res.toDart) {
+            return; // Successfully spoken via Meta MMS-TTS!
+          }
+        } catch (_) {}
+      }
+
+      // 2. Fallback to clean Web Speech API
+      final synth = _getSynth();
+      if (synth == null) return;
 
       final currentId = ++_speakRequestId;
 
@@ -127,6 +153,7 @@ class TtsPlatformWeb implements TtsPlatform {
   @override
   Future<void> stop() async {
     try {
+      _mmsEngine?.stop();
       final synth = _getSynth();
       if (synth != null) {
         synth.cancel();
@@ -137,6 +164,18 @@ class TtsPlatformWeb implements TtsPlatform {
   @override
   void dispose() {
     stop();
+  }
+
+  @override
+  String getEngineStatus() {
+    final mms = _mmsEngine;
+    if (mms != null) {
+      if (mms.isReady()) {
+        return 'AI Indonesia (Meta MMS-TTS Aktif)';
+      }
+      return mms.getStatusMessage();
+    }
+    return 'Web Speech API Bawaan';
   }
 
   String _sanitizeText(String input) {
