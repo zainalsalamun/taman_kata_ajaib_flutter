@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/storage_service.dart';
+import '../services/audio_service.dart';
 
 class ParentalGateDialog extends StatefulWidget {
   final int totalStars;
@@ -330,6 +331,8 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                     Text('• Materi: Fonik Huruf A–Z (26 Huruf), Kereta Suku Kata (16 Kata).', style: _statStyle()),
                     const SizedBox(height: 4),
                     Text('• Mode: 100% Offline (Local-First), Aman & Bebas Iklan.', style: _statStyle()),
+                    const SizedBox(height: 4),
+                    Text('• Mesin Suara: ${AudioService().engineStatus}', style: _statStyle()),
                   ],
                 ),
               ),
