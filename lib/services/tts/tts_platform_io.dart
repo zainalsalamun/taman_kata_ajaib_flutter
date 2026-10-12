@@ -36,6 +36,9 @@ class TtsPlatformIo implements TtsPlatform {
     _flutterTts.stop();
   }
 
+  @override
+  String getEngineStatus() => 'Sistem Native (Android/iOS)';
+
   String _sanitizeText(String input) {
     return input
         .replaceAll(RegExp(r'[\u{1F300}-\u{1FAFF}]', unicode: true), '')
