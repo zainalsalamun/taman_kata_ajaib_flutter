@@ -1,0 +1,3 @@
+# Ignore huge binary/model blobs in git
+*.js
+!README.md
