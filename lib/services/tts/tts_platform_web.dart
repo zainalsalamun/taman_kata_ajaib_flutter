@@ -16,6 +16,8 @@ extension type JSMmsTtsEngine._(JSObject _) implements JSObject {
   external String getStatus();
   external String getStatusMessage();
   external void setMmsEnabled(bool enabled);
+  external bool hasCached(String text);
+  external void preload(String text);
 }
 
 @JS()
@@ -80,15 +82,59 @@ class TtsPlatformWeb implements TtsPlatform {
       final synth = _getSynth();
       if (synth == null) return;
       final voices = synth.getVoices().toDart;
+      
+      SpeechSynthesisVoice? bestVoice;
+      int bestScore = -1;
+
       for (final v in voices) {
-        final lang = v.lang;
-        if (lang.isNotEmpty) {
-          final langLower = lang.toLowerCase();
-          if (langLower.startsWith('id') || langLower.contains('indonesia')) {
-            _indonesianVoice = v;
-            break;
-          }
+        final lang = v.lang.toLowerCase();
+        final name = v.name.toLowerCase();
+
+        final isIndonesian = lang.startsWith('id') ||
+            lang.contains('indonesia') ||
+            name.contains('indonesia') ||
+            name.contains('bahasa');
+
+        if (!isIndonesian) continue;
+
+        int score = 10;
+
+        // Microsoft / Edge Natural & Neural voices (highest fidelity human recordings)
+        if (name.contains('natural') || name.contains('neural')) {
+          score += 100;
         }
+        // Google online cloud natural voice in Chrome
+        if (name.contains('google')) {
+          score += 85;
+        }
+        // Apple Damayanti / Siri Premium voices in macOS & iOS
+        if (name.contains('damayanti') ||
+            name.contains('siri') ||
+            name.contains('premium') ||
+            name.contains('enhanced')) {
+          score += 75;
+        }
+        // Specific natural persona names (Gadis, Ardi, etc.)
+        if (name.contains('gadis') || name.contains('ardi')) {
+          score += 50;
+        }
+        // Exact locale match
+        if (lang == 'id-id' || lang == 'id_id') {
+          score += 20;
+        }
+        // Penalize robotic/compact synthesizers
+        if (name.contains('compact') || name.contains('espeak')) {
+          score -= 40;
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestVoice = v;
+        }
+      }
+
+      if (bestVoice != null) {
+        _indonesianVoice = bestVoice;
       }
     } catch (_) {}
   }
@@ -99,54 +145,84 @@ class TtsPlatformWeb implements TtsPlatform {
       final cleaned = _sanitizeText(text);
       if (cleaned.isEmpty) return;
 
-      // 1. Prioritize Meta MMS-TTS Engine if available and ready
+      // Ensure voices are loaded
+      if (_indonesianVoice == null) {
+        _loadVoices();
+      }
+
       final mms = _mmsEngine;
-      if (mms != null && mms.isReady()) {
+
+      // 1. Instant 0ms memory playback if preloaded/cached in MmsTtsEngine AudioBuffer
+      if (mms != null && mms.hasCached(cleaned)) {
         try {
           final jsPromise = mms.speak(cleaned);
           final res = await jsPromise.toDart;
           if (res.toDart) {
-            return; // Successfully spoken via Meta MMS-TTS!
+            return; // Spoken instantly in 0ms!
           }
         } catch (_) {}
       }
 
-      // 2. Fallback to clean Web Speech API
+      // 2. High-quality Web Speech API with natural human settings
+      // If browser has a ranked natural human voice (Google Bahasa Indonesia,
+      // Damayanti Siri, or Microsoft Gadis Natural), speak IMMEDIATELY (0ms)!
       final synth = _getSynth();
-      if (synth == null) return;
+      if (synth != null && _indonesianVoice != null) {
+        final currentId = ++_speakRequestId;
 
-      final currentId = ++_speakRequestId;
+        synth.cancel();
+        if (synth.paused) {
+          synth.resume();
+        }
 
-      synth.cancel();
-      if (synth.paused) {
-        synth.resume();
-      }
+        if (currentId != _speakRequestId) return;
 
-      // Small async delay allows browser's speech synthesis engine
-      // to cleanly flush cancellation before queuing the next utterance
-      await Future<void>.delayed(const Duration(milliseconds: 35));
-
-      // Drop if superseded by a newer speak request during the brief wait
-      if (currentId != _speakRequestId) return;
-
-      final utterance = SpeechSynthesisUtterance();
-      utterance.text = cleaned;
-      utterance.rate = 0.90; // Natural Indonesian pacing for early learners
-      utterance.pitch = 1.20; // Cheerful tone for kids
-      utterance.volume = 1.0;
-
-      if (_indonesianVoice != null) {
+        final utterance = SpeechSynthesisUtterance();
+        utterance.text = cleaned;
+        utterance.rate = 0.94; // Natural human cadence for clear comprehension
+        utterance.pitch = 1.0;  // Authentic human vocal pitch (eliminates robotic distortion)
+        utterance.volume = 1.0;
         utterance.voice = _indonesianVoice;
         utterance.lang = _indonesianVoice!.lang;
-      } else {
-        utterance.lang = 'id-ID';
+
+        // Silent error handler ensures cancellations never throw or log error spam
+        utterance.onError = ((JSObject _) {}).toJS;
+        utterance.onEnd = ((JSObject _) {}).toJS;
+
+        synth.speak(utterance);
+
+        // Preload into audio cache in the background for instant AudioBuffer next time
+        if (mms != null) {
+          mms.preload(cleaned);
+        }
+        return;
       }
 
-      // Silent error handler ensures cancellations never throw or log error spam
-      utterance.onError = ((JSObject _) {}).toJS;
-      utterance.onEnd = ((JSObject _) {}).toJS;
+      // 3. Fallback to MMS engine (fetches stream or ONNX inference)
+      if (mms != null) {
+        try {
+          final jsPromise = mms.speak(cleaned);
+          final res = await jsPromise.toDart;
+          if (res.toDart) return;
+        } catch (_) {}
+      }
 
-      synth.speak(utterance);
+      // 4. Ultimate fallback to standard Web Speech
+      if (synth != null) {
+        synth.cancel();
+        if (synth.paused) synth.resume();
+
+        final utterance = SpeechSynthesisUtterance();
+        utterance.text = cleaned;
+        utterance.rate = 0.94;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        utterance.lang = 'id-ID';
+        utterance.onError = ((JSObject _) {}).toJS;
+        utterance.onEnd = ((JSObject _) {}).toJS;
+
+        synth.speak(utterance);
+      }
     } catch (_) {}
   }
 
@@ -169,13 +245,13 @@ class TtsPlatformWeb implements TtsPlatform {
   @override
   String getEngineStatus() {
     final mms = _mmsEngine;
-    if (mms != null) {
-      if (mms.isReady()) {
-        return 'AI Indonesia (Meta MMS-TTS Aktif)';
-      }
-      return mms.getStatusMessage();
+    if (mms != null && mms.isReady()) {
+      return 'AI Offline (Meta MMS-TTS Aktif)';
     }
-    return 'Web Speech API Bawaan';
+    if (_indonesianVoice != null) {
+      return 'Suara Alami: ${_indonesianVoice!.name}';
+    }
+    return 'Web Speech Alami (id-ID)';
   }
 
   String _sanitizeText(String input) {
