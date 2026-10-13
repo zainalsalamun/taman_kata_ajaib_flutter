@@ -157,64 +157,207 @@
     }
 
     /**
-     * Synthesize and play Indonesian speech
-     * Returns true if spoken successfully, false if caller should fallback to TTS
+     * Check if a phrase is already decoded in memory cache (0ms playback)
+     */
+    hasCached(text) {
+      if (!text) return false;
+      return this.cache.has(text.trim().toLowerCase());
+    }
+
+    /**
+     * Preload and decode a phrase into Web Audio memory cache
+     */
+    async preload(text) {
+      const clean = text.trim();
+      if (!clean) return;
+      const key = clean.toLowerCase();
+      if (this.cache.has(key)) return;
+
+      try {
+        const ctx = this.getAudioContext();
+        if (!ctx) return;
+        const encoded = encodeURIComponent(clean);
+        const url = 'https://translate.google.com/translate_tts?ie=UTF-8&q=' + encoded + '&tl=id&client=tw-ob';
+        const resp = await fetch(url).catch(() => null);
+        if (!resp || !resp.ok) return;
+        const arrayBuf = await resp.arrayBuffer();
+        const audioBuf = await ctx.decodeAudioData(arrayBuf);
+        if (this.cache.size > 250) {
+          const firstKey = this.cache.keys().next().value;
+          this.cache.delete(firstKey);
+        }
+        this.cache.set(key, audioBuf);
+      } catch (_) {}
+    }
+
+    /**
+     * Preload all game vocabulary in the background so all taps respond in 0.0ms realtime!
+     */
+    async preloadCoreVocabulary() {
+      const vocabulary = [
+        // Syllables (crucial for instant Train taps)
+        "A", "BO", "LA", "BU", "KU", "RO", "TI", "CING", "MO", "BIL", "DA",
+        "KE", "RE", "TA", "SE", "PE", "PA", "TU", "WAT", "RU", "MAH",
+        "PI", "SANG", "TO", "I", "KAN", "JE", "RUK", "BA", "RING", "MA",
+        "SA", "KA", "BE", "PU", "TA", "KUN", "JA", "ROK",
+        // Train Words
+        "BOLA", "BUKU", "ROTI", "KUCING", "MOBIL", "KUDA", "KERETA", "SEPEDA",
+        "SEPATU", "PESAWAT", "RUMAH", "PISANG", "TOPI", "IKAN", "JERUK", "BURUNG",
+        "APEL", "MATA", "NAGA", "RUSA",
+        // Celebrations & Audio Phrases
+        "Wah, hebat sekali!", "Pintar!", "Luar biasa!", "Bagus sekali!",
+        "Hore, kamu berhasil!", "Keren banget!", "Tuut tuut! Kereta meluncur!",
+        "Pop! Benar!",
+        // Balloon Words
+        "SAPI", "KERA", "KURA", "MEJA", "MAMA", "MADU", "PIRING", "PAYUNG", "PINTU"
+      ];
+
+      for (const phrase of vocabulary) {
+        if (!this.cache.has(phrase.toLowerCase())) {
+          await this.preload(phrase);
+          await new Promise(r => setTimeout(r, 60)); // Gentle background throttle
+        }
+      }
+    }
+
+    /**
+     * Synthesize and play Indonesian speech with 0ms realtime response
      */
     async speak(text) {
       if (!this.useMms) return false;
-      if (this.status !== 'ready') {
-        const ready = await this.init();
-        if (!ready) return false;
-      }
-
       this.stop();
 
-      const cacheKey = text.trim().toLowerCase();
-      const ctx = this.getAudioContext();
-      if (!ctx) return false;
+      const cleanText = text.trim();
+      if (!cleanText) return false;
+      const cacheKey = cleanText.toLowerCase();
 
-      // 1. Play from instant memory cache if already synthesized
-      if (this.cache.has(cacheKey)) {
+      // 1. Instant 0ms playback from memory cache if already preloaded/cached
+      const ctx = this.getAudioContext();
+      if (ctx && this.cache.has(cacheKey)) {
         this._playBuffer(this.cache.get(cacheKey));
         return true;
       }
 
-      // 2. Perform ONNX Neural Inference
-      try {
-        const sequence = this._tokenize(text);
-        if (!sequence) return false;
+      // 2. Perform ONNX Neural Inference if model pack is ready
+      if (this.status === 'ready') {
+        try {
+          const sequence = this._tokenize(cleanText);
+          if (sequence && ctx) {
+            const seqBigInt = BigInt64Array.from(sequence.map(BigInt));
+            const inputTensor = new ort.Tensor('int64', seqBigInt, [1, sequence.length]);
+            const lengthTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(sequence.length)]), [1]);
+            const scalesTensor = new ort.Tensor('float32', Float32Array.from([0.667, 1.0, 0.8]), [3]);
 
-        const seqBigInt = BigInt64Array.from(sequence.map(BigInt));
-        const inputTensor = new ort.Tensor('int64', seqBigInt, [1, sequence.length]);
-        const lengthTensor = new ort.Tensor('int64', BigInt64Array.from([BigInt(sequence.length)]), [1]);
-        const scalesTensor = new ort.Tensor('float32', Float32Array.from([0.667, 1.0, 0.8]), [3]);
+            const feeds = {
+              input: inputTensor,
+              input_lengths: lengthTensor,
+              scales: scalesTensor
+            };
 
-        const feeds = {
-          input: inputTensor,
-          input_lengths: lengthTensor,
-          scales: scalesTensor
-        };
+            const results = await this.session.run(feeds);
+            const outputKey = Object.keys(results)[0];
+            const outputTensor = results[outputKey];
+            if (outputTensor && outputTensor.data) {
+              const floatData = outputTensor.data;
+              const audioBuffer = ctx.createBuffer(1, floatData.length, 16000);
+              audioBuffer.getChannelData(0).set(floatData);
 
-        const results = await this.session.run(feeds);
-        const outputKey = Object.keys(results)[0];
-        const outputTensor = results[outputKey];
-        if (!outputTensor || !outputTensor.data) return false;
+              if (this.cache.size > 250) {
+                const firstKey = this.cache.keys().next().value;
+                this.cache.delete(firstKey);
+              }
+              this.cache.set(cacheKey, audioBuffer);
 
-        const floatData = outputTensor.data;
-        const audioBuffer = ctx.createBuffer(1, floatData.length, 16000);
-        audioBuffer.getChannelData(0).set(floatData);
-
-        // Store in cache (limit to 50 phrases to prevent memory explosion)
-        if (this.cache.size > 50) {
-          const firstKey = this.cache.keys().next().value;
-          this.cache.delete(firstKey);
+              this._playBuffer(audioBuffer);
+              return true;
+            }
+          }
+        } catch (err) {
+          console.warn('[MmsTtsEngine] Inferensi MMS gagal, beralih ke stream audio:', err);
         }
-        this.cache.set(cacheKey, audioBuffer);
+      }
 
-        this._playBuffer(audioBuffer);
-        return true;
-      } catch (err) {
-        console.warn('[MmsTtsEngine] Inferensi MMS gagal, fallback ke Web Speech:', err);
+      // 3. Fallback: Fetch, decode into AudioBuffer, and play immediately
+      try {
+        const streamOk = await this._playAndCacheStream(cleanText);
+        if (streamOk) return true;
+      } catch (_) {}
+
+      // 4. Return false so Flutter immediately falls back to ranked Web Speech natural voice
+      return false;
+    }
+
+    async _playAndCacheStream(text) {
+      const ctx = this.getAudioContext();
+      const cacheKey = text.toLowerCase();
+      const encoded = encodeURIComponent(text);
+      const url = 'https://translate.google.com/translate_tts?ie=UTF-8&q=' + encoded + '&tl=id&client=tw-ob';
+
+      try {
+        if (ctx) {
+          const resp = await fetch(url);
+          if (resp.ok) {
+            const arrayBuf = await resp.arrayBuffer();
+            const audioBuf = await ctx.decodeAudioData(arrayBuf);
+            if (this.cache.size > 250) {
+              const firstKey = this.cache.keys().next().value;
+              this.cache.delete(firstKey);
+            }
+            this.cache.set(cacheKey, audioBuf);
+            this._playBuffer(audioBuf);
+            return true;
+          }
+        }
+
+        // HTML5 Audio fallback - resolves immediately on play, never blocks on onended
+        return new Promise((resolve) => {
+          const audio = new Audio();
+          audio.src = url;
+          audio.volume = 1.0;
+          this.currentAudioElement = audio;
+
+          let done = false;
+          const timer = setTimeout(() => {
+            if (!done) {
+              done = true;
+              resolve(false);
+            }
+          }, 800);
+
+          audio.onplay = () => {
+            if (!done) {
+              done = true;
+              clearTimeout(timer);
+              resolve(true);
+            }
+          };
+
+          audio.onerror = () => {
+            if (!done) {
+              done = true;
+              clearTimeout(timer);
+              resolve(false);
+            }
+          };
+
+          const p = audio.play();
+          if (p !== undefined) {
+            p.then(() => {
+              if (!done) {
+                done = true;
+                clearTimeout(timer);
+                resolve(true);
+              }
+            }).catch(() => {
+              if (!done) {
+                done = true;
+                clearTimeout(timer);
+                resolve(false);
+              }
+            });
+          }
+        });
+      } catch (_) {
         return false;
       }
     }
@@ -236,6 +379,13 @@
           this.currentSource.stop();
         } catch (_) {}
         this.currentSource = null;
+      }
+      if (this.currentAudioElement) {
+        try {
+          this.currentAudioElement.pause();
+          this.currentAudioElement.currentTime = 0;
+        } catch (_) {}
+        this.currentAudioElement = null;
       }
     }
 
@@ -259,10 +409,24 @@
   // Expose global singleton instance
   window.MmsTtsEngine = new MmsTtsEngine();
 
-  // Eager check when window loads (runs in background without blocking UI)
+  // Instant unlock of AudioContext on first touch / tap / click
+  const unlockAudioContext = () => {
+    if (window.MmsTtsEngine) {
+      const ctx = window.MmsTtsEngine.getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    }
+  };
+  ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(evt => {
+    window.addEventListener(evt, unlockAudioContext, { once: true, passive: true });
+  });
+
+  // Background initialization & preloading of core vocabulary (0ms game taps)
   window.addEventListener('load', () => {
     setTimeout(() => {
       window.MmsTtsEngine.init().catch(() => {});
-    }, 1500);
+      window.MmsTtsEngine.preloadCoreVocabulary().catch(() => {});
+    }, 500);
   });
 })();
