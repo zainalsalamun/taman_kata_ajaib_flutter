@@ -37,6 +37,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
   void _loadScreenTime() async {
     final limit = await StorageService.getScreenTimeLimit();
     final todaySec = await StorageService.getTodayPlayTimeSeconds();
+
     if (mounted) {
       setState(() {
         _limitMinutes = limit;
@@ -327,16 +328,18 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('• Bintang Terkumpul: ${widget.totalStars} Bintang ⭐', style: _statStyle()),
-                    const SizedBox(height: 4),
-                    Text('• Materi: Fonik Huruf A–Z (26 Huruf), Kereta Suku Kata (16 Kata).', style: _statStyle()),
-                    const SizedBox(height: 4),
-                    Text('• Mode: 100% Offline (Local-First), Aman & Bebas Iklan.', style: _statStyle()),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+                    Text('• Materi Dikuasai: Fonik Huruf A–Z, Kereta Suku Kata, Dongeng.', style: _statStyle()),
+                    const SizedBox(height: 6),
+                    Text('• Mode: 100% Offline (Local-First), Bebas Iklan & Aman.', style: _statStyle()),
+                    const SizedBox(height: 6),
+                    Text('• Rekomendasi: Bermain santai sambil mendampingi anak mengeja kata.', style: _statStyle()),
+                    const SizedBox(height: 6),
                     Text('• Mesin Suara: ${AudioService().engineStatus}', style: _statStyle()),
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
 
               SizedBox(
                 width: double.infinity,
