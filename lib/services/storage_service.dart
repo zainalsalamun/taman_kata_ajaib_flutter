@@ -9,6 +9,12 @@ class StorageService {
   static const String _keyScreenTimeLimit = 'taman_kata_screen_time_limit';
   static const String _keyPlayTimeSeconds = 'taman_kata_play_time_seconds';
   static const String _keyPlayTimeDate = 'taman_kata_play_time_date';
+  static const String _keyTracingIndex = 'taman_kata_tracing_index';
+  static const String _keyCompletedLetters = 'taman_kata_completed_letters';
+  static const String _keyTrainIndex = 'taman_kata_train_index';
+  static const String _keyBalloonIndex = 'taman_kata_balloon_index';
+  static const String _keyQuizIndex = 'taman_kata_quiz_index';
+  static const String _keyCompletedStories = 'taman_kata_completed_stories';
 
   static Future<int> getStars() async {
     final prefs = await SharedPreferences.getInstance();
@@ -103,6 +109,96 @@ class StorageService {
   static Future<void> resetTodayPlayTime() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyPlayTimeSeconds, 0);
+  }
+
+  // --- JEJAK HURUF (TRACING) ---
+  static Future<int> getTracingIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyTracingIndex) ?? 0;
+  }
+
+  static Future<void> saveTracingIndex(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyTracingIndex, index);
+  }
+
+  static Future<List<String>> getCompletedLetters() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyCompletedLetters);
+    if (jsonStr == null) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => e.toString()).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveCompletedLetters(List<String> letters) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCompletedLetters, jsonEncode(letters));
+  }
+
+  // --- KERETA SUKU KATA (TRAIN) ---
+  static Future<int> getTrainIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyTrainIndex) ?? 0;
+  }
+
+  static Future<void> saveTrainIndex(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyTrainIndex, index);
+  }
+
+  // --- BALON KATA AJAIB (BALLOON) ---
+  static Future<int> getBalloonIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyBalloonIndex) ?? 0;
+  }
+
+  static Future<void> saveBalloonIndex(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyBalloonIndex, index);
+  }
+
+  // --- KUIS SENTUH PINTAR (QUIZ) ---
+  static Future<int> getQuizIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyQuizIndex) ?? 0;
+  }
+
+  static Future<void> saveQuizIndex(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyQuizIndex, index);
+  }
+
+  // --- BUKU CERITA AJAIB (STORYBOOK) ---
+  static Future<List<String>> getCompletedStories() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyCompletedStories);
+    if (jsonStr == null) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => e.toString()).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveCompletedStories(List<String> stories) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyCompletedStories, jsonEncode(stories));
+  }
+
+  // --- RESET SEMUA PROGRES BELAJAR ---
+  static Future<void> resetAllLearningProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyTracingIndex, 0);
+    await prefs.setString(_keyCompletedLetters, jsonEncode([]));
+    await prefs.setInt(_keyTrainIndex, 0);
+    await prefs.setInt(_keyBalloonIndex, 0);
+    await prefs.setInt(_keyQuizIndex, 0);
+    await prefs.setString(_keyCompletedStories, jsonEncode([]));
   }
 }
 
