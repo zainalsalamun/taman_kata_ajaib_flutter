@@ -133,6 +133,8 @@ class ObjectIllustrationWidget extends StatelessWidget {
   }
 }
 
+typedef VectorIllustrationWidget = ObjectIllustrationWidget;
+
 class _ObjectPainter extends CustomPainter {
   final String key;
   _ObjectPainter(this.key);
@@ -579,6 +581,56 @@ class _ObjectPainter extends CustomPainter {
       bg1 = const Color(0xFFFEE2E2);
       bg2 = const Color(0xFFFECACA);
       border = const Color(0xFFEF4444);
+    } else if (keyLower.contains('bunga')) {
+      symbol = '🌸';
+      bg1 = const Color(0xFFFCE7F3);
+      bg2 = const Color(0xFFFBCFE8);
+      border = const Color(0xFFEC4899);
+    } else if (keyLower.contains('matahari')) {
+      symbol = '☀️';
+      bg1 = const Color(0xFFFEF08A);
+      bg2 = const Color(0xFFFDE047);
+      border = const Color(0xFFEAB308);
+    } else if (keyLower.contains('kupu')) {
+      symbol = '🦋';
+      bg1 = const Color(0xFFEDE9FE);
+      bg2 = const Color(0xFFDDD6FE);
+      border = const Color(0xFF8B5CF6);
+    } else if (keyLower.contains('awan')) {
+      symbol = '☁️';
+      bg1 = const Color(0xFFF0F9FF);
+      bg2 = const Color(0xFFE0F2FE);
+      border = const Color(0xFF38BDF8);
+    } else if (keyLower.contains('pelangi')) {
+      symbol = '🌈';
+      bg1 = const Color(0xFFFDF4FF);
+      bg2 = const Color(0xFFF5D0FE);
+      border = const Color(0xFFD946EF);
+    } else if (keyLower.contains('rusa')) {
+      symbol = '🦌';
+      bg1 = const Color(0xFFFEF3C7);
+      bg2 = const Color(0xFFFDE68A);
+      border = const Color(0xFFD97706);
+    } else if (keyLower.contains('pohon')) {
+      symbol = '🌳';
+      bg1 = const Color(0xFFDCFCE7);
+      bg2 = const Color(0xFFBBF7D0);
+      border = const Color(0xFF22C55E);
+    } else if (keyLower.contains('hati')) {
+      symbol = '💖';
+      bg1 = const Color(0xFFFFE4E6);
+      bg2 = const Color(0xFFFECDD3);
+      border = const Color(0xFFF43F5E);
+    } else if (keyLower.contains('ikan')) {
+      symbol = '🐟';
+      bg1 = const Color(0xFFE0F2FE);
+      bg2 = const Color(0xFFBAE6FD);
+      border = const Color(0xFF0284C7);
+    } else if (keyLower.contains('buku')) {
+      symbol = '📖';
+      bg1 = const Color(0xFFFEF3C7);
+      bg2 = const Color(0xFFFDE68A);
+      border = const Color(0xFFD97706);
     } else {
       symbol = rawKey.isNotEmpty ? rawKey.substring(0, 1).toUpperCase() : '✨';
     }
