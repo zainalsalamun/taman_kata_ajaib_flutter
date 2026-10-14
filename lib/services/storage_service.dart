@@ -15,6 +15,40 @@ class StorageService {
   static const String _keyBalloonIndex = 'taman_kata_balloon_index';
   static const String _keyQuizIndex = 'taman_kata_quiz_index';
   static const String _keyCompletedStories = 'taman_kata_completed_stories';
+  static const String _keyPlaygroundTheme = 'taman_kata_playground_theme';
+  static const String _keyLastVisitedIsland = 'taman_kata_last_visited_island';
+  static const String _keyOpenedChests = 'taman_kata_opened_chests';
+
+  static Future<String> getLastVisitedIsland() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyLastVisitedIsland) ?? 'tracing';
+  }
+
+  static Future<void> saveLastVisitedIsland(String route) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyLastVisitedIsland, route);
+  }
+
+  static Future<List<String>> getOpenedChests() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyOpenedChests);
+    if (jsonStr == null) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => e.toString()).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> markChestOpened(String chestId) async {
+    final opened = await getOpenedChests();
+    if (!opened.contains(chestId)) {
+      opened.add(chestId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyOpenedChests, jsonEncode(opened));
+    }
+  }
 
   static Future<int> getStars() async {
     final prefs = await SharedPreferences.getInstance();
@@ -70,6 +104,16 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = stickers.map((e) => e.toJson()).toList();
     await prefs.setString(_keyPlacedStickers, jsonEncode(jsonList));
+  }
+
+  static Future<String> getPlaygroundTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyPlaygroundTheme) ?? 'garden';
+  }
+
+  static Future<void> savePlaygroundTheme(String theme) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyPlaygroundTheme, theme);
   }
 
   static Future<int> getScreenTimeLimit() async {
@@ -247,6 +291,31 @@ class StorageService {
     }
   }
 
+  // --- RESET OPSI 1: ULANGI DARI TINGKAT 1 (TROFI & BINTANG AMAN) ---
+  static Future<void> resetToLevelOneKeepTrophies() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyTracingIndex, 0);
+    await prefs.setInt(_keyTrainIndex, 0);
+    await prefs.setInt(_keyBalloonIndex, 0);
+    await prefs.setInt(_keyQuizIndex, 0);
+
+    for (final game in ['train', 'balloon', 'quiz', 'tracing']) {
+      await prefs.setInt('taman_kata_${game}_current_level', 1);
+      await prefs.setInt('taman_kata_${game}_l1_index', 0);
+      await prefs.setInt('taman_kata_${game}_l2_index', 0);
+      await prefs.setInt('taman_kata_${game}_l3_index', 0);
+    }
+  }
+
+  // --- RESET OPSI 2: RESET TOTAL DATA BELAJAR ---
+  static Future<void> resetAllDataFactory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await resetAllLearningProgress();
+    await prefs.setString(_keyTrophies, jsonEncode([]));
+    await prefs.setInt(_keyStars, 20);
+    await prefs.setString(_keyStickers, jsonEncode(['stk_apel']));
+  }
+
   // --- RESET SEMUA PROGRES BELAJAR ---
   static Future<void> resetAllLearningProgress() async {
     final prefs = await SharedPreferences.getInstance();
@@ -256,6 +325,8 @@ class StorageService {
     await prefs.setInt(_keyBalloonIndex, 0);
     await prefs.setInt(_keyQuizIndex, 0);
     await prefs.setString(_keyCompletedStories, jsonEncode([]));
+    await prefs.setString(_keyOpenedChests, jsonEncode([]));
+    await prefs.setString(_keyLastVisitedIsland, 'tracing');
 
     for (final game in ['train', 'balloon', 'quiz', 'tracing']) {
       await prefs.setInt('taman_kata_${game}_current_level', 1);
