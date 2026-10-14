@@ -190,6 +190,63 @@ class StorageService {
     await prefs.setString(_keyCompletedStories, jsonEncode(stories));
   }
 
+  // --- MULTI-LEVEL SYSTEM & TROPHIES ---
+  static const String _keyTrophies = 'taman_kata_trophies';
+
+  static Future<int> getGameLevel(String gameKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('taman_kata_${gameKey}_current_level') ?? 1;
+  }
+
+  static Future<void> saveGameLevel(String gameKey, int level) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('taman_kata_${gameKey}_current_level', level);
+  }
+
+  static Future<int> getUnlockedGameLevel(String gameKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('taman_kata_${gameKey}_unlocked_level') ?? 1;
+  }
+
+  static Future<void> saveUnlockedGameLevel(String gameKey, int level) async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentUnlocked = prefs.getInt('taman_kata_${gameKey}_unlocked_level') ?? 1;
+    if (level > currentUnlocked) {
+      await prefs.setInt('taman_kata_${gameKey}_unlocked_level', level);
+    }
+  }
+
+  static Future<int> getGameLevelIndex(String gameKey, int level) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('taman_kata_${gameKey}_l${level}_index') ?? 0;
+  }
+
+  static Future<void> saveGameLevelIndex(String gameKey, int level, int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('taman_kata_${gameKey}_l${level}_index', index);
+  }
+
+  static Future<List<String>> getTrophies() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyTrophies);
+    if (jsonStr == null) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => e.toString()).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> addTrophy(String trophyId) async {
+    final trophies = await getTrophies();
+    if (!trophies.contains(trophyId)) {
+      trophies.add(trophyId);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyTrophies, jsonEncode(trophies));
+    }
+  }
+
   // --- RESET SEMUA PROGRES BELAJAR ---
   static Future<void> resetAllLearningProgress() async {
     final prefs = await SharedPreferences.getInstance();
@@ -199,6 +256,14 @@ class StorageService {
     await prefs.setInt(_keyBalloonIndex, 0);
     await prefs.setInt(_keyQuizIndex, 0);
     await prefs.setString(_keyCompletedStories, jsonEncode([]));
+
+    for (final game in ['train', 'balloon', 'quiz', 'tracing']) {
+      await prefs.setInt('taman_kata_${game}_current_level', 1);
+      await prefs.setInt('taman_kata_${game}_unlocked_level', 1);
+      await prefs.setInt('taman_kata_${game}_l1_index', 0);
+      await prefs.setInt('taman_kata_${game}_l2_index', 0);
+      await prefs.setInt('taman_kata_${game}_l3_index', 0);
+    }
   }
 }
 
