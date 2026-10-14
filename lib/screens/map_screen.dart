@@ -2,11 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/vector_illustrations.dart';
 import '../services/audio_service.dart';
+import '../services/storage_service.dart';
 
-class MapScreen extends StatelessWidget {
+class MapScreen extends StatefulWidget {
   final Function(String route) onSelectGame;
 
   const MapScreen({super.key, required this.onSelectGame});
+
+  @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  int _trainLevel = 1;
+  int _balloonLevel = 1;
+  int _quizLevel = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLevels();
+  }
+
+  void _loadLevels() async {
+    final tr = await StorageService.getUnlockedGameLevel('train');
+    final bl = await StorageService.getUnlockedGameLevel('balloon');
+    final qz = await StorageService.getUnlockedGameLevel('quiz');
+    if (mounted) {
+      setState(() {
+        _trainLevel = tr;
+        _balloonLevel = bl;
+        _quizLevel = qz;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +83,7 @@ class MapScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              // 4 Islands Horizontal Scroll / Responsive Row
+              // 6 Islands Horizontal Scroll / Responsive Row
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -64,66 +93,72 @@ class MapScreen extends StatelessWidget {
                       context,
                       title: 'Jejak Huruf',
                       age: 'Usia 3-5 Thn',
+                      levelBadge: '🌱 26 Huruf',
                       desc: 'Tarik garis ajaib dan kenali bunyi fonik huruf!',
                       colorGrad: const [Color(0xFFFEF9C3), Colors.white],
                       borderColor: const Color(0xFFFDE047),
                       illustrationKey: 'apel',
-                      onTap: () => onSelectGame('tracing'),
+                      onTap: () => widget.onSelectGame('tracing'),
                     ),
                     const SizedBox(width: 14),
                     _buildIslandCard(
                       context,
                       title: 'Kereta Suku Kata',
                       age: 'Usia 5-7 Thn',
+                      levelBadge: 'Tingkat $_trainLevel ${_trainLevel > 1 ? "⭐" : ""}',
                       desc: 'Susun gerbong kata dan bunyikan peluit kereta!',
                       colorGrad: const [Color(0xFFE0F2FE), Colors.white],
                       borderColor: const Color(0xFFBAE6FD),
                       illustrationKey: 'bola',
-                      onTap: () => onSelectGame('train'),
+                      onTap: () => widget.onSelectGame('train'),
                     ),
                     const SizedBox(width: 14),
                     _buildIslandCard(
                       context,
                       title: 'Balon Kata Ajaib',
                       age: 'Usia 6-8 Thn',
+                      levelBadge: 'Tingkat $_balloonLevel ${_balloonLevel > 1 ? "⭐" : ""}',
                       desc: 'Letuskan balon kata yang tepat dan raih bintang!',
                       colorGrad: const [Color(0xFFFCE7F3), Colors.white],
                       borderColor: const Color(0xFFFBCFE8),
                       illustrationKey: 'balon',
-                      onTap: () => onSelectGame('balloon'),
+                      onTap: () => widget.onSelectGame('balloon'),
                     ),
                     const SizedBox(width: 14),
                     _buildIslandCard(
                       context,
                       title: 'Kuis Sentuh Pintar',
                       age: 'Semua Usia',
+                      levelBadge: 'Tingkat $_quizLevel ${_quizLevel > 1 ? "⭐" : ""}',
                       desc: 'Dengarkan suaranya, tinggal pencet gambar yang benar!',
                       colorGrad: const [Color(0xFFEDE9FE), Colors.white],
                       borderColor: const Color(0xFFDDD6FE),
                       illustrationKey: 'kucing',
-                      onTap: () => onSelectGame('quiz'),
+                      onTap: () => widget.onSelectGame('quiz'),
                     ),
                     const SizedBox(width: 14),
                     _buildIslandCard(
                       context,
                       title: 'Taman Kreasi Stiker',
                       age: 'Kreativitas',
+                      levelBadge: '🎨 Kreasi',
                       desc: 'Hias taman ajaib sesukamu dengan stiker hadiahmu!',
                       colorGrad: const [Color(0xFFDCFCE7), Colors.white],
                       borderColor: const Color(0xFF86EFAC),
                       illustrationKey: 'rumah',
-                      onTap: () => onSelectGame('playground'),
+                      onTap: () => widget.onSelectGame('playground'),
                     ),
                     const SizedBox(width: 14),
                     _buildIslandCard(
                       context,
                       title: 'Buku Cerita Ajaib',
                       age: 'Membaca Cerita',
+                      levelBadge: '📖 Dongeng',
                       desc: 'Dengar dongeng bersuara & sentuh gambar ajaibnya!',
                       colorGrad: const [Color(0xFFF3E8FF), Colors.white],
                       borderColor: const Color(0xFFD8B4FE),
                       illustrationKey: 'buku',
-                      onTap: () => onSelectGame('storybook'),
+                      onTap: () => widget.onSelectGame('storybook'),
                     ),
                   ],
                 ),
@@ -139,6 +174,7 @@ class MapScreen extends StatelessWidget {
     BuildContext context, {
     required String title,
     required String age,
+    required String levelBadge,
     required String desc,
     required List<Color> colorGrad,
     required Color borderColor,
@@ -167,6 +203,35 @@ class MapScreen extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          // Left Level Badge
+          Positioned(
+            top: -10,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF08A),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFEAB308), width: 1.5),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Color(0x20000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2)),
+                ],
+              ),
+              child: Text(
+                levelBadge,
+                style: GoogleFonts.fredoka(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF854D0E),
+                ),
+              ),
+            ),
+          ),
+
+          // Right Age Badge
           Positioned(
             top: -10,
             right: 12,
