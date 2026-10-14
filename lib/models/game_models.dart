@@ -457,203 +457,183 @@ class GameRepository {
     ),
   ];
 
-  static final List<TrainWordData> trainWords = [
-    TrainWordData(
-      word: "BOLA",
-      syllables: ["BO", "LA"],
-      illustrationKey: "bola",
-      choices: ["BO", "LA", "MA", "KU"],
-    ),
-    TrainWordData(
-      word: "BUKU",
-      syllables: ["BU", "KU"],
-      illustrationKey: "buku",
-      choices: ["BU", "KU", "KA", "PA"],
-    ),
-    TrainWordData(
-      word: "ROTI",
-      syllables: ["RO", "TI"],
-      illustrationKey: "roti",
-      choices: ["RO", "TI", "PI", "SA"],
-    ),
-    TrainWordData(
-      word: "KUCING",
-      syllables: ["KU", "CING"],
-      illustrationKey: "kucing",
-      choices: ["KU", "CING", "MA", "BA"],
-    ),
-    TrainWordData(
-      word: "MOBIL",
-      syllables: ["MO", "BIL"],
-      illustrationKey: "mobil",
-      choices: ["MO", "BIL", "BE", "DA"],
-    ),
-    TrainWordData(
-      word: "KUDA",
-      syllables: ["KU", "DA"],
-      illustrationKey: "kuda",
-      choices: ["KU", "DA", "SA", "PI"],
-    ),
-    TrainWordData(
-      word: "KERETA",
-      syllables: ["KE", "RE", "TA"],
-      illustrationKey: "kereta",
-      choices: ["KE", "RE", "TA", "MA"],
-    ),
-    TrainWordData(
-      word: "SEPEDA",
-      syllables: ["SE", "PE", "DA"],
-      illustrationKey: "sepeda",
-      choices: ["SE", "PE", "DA", "KU"],
-    ),
-    TrainWordData(
-      word: "SEPATU",
-      syllables: ["SE", "PA", "TU"],
-      illustrationKey: "sepatu",
-      choices: ["SE", "PA", "TU", "KA"],
-    ),
-    TrainWordData(
-      word: "PESAWAT",
-      syllables: ["PE", "SA", "WAT"],
-      illustrationKey: "pesawat",
-      choices: ["PE", "SA", "WAT", "BO"],
-    ),
-    TrainWordData(
-      word: "RUMAH",
-      syllables: ["RU", "MAH"],
-      illustrationKey: "rumah",
-      choices: ["RU", "MAH", "RA", "MI"],
-    ),
-    TrainWordData(
-      word: "PISANG",
-      syllables: ["PI", "SANG"],
-      illustrationKey: "pisang",
-      choices: ["PI", "SANG", "PA", "SING"],
-    ),
-    TrainWordData(
-      word: "TOPI",
-      syllables: ["TO", "PI"],
-      illustrationKey: "topi",
-      choices: ["TO", "PI", "TA", "PU"],
-    ),
-    TrainWordData(
-      word: "IKAN",
-      syllables: ["I", "KAN"],
-      illustrationKey: "ikan",
-      choices: ["I", "KAN", "A", "KUN"],
-    ),
-    TrainWordData(
-      word: "JERUK",
-      syllables: ["JE", "RUK"],
-      illustrationKey: "jeruk",
-      choices: ["JE", "RUK", "JA", "ROK"],
-    ),
-    TrainWordData(
-      word: "BURUNG",
-      syllables: ["BU", "RUNG"],
-      illustrationKey: "burung",
-      choices: ["BU", "RUNG", "BA", "RING"],
-    ),
+  // ==========================================
+  // KERETA SUKU KATA (TRAIN) MULTI-LEVEL DATA
+  // ==========================================
+  static final List<TrainWordData> trainWordsLevel1 = [
+    TrainWordData(word: "BOLA", syllables: ["BO", "LA"], illustrationKey: "bola", choices: ["BO", "LA", "MA", "KU"]),
+    TrainWordData(word: "BUKU", syllables: ["BU", "KU"], illustrationKey: "buku", choices: ["BU", "KU", "KA", "PA"]),
+    TrainWordData(word: "KUDA", syllables: ["KU", "DA"], illustrationKey: "kuda", choices: ["KU", "DA", "SA", "PI"]),
+    TrainWordData(word: "ROTI", syllables: ["RO", "TI"], illustrationKey: "roti", choices: ["RO", "TI", "PI", "SA"]),
+    TrainWordData(word: "MATA", syllables: ["MA", "TA"], illustrationKey: "mata", choices: ["MA", "TA", "BA", "LA"]),
+    TrainWordData(word: "CERI", syllables: ["CE", "RI"], illustrationKey: "ceri", choices: ["CE", "RI", "CA", "RO"]),
+    TrainWordData(word: "TOPI", syllables: ["TO", "PI"], illustrationKey: "topi", choices: ["TO", "PI", "TA", "PU"]),
+    TrainWordData(word: "IKAN", syllables: ["I", "KAN"], illustrationKey: "ikan", choices: ["I", "KAN", "A", "KUN"]),
+    TrainWordData(word: "GIGI", syllables: ["GI", "GI"], illustrationKey: "gigi", choices: ["GI", "GA", "GU", "GO"]),
+    TrainWordData(word: "KAKI", syllables: ["KA", "KI"], illustrationKey: "kaki", choices: ["KA", "KI", "KU", "KO"]),
+    TrainWordData(word: "DUKU", syllables: ["DU", "KU"], illustrationKey: "duku", choices: ["DU", "KU", "DA", "KA"]),
+    TrainWordData(word: "SAWI", syllables: ["SA", "WI"], illustrationKey: "sawi", choices: ["SA", "WI", "SI", "WA"]),
+    TrainWordData(word: "CABE", syllables: ["CA", "BE"], illustrationKey: "cabe", choices: ["CA", "BE", "CI", "BA"]),
+    TrainWordData(word: "MEJA", syllables: ["ME", "JA"], illustrationKey: "meja", choices: ["ME", "JA", "MA", "JI"]),
+    TrainWordData(word: "TALI", syllables: ["TA", "LI"], illustrationKey: "tali", choices: ["TA", "LI", "TU", "LA"]),
+    TrainWordData(word: "NASI", syllables: ["NA", "SI"], illustrationKey: "nasi", choices: ["NA", "SI", "NI", "SA"]),
   ];
 
-  static final List<BalloonWordData> balloonWords = [
-    BalloonWordData(
-      target: "KUDA",
-      illustrationKey: "kuda",
-      choices: ["KUDA", "SAPI", "KERA", "KURA"],
-    ),
-    BalloonWordData(
-      target: "MATA",
-      illustrationKey: "mata",
-      choices: ["MATA", "MEJA", "MAMA", "MADU"],
-    ),
-    BalloonWordData(
-      target: "PISANG",
-      illustrationKey: "pisang",
-      choices: ["PISANG", "PIRING", "PAYUNG", "PINTU"],
-    ),
-    BalloonWordData(
-      target: "RUMAH",
-      illustrationKey: "rumah",
-      choices: ["RUMAH", "RUMPUT", "RUSA", "ROTI"],
-    ),
+  static final List<TrainWordData> trainWordsLevel2 = [
+    TrainWordData(word: "SEPEDA", syllables: ["SE", "PE", "DA"], illustrationKey: "sepeda", choices: ["SE", "PE", "DA", "KU"]),
+    TrainWordData(word: "PESAWAT", syllables: ["PE", "SA", "WAT"], illustrationKey: "pesawat", choices: ["PE", "SA", "WAT", "BO"]),
+    TrainWordData(word: "KERETA", syllables: ["KE", "RE", "TA"], illustrationKey: "kereta", choices: ["KE", "RE", "TA", "MA"]),
+    TrainWordData(word: "SEPATU", syllables: ["SE", "PA", "TU"], illustrationKey: "sepatu", choices: ["SE", "PA", "TU", "KA"]),
+    TrainWordData(word: "LEMARI", syllables: ["LE", "MA", "RI"], illustrationKey: "lemari", choices: ["LE", "MA", "RI", "LU"]),
+    TrainWordData(word: "BONEKA", syllables: ["BO", "NE", "KA"], illustrationKey: "boneka", choices: ["BO", "NE", "KA", "BA"]),
+    TrainWordData(word: "GURITA", syllables: ["GU", "RI", "TA"], illustrationKey: "gurita", choices: ["GU", "RI", "TA", "GA"]),
+    TrainWordData(word: "KAMERA", syllables: ["KA", "ME", "RA"], illustrationKey: "kamera", choices: ["KA", "ME", "RA", "KO"]),
+    TrainWordData(word: "CELANA", syllables: ["CE", "LA", "NA"], illustrationKey: "celana", choices: ["CE", "LA", "NA", "CI"]),
+    TrainWordData(word: "PELANGI", syllables: ["PE", "LA", "NGI"], illustrationKey: "pelangi", choices: ["PE", "LA", "NGI", "PO"]),
+    TrainWordData(word: "TOMAT", syllables: ["TO", "MA", "AT"], illustrationKey: "tomat", choices: ["TO", "MA", "AT", "TI"]),
+    TrainWordData(word: "MATAHARI", syllables: ["MA", "TA", "HA", "RI"], illustrationKey: "matahari", choices: ["MA", "TA", "HA", "RI"]),
   ];
 
-  // 12 Contoh Soal Kuis Sentuh Pintar (Tinggal Pencet)
-  static final List<QuizQuestionData> quizQuestions = [
-    QuizQuestionData(
-      question: "Mana gambar APEL?",
-      answerKey: "apel",
-      answerName: "APEL",
-      choices: ["apel", "balon", "bola"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar MOBIL?",
-      answerKey: "mobil",
-      answerName: "MOBIL",
-      choices: ["mobil", "rumah", "roti"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar KUCING?",
-      answerKey: "kucing",
-      answerName: "KUCING",
-      choices: ["kucing", "domba", "kuda"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar BUKU?",
-      answerKey: "buku",
-      answerName: "BUKU",
-      choices: ["buku", "ceri", "pisang"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar BOLA?",
-      answerKey: "bola",
-      answerName: "BOLA",
-      choices: ["bola", "apel", "mobil"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar RUMAH?",
-      answerKey: "rumah",
-      answerName: "RUMAH",
-      choices: ["rumah", "buku", "roti"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar PISANG?",
-      answerKey: "pisang",
-      answerName: "PISANG",
-      choices: ["pisang", "ceri", "apel"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar ROTI?",
-      answerKey: "roti",
-      answerName: "ROTI",
-      choices: ["roti", "domba", "mata"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar CERI?",
-      answerKey: "ceri",
-      answerName: "CERI",
-      choices: ["ceri", "balon", "pisang"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar DOMBA?",
-      answerKey: "domba",
-      answerName: "DOMBA",
-      choices: ["domba", "kucing", "kuda"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar KUDA?",
-      answerKey: "kuda",
-      answerName: "KUDA",
-      choices: ["kuda", "mobil", "kucing"],
-    ),
-    QuizQuestionData(
-      question: "Mana gambar MATA?",
-      answerKey: "mata",
-      answerName: "MATA",
-      choices: ["mata", "bola", "rumah"],
-    ),
+  static final List<TrainWordData> trainWordsLevel3 = [
+    TrainWordData(word: "BUNGA", syllables: ["BU", "NGA"], illustrationKey: "bunga", choices: ["BU", "NGA", "BA", "NGI"]),
+    TrainWordData(word: "BINTANG", syllables: ["BIN", "TANG"], illustrationKey: "bintang", choices: ["BIN", "TANG", "BAN", "TING"]),
+    TrainWordData(word: "KUCING", syllables: ["KU", "CING"], illustrationKey: "kucing", choices: ["KU", "CING", "MA", "BA"]),
+    TrainWordData(word: "BURUNG", syllables: ["BU", "RUNG"], illustrationKey: "burung", choices: ["BU", "RUNG", "BA", "RING"]),
+    TrainWordData(word: "DOMBA", syllables: ["DOM", "BA"], illustrationKey: "domba", choices: ["DOM", "BA", "DAM", "BO"]),
+    TrainWordData(word: "GAJAH", syllables: ["GA", "JAH"], illustrationKey: "gajah", choices: ["GA", "JAH", "GI", "JOH"]),
+    TrainWordData(word: "POHON", syllables: ["PO", "HON"], illustrationKey: "pohon", choices: ["PO", "HON", "PA", "HAN"]),
+    TrainWordData(word: "PISANG", syllables: ["PI", "SANG"], illustrationKey: "pisang", choices: ["PI", "SANG", "PA", "SING"]),
+    TrainWordData(word: "HARIMAU", syllables: ["HA", "RI", "MAU"], illustrationKey: "harimau", choices: ["HA", "RI", "MAU", "MI"]),
+    TrainWordData(word: "HUJAN", syllables: ["HU", "JAN"], illustrationKey: "hujan", choices: ["HU", "JAN", "HA", "JIN"]),
+    TrainWordData(word: "PANTAI", syllables: ["PAN", "TAI"], illustrationKey: "pantai", choices: ["PAN", "TAI", "PIN", "TI"]),
+    TrainWordData(word: "TANGAN", syllables: ["TA", "NGAN"], illustrationKey: "tangan", choices: ["TA", "NGAN", "TI", "NGIN"]),
   ];
+
+  static List<TrainWordData> getTrainWords(int level) {
+    switch (level) {
+      case 2:
+        return trainWordsLevel2;
+      case 3:
+        return trainWordsLevel3;
+      case 1:
+      default:
+        return trainWordsLevel1;
+    }
+  }
+
+  static List<TrainWordData> get trainWords => getTrainWords(1);
+
+  // ==========================================
+  // BALON KATA AJAIB (BALLOON) MULTI-LEVEL DATA
+  // ==========================================
+  static final List<BalloonWordData> balloonWordsLevel1 = [
+    BalloonWordData(target: "KUDA", illustrationKey: "kuda", choices: ["KUDA", "SAPI", "KERA", "KURA"]),
+    BalloonWordData(target: "MATA", illustrationKey: "mata", choices: ["MATA", "MEJA", "MAMA", "MADU"]),
+    BalloonWordData(target: "PISANG", illustrationKey: "pisang", choices: ["PISANG", "PIRING", "PAYUNG", "PINTU"]),
+    BalloonWordData(target: "RUMAH", illustrationKey: "rumah", choices: ["RUMAH", "RUMPUT", "RUSA", "ROTI"]),
+    BalloonWordData(target: "BOLA", illustrationKey: "bola", choices: ["BOLA", "BUKU", "BOLU", "BOTOL"]),
+    BalloonWordData(target: "BUKU", illustrationKey: "buku", choices: ["BUKU", "BULU", "BUMI", "BUSA"]),
+    BalloonWordData(target: "ROTI", illustrationKey: "roti", choices: ["ROTI", "RODA", "ROKET", "RUSA"]),
+    BalloonWordData(target: "CERI", illustrationKey: "ceri", choices: ["CERI", "CABE", "CELANA", "CINCIN"]),
+  ];
+
+  static final List<BalloonWordData> balloonWordsLevel2 = [
+    BalloonWordData(target: "LARI", illustrationKey: "kuda", choices: ["LARI", "LAMA", "LACI", "LALU"]),
+    BalloonWordData(target: "TERBANG", illustrationKey: "burung", choices: ["TERBANG", "TERANG", "TERJUN", "TERBIT"]),
+    BalloonWordData(target: "LOMPAT", illustrationKey: "domba", choices: ["LOMPAT", "LEMPAR", "LONCAT", "LUMBA"]),
+    BalloonWordData(target: "SENANG", illustrationKey: "kucing", choices: ["SENANG", "TENANG", "MENANG", "RENANG"]),
+    BalloonWordData(target: "BERSIH", illustrationKey: "rumah", choices: ["BERSIH", "BENIH", "BASAH", "BEDAK"]),
+    BalloonWordData(target: "MANIS", illustrationKey: "ceri", choices: ["MANIS", "MINIS", "MANDI", "MAWIS"]),
+    BalloonWordData(target: "CEPAT", illustrationKey: "mobil", choices: ["CEPAT", "CATAT", "CEKAT", "CAPAI"]),
+    BalloonWordData(target: "TERANG", illustrationKey: "bintang", choices: ["TERANG", "TENANG", "TERBIT", "TELUR"]),
+  ];
+
+  static final List<BalloonWordData> balloonWordsLevel3 = [
+    BalloonWordData(target: "AIR", illustrationKey: "ikan", choices: ["AIR", "API", "ASIN", "AWAN"]),
+    BalloonWordData(target: "WORTEL", illustrationKey: "wortel", choices: ["WORTEL", "WADAH", "WAYANG", "WARNA"]),
+    BalloonWordData(target: "LANGIT", illustrationKey: "pesawat", choices: ["LANGIT", "LAUT", "LEMBAH", "LAPANGAN"]),
+    BalloonWordData(target: "BINTANG", illustrationKey: "bintang", choices: ["BINTANG", "BATANG", "BANTENG", "BANTU"]),
+    BalloonWordData(target: "POHON", illustrationKey: "pohon", choices: ["POHON", "PONDOK", "PINTU", "POTONG"]),
+    BalloonWordData(target: "MADU", illustrationKey: "madu", choices: ["MADU", "MAJU", "MALU", "MATA"]),
+    BalloonWordData(target: "BUNGA", illustrationKey: "bunga", choices: ["BUNGA", "BUSA", "BULU", "BUKU"]),
+    BalloonWordData(target: "SEPATU", illustrationKey: "sepatu", choices: ["SEPATU", "SEPEDA", "SEMUT", "SENDAL"]),
+  ];
+
+  static List<BalloonWordData> getBalloonWords(int level) {
+    switch (level) {
+      case 2:
+        return balloonWordsLevel2;
+      case 3:
+        return balloonWordsLevel3;
+      case 1:
+      default:
+        return balloonWordsLevel1;
+    }
+  }
+
+  static List<BalloonWordData> get balloonWords => getBalloonWords(1);
+
+  // ==========================================
+  // KUIS SENTUH PINTAR (QUIZ) MULTI-LEVEL DATA
+  // ==========================================
+  static final List<QuizQuestionData> quizQuestionsLevel1 = [
+    QuizQuestionData(question: "Mana gambar APEL?", answerKey: "apel", answerName: "APEL", choices: ["apel", "balon", "bola"]),
+    QuizQuestionData(question: "Mana gambar MOBIL?", answerKey: "mobil", answerName: "MOBIL", choices: ["mobil", "rumah", "roti"]),
+    QuizQuestionData(question: "Mana gambar KUCING?", answerKey: "kucing", answerName: "KUCING", choices: ["kucing", "domba", "kuda"]),
+    QuizQuestionData(question: "Mana gambar BUKU?", answerKey: "buku", answerName: "BUKU", choices: ["buku", "ceri", "pisang"]),
+    QuizQuestionData(question: "Mana gambar BOLA?", answerKey: "bola", answerName: "BOLA", choices: ["bola", "apel", "mobil"]),
+    QuizQuestionData(question: "Mana gambar RUMAH?", answerKey: "rumah", answerName: "RUMAH", choices: ["rumah", "buku", "roti"]),
+    QuizQuestionData(question: "Mana gambar PISANG?", answerKey: "pisang", answerName: "PISANG", choices: ["pisang", "ceri", "apel"]),
+    QuizQuestionData(question: "Mana gambar ROTI?", answerKey: "roti", answerName: "ROTI", choices: ["roti", "domba", "mata"]),
+    QuizQuestionData(question: "Mana gambar CERI?", answerKey: "ceri", answerName: "CERI", choices: ["ceri", "balon", "pisang"]),
+    QuizQuestionData(question: "Mana gambar DOMBA?", answerKey: "domba", answerName: "DOMBA", choices: ["domba", "kucing", "kuda"]),
+    QuizQuestionData(question: "Mana gambar KUDA?", answerKey: "kuda", answerName: "KUDA", choices: ["kuda", "mobil", "kucing"]),
+    QuizQuestionData(question: "Mana gambar MATA?", answerKey: "mata", answerName: "MATA", choices: ["mata", "bola", "rumah"]),
+  ];
+
+  static final List<QuizQuestionData> quizQuestionsLevel2 = [
+    QuizQuestionData(question: "Benda mana yang berawalan huruf B?", answerKey: "bola", answerName: "BOLA", choices: ["bola", "apel", "mobil"]),
+    QuizQuestionData(question: "Benda mana yang berawalan huruf K?", answerKey: "kucing", answerName: "KUCING", choices: ["kucing", "domba", "rumah"]),
+    QuizQuestionData(question: "Benda mana yang berawalan huruf P?", answerKey: "pisang", answerName: "PISANG", choices: ["pisang", "buku", "ceri"]),
+    QuizQuestionData(question: "Benda mana yang berawalan huruf M?", answerKey: "mobil", answerName: "MOBIL", choices: ["mobil", "roti", "kuda"]),
+    QuizQuestionData(question: "Benda mana yang berawalan huruf R?", answerKey: "roti", answerName: "ROTI", choices: ["roti", "apel", "kucing"]),
+    QuizQuestionData(question: "Benda mana yang berawalan huruf C?", answerKey: "ceri", answerName: "CERI", choices: ["ceri", "balon", "bola"]),
+    QuizQuestionData(question: "Kata mana yang berakhiran bunyi NG?", answerKey: "kucing", answerName: "KUCING", choices: ["kucing", "kuda", "domba"]),
+    QuizQuestionData(question: "Kata mana yang punya 3 suku kata?", answerKey: "sepeda", answerName: "SEPEDA", choices: ["sepeda", "bola", "buku"]),
+    QuizQuestionData(question: "Kendaraan mana yang bisa terbang?", answerKey: "pesawat", answerName: "PESAWAT", choices: ["pesawat", "mobil", "sepeda"]),
+    QuizQuestionData(question: "Benda mana yang dipakai di kepala?", answerKey: "topi", answerName: "TOPI", choices: ["topi", "buku", "bola"]),
+    QuizQuestionData(question: "Buah mana yang berwarna merah ceria?", answerKey: "apel", answerName: "APEL", choices: ["apel", "pisang", "roti"]),
+    QuizQuestionData(question: "Hewan mana yang berbulu lembut putih?", answerKey: "domba", answerName: "DOMBA", choices: ["domba", "kucing", "kuda"]),
+  ];
+
+  static final List<QuizQuestionData> quizQuestionsLevel3 = [
+    QuizQuestionData(question: "Roda dua dan dikayuh pedal! Siapa aku?", answerKey: "sepeda", answerName: "SEPEDA", choices: ["sepeda", "mobil", "pesawat"]),
+    QuizQuestionData(question: "Buah kuning manis disukai monyet!", answerKey: "pisang", answerName: "PISANG", choices: ["pisang", "apel", "ceri"]),
+    QuizQuestionData(question: "Suka mengeong dan menangkap tikus!", answerKey: "kucing", answerName: "KUCING", choices: ["kucing", "domba", "kuda"]),
+    QuizQuestionData(question: "Punya sayap besar terbang di awan!", answerKey: "pesawat", answerName: "PESAWAT", choices: ["pesawat", "mobil", "kereta"]),
+    QuizQuestionData(question: "Tempat tinggal kita yang hangat!", answerKey: "rumah", answerName: "RUMAH", choices: ["rumah", "buku", "topi"]),
+    QuizQuestionData(question: "Bunyinya tuut tuut berjalan di rel!", answerKey: "kereta", answerName: "KERETA", choices: ["kereta", "sepeda", "mobil"]),
+    QuizQuestionData(question: "Benda bundar ditendang memantul!", answerKey: "bola", answerName: "BOLA", choices: ["bola", "apel", "balon"]),
+    QuizQuestionData(question: "Hewan gagah bisa ditunggangi lari!", answerKey: "kuda", answerName: "KUDA", choices: ["kuda", "domba", "kucing"]),
+    QuizQuestionData(question: "Hewan berbulu tebal penghasil wol!", answerKey: "domba", answerName: "DOMBA", choices: ["domba", "kuda", "kucing"]),
+    QuizQuestionData(question: "Buah merah mungil tangkai kembar!", answerKey: "ceri", answerName: "CERI", choices: ["ceri", "apel", "pisang"]),
+    QuizQuestionData(question: "Wangi dipanggang enak dioles selai!", answerKey: "roti", answerName: "ROTI", choices: ["roti", "buku", "rumah"]),
+    QuizQuestionData(question: "Kertas berjilid penuh cerita & ilmu!", answerKey: "buku", answerName: "BUKU", choices: ["buku", "topi", "bola"]),
+  ];
+
+  static List<QuizQuestionData> getQuizQuestions(int level) {
+    switch (level) {
+      case 2:
+        return quizQuestionsLevel2;
+      case 3:
+        return quizQuestionsLevel3;
+      case 1:
+      default:
+        return quizQuestionsLevel1;
+    }
+  }
+
+  static List<QuizQuestionData> get quizQuestions => getQuizQuestions(1);
 
   static final List<StickerItemData> stickers = [
     StickerItemData(id: 'stk_apel', name: 'Apel Merah', illustrationKey: 'apel', cost: 3, description: 'Manis & Segar'),
