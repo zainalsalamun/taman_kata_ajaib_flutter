@@ -4,7 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
 import '../widgets/victory_dialog.dart';
+import '../widgets/level_milestone_dialog.dart';
+import '../widgets/level_selector_ribbon.dart';
 import '../services/audio_service.dart';
+import '../services/storage_service.dart';
 
 class TrainScreen extends StatefulWidget {
   final Function(int starsAdded) onVictory;
@@ -20,9 +23,12 @@ class TrainScreen extends StatefulWidget {
   State<TrainScreen> createState() => _TrainScreenState();
 }
 
-class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStateMixin {
-  final List<TrainWordData> _trainWords = GameRepository.trainWords;
+class _TrainScreenState extends State<TrainScreen>
+    with SingleTickerProviderStateMixin {
+  int _currentLevel = 1;
+  int _unlockedLevel = 1;
   int _currentIndex = 0;
+  List<TrainWordData> _trainWords = GameRepository.getTrainWords(1);
   final List<String> _filledSlots = [];
   final List<String> _hiddenChoices = [];
   final AudioService _audio = AudioService();
@@ -30,7 +36,8 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
   late AnimationController _trainAnimController;
   late Animation<double> _trainSlideAnimation;
 
-  TrainWordData get _current => _trainWords[_currentIndex];
+  TrainWordData get _current =>
+      _currentIndex < _trainWords.length ? _trainWords[_currentIndex] : _trainWords[0];
 
   @override
   void initState() {
@@ -43,9 +50,40 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
       CurvedAnimation(parent: _trainAnimController, curve: Curves.easeInOut),
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _loadLevelData();
+  }
+
+  void _loadLevelData() async {
+    final lvl = await StorageService.getGameLevel('train');
+    final unl = await StorageService.getUnlockedGameLevel('train');
+    final idx = await StorageService.getGameLevelIndex('train', lvl);
+    final words = GameRepository.getTrainWords(lvl);
+
+    if (mounted) {
+      setState(() {
+        _currentLevel = lvl;
+        _unlockedLevel = unl;
+        _trainWords = words;
+        _currentIndex = (idx < words.length) ? idx : 0;
+      });
       _startWord();
+    }
+  }
+
+  void _switchLevel(int newLevel) async {
+    final words = GameRepository.getTrainWords(newLevel);
+    final idx = await StorageService.getGameLevelIndex('train', newLevel);
+    await StorageService.saveGameLevel('train', newLevel);
+
+    setState(() {
+      _currentLevel = newLevel;
+      _trainWords = words;
+      _currentIndex = (idx < words.length) ? idx : 0;
     });
+
+    _startWord();
+    final titles = {1: 'Tunas Ajaib', 2: 'Petualang Kata', 3: 'Master Literasi'};
+    _audio.speak('Tingkat $_currentLevel: ${titles[_currentLevel]}! Ayo susun kata ${_current.word}!');
   }
 
   @override
@@ -82,26 +120,71 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
         _audio.playSfx('tuut');
         Future.delayed(const Duration(milliseconds: 300), () {
           final syllablesSpelled = _current.syllables.join('... ');
-          _audio.speak('$syllablesSpelled... ${_current.word}! Tuut tuut, kereta meluncur!');
+          _audio.speak(
+              '$syllablesSpelled... ${_current.word}! Tuut tuut, kereta meluncur!');
           _trainAnimController.forward();
 
-          Future.delayed(const Duration(milliseconds: 1400), () {
-            widget.onVictory(3);
+          Future.delayed(const Duration(milliseconds: 1400), () async {
             if (!mounted) return;
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (_) => VictoryDialog(
-                title: 'Hebat! Kata "${_current.word}"!',
-                subtitle: 'Kereta meluncur membawa kata ${_current.word}!',
-                onNext: () {
+
+            final hasMoreInLevel = _currentIndex + 1 < _trainWords.length;
+
+            if (hasMoreInLevel) {
+              // Regular word victory
+              widget.onVictory(3);
+              setState(() {
+                _currentIndex++;
+              });
+              StorageService.saveGameLevelIndex(
+                  'train', _currentLevel, _currentIndex);
+
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => VictoryDialog(
+                  title: 'Hebat! Kata "${_current.word}"!',
+                  subtitle:
+                      'Kereta meluncur membawa kata ${_current.word}!',
+                  onNext: () {
+                    _startWord();
+                  },
+                ),
+              );
+            } else {
+              // LEVEL GRADUATION / MILESTONE CEREMONY!
+              widget.onVictory(15);
+              final nextLvl = _currentLevel + 1;
+              if (nextLvl <= 3) {
+                await StorageService.saveUnlockedGameLevel('train', nextLvl);
+                if (nextLvl > _unlockedLevel) {
                   setState(() {
-                    _currentIndex = (_currentIndex + 1) % _trainWords.length;
+                    _unlockedLevel = nextLvl;
                   });
-                  _startWord();
-                },
-              ),
-            );
+                }
+              }
+              await StorageService.addTrophy('train_l$_currentLevel');
+              await StorageService.saveGameLevelIndex(
+                  'train', _currentLevel, 0);
+
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => LevelMilestoneDialog(
+                  gameTitle: 'Kereta Suku Kata',
+                  completedLevel: _currentLevel,
+                  onNextLevel: () {
+                    _switchLevel(_currentLevel + 1);
+                  },
+                  onReplay: () {
+                    setState(() {
+                      _currentIndex = 0;
+                    });
+                    _startWord();
+                  },
+                  onBackToMap: widget.onBack,
+                ),
+              );
+            }
           });
         });
       } else {
@@ -121,51 +204,65 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Target Object Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFF86EFAC), width: 3),
-              boxShadow: const [
-                BoxShadow(color: Color(0xFF4ADE80), offset: Offset(0, 4)),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ObjectIllustrationWidget(
-                  illustrationKey: _current.illustrationKey,
-                  size: 54,
+          // Top Control Bar: Level Selector Ribbon + Target Object Banner
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              LevelSelectorRibbon(
+                currentLevel: _currentLevel,
+                unlockedLevel: _unlockedLevel,
+                onSelectLevel: _switchLevel,
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFF86EFAC), width: 3),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0xFF4ADE80), offset: Offset(0, 4)),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Text(
-                  _current.word,
-                  style: GoogleFonts.nunito(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: const Color(0xFF166534),
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _audio.speak('Susun kata ${_current.word}!');
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFDE047),
-                      shape: BoxShape.circle,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ObjectIllustrationWidget(
+                      illustrationKey: _current.illustrationKey,
+                      size: 48,
                     ),
-                    child: const VectorIconWidget(icon: 'speaker', size: 18, color: Color(0xFF854D0E)),
-                  ),
+                    const SizedBox(width: 14),
+                    Text(
+                      _current.word,
+                      style: GoogleFonts.nunito(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF166534),
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _audio.speak('Susun kata ${_current.word}!');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFDE047),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const VectorIconWidget(
+                            icon: 'speaker',
+                            size: 18,
+                            color: Color(0xFF854D0E)),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
 
           // Train Track & Train Assembly
@@ -332,48 +429,53 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
           ),
 
           // Syllable Choices Palette
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: _current.choices.map((syl) {
-              final isHidden = _hiddenChoices.contains(syl);
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: _current.choices.map((syl) {
+                final isHidden = _hiddenChoices.contains(syl);
 
-              return Visibility(
-                visible: !isHidden,
-                maintainSize: true,
-                maintainAnimation: true,
-                maintainState: true,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: GestureDetector(
-                    onTap: () => _onSyllableTapped(syl),
-                    child: Container(
-                      width: 80,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFDE047), Color(0xFFFACC15)],
+                return Visibility(
+                  visible: !isHidden,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: GestureDetector(
+                      onTap: () => _onSyllableTapped(syl),
+                      child: Container(
+                        width: 80,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFDE047), Color(0xFFFACC15)],
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          border:
+                              Border.all(color: const Color(0xFFEAB308), width: 3),
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Color(0xFFCA8A04), offset: Offset(0, 5)),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFFEAB308), width: 3),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0xFFCA8A04), offset: Offset(0, 5)),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          syl,
-                          style: GoogleFonts.nunito(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF713F12),
+                        child: Center(
+                          child: Text(
+                            syl,
+                            style: GoogleFonts.nunito(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF713F12),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
