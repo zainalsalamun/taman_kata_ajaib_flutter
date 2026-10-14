@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
 import '../services/audio_service.dart';
@@ -29,7 +31,16 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
   bool _isDrawerOpen = true;
   bool _isLoading = true;
 
-  // Animation controller for tapping/bouncing sun
+  // Multi-Theme State
+  String _currentTheme = 'garden'; // 'garden', 'ocean', 'galaxy'
+
+  // Interactive Sound & Bounce State
+  String? _bouncingUniqueId;
+  String? _activeSpeechBubbleId;
+  String? _activeSpeechBubbleText;
+  Timer? _speechBubbleTimer;
+
+  // Animation controller for rotating sun or moon
   late AnimationController _sunAnimController;
 
   @override
@@ -49,15 +60,18 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
 
   @override
   void dispose() {
+    _speechBubbleTimer?.cancel();
     _sunAnimController.dispose();
     super.dispose();
   }
 
   void _loadPlacedStickers() async {
     final loaded = await StorageService.getPlacedStickers();
+    final theme = await StorageService.getPlaygroundTheme();
     if (mounted) {
       setState(() {
         _placedStickers = loaded;
+        _currentTheme = theme;
         _isLoading = false;
       });
     }
@@ -65,6 +79,25 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
 
   void _saveStickers() {
     StorageService.savePlacedStickers(_placedStickers);
+  }
+
+  void _switchTheme(String newTheme) {
+    if (_currentTheme == newTheme) return;
+    HapticFeedback.mediumImpact();
+    _audio.playSfx('whoosh');
+
+    setState(() {
+      _currentTheme = newTheme;
+    });
+    StorageService.savePlaygroundTheme(newTheme);
+
+    if (newTheme == 'garden') {
+      _audio.speak('Pemandangan Kebun Siang Ceria!');
+    } else if (newTheme == 'ocean') {
+      _audio.speak('Pemandangan Dunia Bawah Laut Ajaib!');
+    } else if (newTheme == 'galaxy') {
+      _audio.speak('Pemandangan Galaksi Malam Penuh Bintang!');
+    }
   }
 
   void _addStickerToCanvas(String stickerId) {
@@ -90,10 +123,26 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
     setState(() {
       _placedStickers.add(newPlaced);
       _selectedUniqueId = uniqueId;
+      _bouncingUniqueId = uniqueId;
     });
 
     _saveStickers();
-    _audio.speak('Hore, ${item.name} ditempel!');
+
+    // Check 12th trophy milestone!
+    if (_placedStickers.length >= 3) {
+      StorageService.addTrophy('sticker_artist_master');
+    }
+
+    _audio.playSfx(item.sfx);
+    _audio.speak('Hore, stiker ${item.name} ditempel!');
+
+    Timer(const Duration(milliseconds: 600), () {
+      if (mounted && _bouncingUniqueId == uniqueId) {
+        setState(() {
+          _bouncingUniqueId = null;
+        });
+      }
+    });
   }
 
   void _removeSticker(String uniqueId) {
@@ -101,6 +150,10 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
       _placedStickers.removeWhere((s) => s.uniqueId == uniqueId);
       if (_selectedUniqueId == uniqueId) {
         _selectedUniqueId = null;
+      }
+      if (_activeSpeechBubbleId == uniqueId) {
+        _activeSpeechBubbleId = null;
+        _activeSpeechBubbleText = null;
       }
     });
     _saveStickers();
@@ -200,16 +253,44 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
   }
 
   void _onStickerTapped(PlacedSticker sticker) {
-    setState(() {
-      _selectedUniqueId = sticker.uniqueId;
-    });
+    HapticFeedback.mediumImpact();
+    _speechBubbleTimer?.cancel();
 
     final item = GameRepository.stickers.firstWhere(
       (s) => s.id == sticker.stickerId,
       orElse: () => GameRepository.stickers.first,
     );
 
-    _audio.speak('${item.name}! ${item.description}!');
+    setState(() {
+      _selectedUniqueId = sticker.uniqueId;
+      _bouncingUniqueId = sticker.uniqueId;
+      _activeSpeechBubbleId = sticker.uniqueId;
+      _activeSpeechBubbleText = item.soundQuote.isNotEmpty
+          ? item.soundQuote
+          : '${item.name}: ${item.description}';
+    });
+
+    _audio.playSfx(item.sfx);
+    _audio.speak(item.soundQuote.isNotEmpty
+        ? item.soundQuote
+        : '${item.name}! ${item.description}!');
+
+    Timer(const Duration(milliseconds: 500), () {
+      if (mounted && _bouncingUniqueId == sticker.uniqueId) {
+        setState(() {
+          _bouncingUniqueId = null;
+        });
+      }
+    });
+
+    _speechBubbleTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() {
+          _activeSpeechBubbleId = null;
+          _activeSpeechBubbleText = null;
+        });
+      }
+    });
   }
 
   @override
@@ -220,15 +301,15 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
 
     return Stack(
       children: [
-        // 1. Garden Landscape & Interactive Canvas Area
+        // 1. Theme-Based Scenery & Interactive Canvas Area
         Positioned.fill(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return Stack(
                 children: [
-                  // Scenery Custom Background
+                  // Dynamic Scenery Custom Background
                   Positioned.fill(
-                    child: _buildGardenBackground(constraints.maxWidth, constraints.maxHeight),
+                    child: _buildCurrentBackground(constraints.maxWidth, constraints.maxHeight),
                   ),
 
                   // Mascot Miko on the ground corner cheering
@@ -237,7 +318,13 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
                     bottom: _isDrawerOpen ? 140 : 20,
                     child: GestureDetector(
                       onTap: () {
-                        _audio.speak('Tamanmu cantik sekali! Tempel dan geser stiker sesukamu ya!');
+                        if (_currentTheme == 'ocean') {
+                          _audio.speak('Bawah laut ini penuh keajaiban! Ayo tempel stiker kesukaanmu!');
+                        } else if (_currentTheme == 'galaxy') {
+                          _audio.speak('Langit malam berbintang sungguh mempesona! Hias dengan stiker ajaib!');
+                        } else {
+                          _audio.speak('Tamanmu cantik sekali! Tempel dan geser stiker sesukamu ya!');
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -255,7 +342,11 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
                             const MascotWidget(size: 38),
                             const SizedBox(width: 8),
                             Text(
-                              'Ayo Hias Taman!',
+                              _currentTheme == 'ocean'
+                                  ? 'Petualang Laut!'
+                                  : _currentTheme == 'galaxy'
+                                      ? 'Penjelajah Bintang!'
+                                      : 'Ayo Hias Taman!',
                               style: GoogleFonts.fredoka(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -297,7 +388,7 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
           ),
         ),
 
-        // 2. Top Header Navigation & Controls
+        // 2. Top Header Navigation & Controls (Theme Switcher, Title, Album)
         Positioned(
           top: 10,
           left: 16,
@@ -327,7 +418,7 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
 
               // Title Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withAlpha(240),
                   borderRadius: BorderRadius.circular(20),
@@ -339,27 +430,30 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.park_rounded, color: Color(0xFF16A34A), size: 18),
+                    Text(
+                      _currentTheme == 'ocean' ? '🌊' : _currentTheme == 'galaxy' ? '🌌' : '🎨',
+                      style: const TextStyle(fontSize: 16),
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Taman Kreasi Stiker',
                       style: GoogleFonts.fredoka(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFF15803D),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: const Color(0xFFDCFCE7),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        '${_placedStickers.length} Stiker',
+                        '${_placedStickers.length}',
                         style: GoogleFonts.fredoka(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF16A34A),
                         ),
@@ -368,6 +462,9 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
                   ],
                 ),
               ),
+
+              // Theme Switcher Segmented Pill
+              _buildThemeSwitcher(),
 
               // Action Buttons: Clear & Open Album
               Row(
@@ -379,7 +476,7 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
                       label: Text(
                         'Bersihkan',
                         style: GoogleFonts.fredoka(
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFFDC2626),
                         ),
@@ -387,7 +484,7 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFEE2E2),
                         elevation: 1,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                     ),
@@ -517,28 +614,63 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
               ),
             ),
 
-          // Sticker Body with Bounce & Glow
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isSelected ? Colors.white.withAlpha(210) : Colors.transparent,
-              border: isSelected
-                  ? Border.all(color: const Color(0xFFF59E0B), width: 2.5)
-                  : Border.all(color: Colors.transparent),
-              boxShadow: isSelected
-                  ? [
-                      const BoxShadow(
-                        color: Color(0x30F59E0B),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : null,
+          // Animated Speech Bubble when tapped
+          if (_activeSpeechBubbleId == sticker.uniqueId && _activeSpeechBubbleText != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              constraints: const BoxConstraints(maxWidth: 160),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFF59E0B), width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x30F59E0B),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Text(
+                _activeSpeechBubbleText!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.fredoka(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF92400E),
+                  height: 1.15,
+                ),
+              ),
             ),
-            child: ObjectIllustrationWidget(
-              illustrationKey: item.illustrationKey,
-              size: baseSize,
+
+          // Sticker Body with Bounce & Glow
+          AnimatedScale(
+            scale: _bouncingUniqueId == sticker.uniqueId ? 1.32 : 1.0,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.elasticOut,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? Colors.white.withAlpha(210) : Colors.transparent,
+                border: isSelected
+                    ? Border.all(color: const Color(0xFFF59E0B), width: 2.5)
+                    : Border.all(color: Colors.transparent),
+                boxShadow: isSelected
+                    ? [
+                        const BoxShadow(
+                          color: Color(0x30F59E0B),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
+              ),
+              child: ObjectIllustrationWidget(
+                illustrationKey: item.illustrationKey,
+                size: baseSize,
+              ),
             ),
           ),
         ],
@@ -790,6 +922,263 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
       ),
     );
   }
+
+  // Multi-Theme Background Switcher
+  Widget _buildCurrentBackground(double width, double height) {
+    switch (_currentTheme) {
+      case 'ocean':
+        return _buildOceanBackground(width, height);
+      case 'galaxy':
+        return _buildGalaxyBackground(width, height);
+      case 'garden':
+      default:
+        return _buildGardenBackground(width, height);
+    }
+  }
+
+  // Theme Switcher Segmented Control in Top Bar
+  Widget _buildThemeSwitcher() {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(235),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Color(0x10000000), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildThemePill(
+            themeKey: 'garden',
+            icon: '🌅',
+            label: 'Kebun',
+            isActive: _currentTheme == 'garden',
+            activeColor: const Color(0xFF22C55E),
+          ),
+          const SizedBox(width: 4),
+          _buildThemePill(
+            themeKey: 'ocean',
+            icon: '🌊',
+            label: 'Laut',
+            isActive: _currentTheme == 'ocean',
+            activeColor: const Color(0xFF0EA5E9),
+          ),
+          const SizedBox(width: 4),
+          _buildThemePill(
+            themeKey: 'galaxy',
+            icon: '🌌',
+            label: 'Galaksi',
+            isActive: _currentTheme == 'galaxy',
+            activeColor: const Color(0xFF8B5CF6),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemePill({
+    required String themeKey,
+    required String icon,
+    required String label,
+    required bool isActive,
+    required Color activeColor,
+  }) {
+    return GestureDetector(
+      onTap: () => _switchTheme(themeKey),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 12)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.fredoka(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isActive ? Colors.white : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Ocean / Underwater Wonderland Background
+  Widget _buildOceanBackground(double width, double height) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF38BDF8), // Light Aqua surface
+            Color(0xFF0284C7), // Deep ocean blue
+            Color(0xFF0369A1), // Deep seabed blue
+          ],
+          stops: [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Gentle light rays filtering through water
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _OceanRaysPainter(),
+            ),
+          ),
+
+          // Interactive floating bubbles
+          Positioned(
+            top: 30,
+            left: 100,
+            child: _buildOceanBubble(size: 26, label: 'Plop! Gelembung air meletup!'),
+          ),
+          Positioned(
+            top: 70,
+            left: 280,
+            child: _buildOceanBubble(size: 34, label: 'Blub! Air laut segar sekali!'),
+          ),
+          Positioned(
+            top: 45,
+            right: 180,
+            child: _buildOceanBubble(size: 22, label: 'Cring! Gelembung ajaib!'),
+          ),
+          Positioned(
+            top: 110,
+            right: 80,
+            child: _buildOceanBubble(size: 30, label: 'Wush! Bawah laut penuh misteri!'),
+          ),
+
+          // Sandy Seabed, Seaweed, and Starfish Custom Painter
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _OceanLandscapePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOceanBubble({required double size, required String label}) {
+    return GestureDetector(
+      onTap: () {
+        _audio.playSfx('pop');
+        _audio.speak(label);
+      },
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withAlpha(80),
+          border: Border.all(color: Colors.white.withAlpha(200), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.white.withAlpha(60),
+              blurRadius: 6,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Align(
+          alignment: const Alignment(-0.4, -0.4),
+          child: Container(
+            width: size * 0.28,
+            height: size * 0.28,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Galaxy / Cosmic Starry Night Background
+  Widget _buildGalaxyBackground(double width, double height) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF0F172A), // Dark Midnight Void
+            Color(0xFF1E1B4B), // Cosmic Indigo
+            Color(0xFF311042), // Deep Nebula Violet
+          ],
+          stops: [0.0, 0.55, 1.0],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Twinkling stars and cosmic nebula
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _GalaxyStarsPainter(),
+            ),
+          ),
+
+          // Glowing Golden Crescent Moon
+          Positioned(
+            top: 25,
+            right: 50,
+            child: GestureDetector(
+              onTap: () {
+                _audio.playSfx('twinkle');
+                _audio.speak('Bulan tersenyum ramah di langit malam!');
+              },
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: Color(0x60FDE047), blurRadius: 20, spreadRadius: 4),
+                  ],
+                ),
+                child: const Center(
+                  child: Text('🌙', style: TextStyle(fontSize: 38)),
+                ),
+              ),
+            ),
+          ),
+
+          // Distant Saturn planet
+          Positioned(
+            top: 50,
+            left: 90,
+            child: GestureDetector(
+              onTap: () {
+                _audio.playSfx('boing');
+                _audio.speak('Planet cincin emas yang menawan!');
+              },
+              child: const Text('🪐', style: TextStyle(fontSize: 32)),
+            ),
+          ),
+
+          // Cosmic Alien Hills and Crystals Custom Painter
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _GalaxyLandscapePainter(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // Custom Painter for Lush Rolling Hills & Decorative Garden Grass
@@ -853,3 +1242,264 @@ class _GardenLandscapePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+// Ocean Light Rays Painter
+class _OceanRaysPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final rayPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withAlpha(45),
+          Colors.white.withAlpha(0),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, w, h * 0.75));
+
+    final rayPath = Path();
+    // Ray 1
+    rayPath.moveTo(w * 0.15, 0);
+    rayPath.lineTo(w * 0.05, h * 0.7);
+    rayPath.lineTo(w * 0.22, h * 0.7);
+    rayPath.lineTo(w * 0.25, 0);
+    rayPath.close();
+
+    // Ray 2
+    rayPath.moveTo(w * 0.45, 0);
+    rayPath.lineTo(w * 0.38, h * 0.75);
+    rayPath.lineTo(w * 0.58, h * 0.75);
+    rayPath.lineTo(w * 0.55, 0);
+    rayPath.close();
+
+    // Ray 3
+    rayPath.moveTo(w * 0.75, 0);
+    rayPath.lineTo(w * 0.70, h * 0.65);
+    rayPath.lineTo(w * 0.88, h * 0.65);
+    rayPath.lineTo(w * 0.84, 0);
+    rayPath.close();
+
+    canvas.drawPath(rayPath, rayPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Underwater Seabed with Sandy Dunes, Corals, Seaweeds, and Starfish
+class _OceanLandscapePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Deep seabed sandy floor (Warm sand gradient)
+    final sandPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFFDE68A), Color(0xFFF59E0B)],
+      ).createShader(Rect.fromLTWH(0, h * 0.72, w, h * 0.28));
+
+    final sandPath = Path()
+      ..moveTo(0, h * 0.78)
+      ..quadraticBezierTo(w * 0.3, h * 0.72, w * 0.6, h * 0.80)
+      ..quadraticBezierTo(w * 0.85, h * 0.86, w, h * 0.76)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(sandPath, sandPaint);
+
+    // Decorative Seaweed clusters
+    _drawSeaweed(canvas, Offset(w * 0.06, h * 0.82), 48, const Color(0xFF10B981));
+    _drawSeaweed(canvas, Offset(w * 0.09, h * 0.84), 38, const Color(0xFF059669));
+    _drawSeaweed(canvas, Offset(w * 0.91, h * 0.80), 52, const Color(0xFF10B981));
+    _drawSeaweed(canvas, Offset(w * 0.94, h * 0.82), 40, const Color(0xFF047857));
+
+    // Starfish on sand
+    _drawStarfish(canvas, Offset(w * 0.22, h * 0.86), const Color(0xFFF97316), 14);
+    _drawStarfish(canvas, Offset(w * 0.78, h * 0.88), const Color(0xFFEC4899), 11);
+
+    // Cute sea pebbles
+    final pebblePaint = Paint()..color = const Color(0xFFD97706);
+    canvas.drawOval(Rect.fromCenter(center: Offset(w * 0.42, h * 0.89), width: 14, height: 7), pebblePaint);
+    canvas.drawOval(Rect.fromCenter(center: Offset(w * 0.62, h * 0.91), width: 18, height: 8), pebblePaint);
+  }
+
+  void _drawSeaweed(Canvas canvas, Offset base, double height, Color color) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6.0
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path()..moveTo(base.dx, base.dy);
+    path.cubicTo(
+      base.dx - 12,
+      base.dy - height * 0.35,
+      base.dx + 12,
+      base.dy - height * 0.7,
+      base.dx - 4,
+      base.dy - height,
+    );
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawStarfish(Canvas canvas, Offset center, Color color, double radius) {
+    final paint = Paint()..color = color;
+    final path = Path();
+    for (int i = 0; i < 5; i++) {
+      final angleOuter = (i * 72 - 90) * math.pi / 180;
+      final angleInner = ((i * 72 + 36) - 90) * math.pi / 180;
+      final outerX = center.dx + radius * math.cos(angleOuter);
+      final outerY = center.dy + radius * math.sin(angleOuter);
+      final innerX = center.dx + (radius * 0.45) * math.cos(angleInner);
+      final innerY = center.dy + (radius * 0.45) * math.sin(angleInner);
+
+      if (i == 0) {
+        path.moveTo(outerX, outerY);
+      } else {
+        path.lineTo(outerX, outerY);
+      }
+      path.lineTo(innerX, innerY);
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+
+    // Eye dot or center dot
+    canvas.drawCircle(center, 2.5, Paint()..color = Colors.white.withAlpha(200));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Twinkling Stars & Nebula for Galaxy Theme
+class _GalaxyStarsPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Nebula dust glow
+    final nebulaPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          const Color(0xFF8B5CF6).withAlpha(50),
+          const Color(0xFFEC4899).withAlpha(25),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromCircle(center: Offset(w * 0.4, h * 0.35), radius: w * 0.35));
+    canvas.drawCircle(Offset(w * 0.4, h * 0.35), w * 0.35, nebulaPaint);
+
+    // Twinkling static stars array
+    final stars = [
+      Offset(w * 0.08, h * 0.12),
+      Offset(w * 0.18, h * 0.28),
+      Offset(w * 0.26, h * 0.14),
+      Offset(w * 0.34, h * 0.42),
+      Offset(w * 0.48, h * 0.18),
+      Offset(w * 0.58, h * 0.26),
+      Offset(w * 0.68, h * 0.15),
+      Offset(w * 0.78, h * 0.38),
+      Offset(w * 0.88, h * 0.22),
+      Offset(w * 0.94, h * 0.45),
+      Offset(w * 0.14, h * 0.55),
+      Offset(w * 0.82, h * 0.58),
+    ];
+
+    final starPaint = Paint()..color = Colors.white;
+    final goldPaint = Paint()..color = const Color(0xFFFDE047);
+    final cyanPaint = Paint()..color = const Color(0xFF67E8F9);
+
+    for (int i = 0; i < stars.length; i++) {
+      final pos = stars[i];
+      final paint = i % 3 == 0 ? goldPaint : (i % 3 == 1 ? starPaint : cyanPaint);
+      final r = (i % 2 == 0) ? 2.5 : 1.8;
+      canvas.drawCircle(pos, r, paint);
+
+      // Add a 4-point twinkle sparkle on larger stars
+      if (i % 3 == 0) {
+        final sparkPaint = Paint()
+          ..color = paint.color.withAlpha(180)
+          ..strokeWidth = 1.0;
+        canvas.drawLine(pos - const Offset(5, 0), pos + const Offset(5, 0), sparkPaint);
+        canvas.drawLine(pos - const Offset(0, 5), pos + const Offset(0, 5), sparkPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Cosmic Alien Hills and Glowing Crystals Painter
+class _GalaxyLandscapePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Distant cosmic mountain (Deep violet)
+    final backMountainPaint = Paint()..color = const Color(0xFF4C1D95);
+    final backMountainPath = Path()
+      ..moveTo(0, h * 0.68)
+      ..lineTo(w * 0.22, h * 0.56)
+      ..lineTo(w * 0.46, h * 0.65)
+      ..lineTo(w * 0.72, h * 0.54)
+      ..lineTo(w, h * 0.66)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(backMountainPath, backMountainPaint);
+
+    // Front alien rolling cratered hill (Vibrant purple to midnight indigo)
+    final frontHillPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF7C3AED), Color(0xFF3B0764)],
+      ).createShader(Rect.fromLTWH(0, h * 0.72, w, h * 0.28));
+
+    final frontHillPath = Path()
+      ..moveTo(0, h * 0.76)
+      ..quadraticBezierTo(w * 0.35, h * 0.68, w * 0.68, h * 0.75)
+      ..quadraticBezierTo(w * 0.88, h * 0.80, w, h * 0.72)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(frontHillPath, frontHillPaint);
+
+    // Glowing Neon Cosmic Crystals
+    _drawCrystal(canvas, Offset(w * 0.12, h * 0.84), const Color(0xFF38BDF8), 16);
+    _drawCrystal(canvas, Offset(w * 0.15, h * 0.86), const Color(0xFF06B6D4), 11);
+    _drawCrystal(canvas, Offset(w * 0.82, h * 0.83), const Color(0xFFF472B6), 18);
+    _drawCrystal(canvas, Offset(w * 0.86, h * 0.85), const Color(0xFFA855F7), 13);
+  }
+
+  void _drawCrystal(Canvas canvas, Offset base, Color color, double height) {
+    final paint = Paint()..color = color;
+    final path = Path()
+      ..moveTo(base.dx, base.dy - height)
+      ..lineTo(base.dx + height * 0.3, base.dy)
+      ..lineTo(base.dx - height * 0.3, base.dy)
+      ..close();
+    canvas.drawPath(path, paint);
+
+    // Highlight facet
+    final highlightPaint = Paint()..color = Colors.white.withAlpha(160);
+    final highlightPath = Path()
+      ..moveTo(base.dx, base.dy - height)
+      ..lineTo(base.dx, base.dy)
+      ..lineTo(base.dx - height * 0.3, base.dy)
+      ..close();
+    canvas.drawPath(highlightPath, highlightPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
