@@ -41,6 +41,32 @@ class StoryPage {
   }
 }
 
+/// Pilihan jawaban kuis pemahaman dongeng
+class StoryQuizOption {
+  final String text;
+  final String illustrationKey;
+  final bool isCorrect;
+  final String feedbackText;
+
+  const StoryQuizOption({
+    required this.text,
+    required this.illustrationKey,
+    required this.isCorrect,
+    required this.feedbackText,
+  });
+}
+
+/// Soal kuis pemahaman membaca dongeng
+class StoryQuizQuestion {
+  final String questionText;
+  final List<StoryQuizOption> options;
+
+  const StoryQuizQuestion({
+    required this.questionText,
+    required this.options,
+  });
+}
+
 /// Buku cerita lengkap
 class StoryBook {
   final String id;
@@ -51,6 +77,7 @@ class StoryBook {
   final Color coverColor;
   final Color accentColor;
   final List<StoryPage> pages;
+  final List<StoryQuizQuestion> quizQuestions;
 
   const StoryBook({
     required this.id,
@@ -61,10 +88,11 @@ class StoryBook {
     required this.coverColor,
     required this.accentColor,
     required this.pages,
+    this.quizQuestions = const [],
   });
 }
 
-/// Koleksi 3 Buku Cerita Bergambar Interaktif
+/// Koleksi 4 Buku Cerita Bergambar Interaktif
 final List<StoryBook> sampleStoryBooks = [
   // Buku 1: Miko & Pohon Apel Ajaib
   StoryBook(
@@ -181,6 +209,48 @@ final List<StoryBook> sampleStoryBooks = [
         ],
       ),
     ],
+    quizQuestions: [
+      StoryQuizQuestion(
+        questionText: 'Buah manis apa yang dipetik oleh Miko di kebun?',
+        options: [
+          StoryQuizOption(
+            text: 'Apel Merah',
+            illustrationKey: 'apel',
+            isCorrect: true,
+            feedbackText: 'Hebat! Miko memetik apel merah yang manis dan ranum!',
+          ),
+          StoryQuizOption(
+            text: 'Pisang Kuning',
+            illustrationKey: 'pisang',
+            isCorrect: false,
+            feedbackText: 'Bukan pisang, Miko memetik buah apel merah!',
+          ),
+          StoryQuizOption(
+            text: 'Nanas Segar',
+            illustrationKey: 'nanas',
+            isCorrect: false,
+            feedbackText: 'Coba ingat lagi, buah di kebun itu apel merah!',
+          ),
+        ],
+      ),
+      StoryQuizQuestion(
+        questionText: 'Apa yang dilakukan Miko setelah memetik buah apel?',
+        options: [
+          StoryQuizOption(
+            text: 'Membagi dua untuk sahabat',
+            illustrationKey: 'hati',
+            isCorrect: true,
+            feedbackText: 'Pintar sekali! Miko suka berbagi bersama sahabat!',
+          ),
+          StoryQuizOption(
+            text: 'Menyimpan sendiri di tas',
+            illustrationKey: 'buku',
+            isCorrect: false,
+            feedbackText: 'Miko anak yang baik dan suka berbagi bersama!',
+          ),
+        ],
+      ),
+    ],
   ),
 
   // Buku 2: Kereta Kelinci Keliling Pulau
@@ -282,6 +352,48 @@ final List<StoryBook> sampleStoryBooks = [
         ],
       ),
     ],
+    quizQuestions: [
+      StoryQuizQuestion(
+        questionText: 'Kendaraan apa yang dikemudikan oleh Kiki si kelinci?',
+        options: [
+          StoryQuizOption(
+            text: 'Kereta Uap Biru',
+            illustrationKey: 'kereta',
+            isCorrect: true,
+            feedbackText: 'Luar biasa! Kiki menjadi masinis kereta uap yang meluncur kencang!',
+          ),
+          StoryQuizOption(
+            text: 'Mobil Balap',
+            illustrationKey: 'mobil',
+            isCorrect: false,
+            feedbackText: 'Kiki mengemudikan kereta uap berbunyi tuut tuut!',
+          ),
+          StoryQuizOption(
+            text: 'Sepeda Onthel',
+            illustrationKey: 'sepeda',
+            isCorrect: false,
+            feedbackText: 'Bukan sepeda, Kiki meluncur di rel kereta api!',
+          ),
+        ],
+      ),
+      StoryQuizQuestion(
+        questionText: 'Siapa sahabat yang naik di stasiun bukit hijau?',
+        options: [
+          StoryQuizOption(
+            text: 'Gajah dan Rusa',
+            illustrationKey: 'gajah',
+            isCorrect: true,
+            feedbackText: 'Tepat sekali! Gajah dan Rusa naik sambil melambai riang!',
+          ),
+          StoryQuizOption(
+            text: 'Ikan Emas',
+            illustrationKey: 'ikan',
+            isCorrect: false,
+            feedbackText: 'Ikan berenang di air, yang naik kereta adalah Gajah dan Rusa!',
+          ),
+        ],
+      ),
+    ],
   ),
 
   // Buku 3: Kancil & Ikan di Danau Bintang
@@ -363,6 +475,193 @@ final List<StoryBook> sampleStoryBooks = [
             illustrationKey: 'bintang',
             alignment: Alignment(0.0, -0.4),
             size: 80,
+          ),
+        ],
+      ),
+    ],
+    quizQuestions: [
+      StoryQuizQuestion(
+        questionText: 'Di mana Kancil membaca buku cerita?',
+        options: [
+          StoryQuizOption(
+            text: 'Di bawah pohon rindang',
+            illustrationKey: 'pohon',
+            isCorrect: true,
+            feedbackText: 'Benar sekali! Di bawah pohon rindang tepi danau yang sejuk!',
+          ),
+          StoryQuizOption(
+            text: 'Di dalam mobil balap',
+            illustrationKey: 'mobil',
+            isCorrect: false,
+            feedbackText: 'Kancil duduk membaca di bawah pohon rindang tepi danau!',
+          ),
+        ],
+      ),
+      StoryQuizQuestion(
+        questionText: 'Hewan apa yang melompat dari air dan menyapa Kancil?',
+        options: [
+          StoryQuizOption(
+            text: 'Ikan Emas Kecil',
+            illustrationKey: 'ikan',
+            isCorrect: true,
+            feedbackText: 'Hebat! Ikan kecil berenang gembira dan menyapa Kancil!',
+          ),
+          StoryQuizOption(
+            text: 'Burung Elang',
+            illustrationKey: 'elang',
+            isCorrect: false,
+            feedbackText: 'Burung elang terbang di langit, yang melompat dari air adalah ikan!',
+          ),
+        ],
+      ),
+    ],
+  ),
+
+  // Buku 4: Dino Cilik & Balon Pelangi
+  StoryBook(
+    id: 'story_dino',
+    title: 'Dino Cilik & Balon Pelangi',
+    subtitle: 'Kisah Dodi si dino ramah membagi balon warna-warni di lembah pelangi.',
+    ageRange: 'Usia 4–7 Thn',
+    coverIllustration: 'balon',
+    coverColor: const Color(0xFFF97316),
+    accentColor: const Color(0xFFFED7AA),
+    pages: [
+      StoryPage(
+        pageNumber: 1,
+        sentence: 'Dodi si dino cilik melangkah gembira membawa seikat balon warna-warni.',
+        illustrationKey: 'dino_balon',
+        backgroundColor: const Color(0xFFFFF7ED),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_dino',
+            name: 'Dodi si Dino',
+            soundText: 'Rawr! Halo sahabat, namaku Dodi dino cilik yang ramah!',
+            illustrationKey: 'dino',
+            alignment: Alignment(-0.3, 0.2),
+            size: 90,
+          ),
+          StoryInteractiveItem(
+            id: 'item_balloon_bunch',
+            name: 'Balon Pelangi',
+            soundText: 'Balon-balon terbang ringan berwarna merah, kuning, dan hijau!',
+            illustrationKey: 'balon',
+            alignment: Alignment(0.4, -0.4),
+            size: 80,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 2,
+        sentence: 'Angin sepoi-sepoi berhembus lembut. Balon-balon menari indah di bawah pelangi.',
+        illustrationKey: 'dino_pelangi',
+        backgroundColor: const Color(0xFFFDF4FF),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_rainbow_dino',
+            name: 'Pelangi Indah',
+            soundText: 'Wah, indahnya busur pelangi melengkung di langit biru!',
+            illustrationKey: 'pelangi',
+            alignment: Alignment(0.0, -0.7),
+            size: 85,
+          ),
+          StoryInteractiveItem(
+            id: 'item_wind_cloud',
+            name: 'Awan Putih',
+            soundText: 'Awan lembut berarak ditiup angin sepoi-sepoi!',
+            illustrationKey: 'awan',
+            alignment: Alignment(0.6, -0.5),
+            size: 65,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 3,
+        sentence: 'Dodi melihat burung pipit dan kelinci manis sedang bermain di dekat bunga mekar.',
+        illustrationKey: 'dino_sahabat',
+        backgroundColor: const Color(0xFFECFDF5),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_bird',
+            name: 'Burung Pipit',
+            soundText: 'Cicit cuit! Halo Dodi, balonmu cantik sekali!',
+            illustrationKey: 'burung',
+            alignment: Alignment(-0.6, -0.3),
+            size: 75,
+          ),
+          StoryInteractiveItem(
+            id: 'item_flower_dino',
+            name: 'Bunga Mekar',
+            soundText: 'Bunga harum mewarnai lembah pelangi!',
+            illustrationKey: 'bunga',
+            alignment: Alignment(0.5, 0.4),
+            size: 65,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 4,
+        sentence: 'Dodi memberikan balon pelangi kepada sahabatnya. Mereka semua tertawa dan menari gembira!',
+        illustrationKey: 'dino_pesta',
+        backgroundColor: const Color(0xFFFEF3C7),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_heart_dino',
+            name: 'Hati Ceria',
+            soundText: 'Tersenyum dan berbagi membuat hati kita dipenuhi kebahagiaan!',
+            illustrationKey: 'hati',
+            alignment: Alignment(0.0, -0.4),
+            size: 80,
+          ),
+          StoryInteractiveItem(
+            id: 'item_star_dino',
+            name: 'Bintang Sukacita',
+            soundText: 'Kelap kelip bintang ajaib menghiasi persahabatan mereka!',
+            illustrationKey: 'bintang',
+            alignment: Alignment(0.65, -0.6),
+            size: 65,
+          ),
+        ],
+      ),
+    ],
+    quizQuestions: [
+      StoryQuizQuestion(
+        questionText: 'Benda apa yang dibawa oleh Dodi si dino cilik?',
+        options: [
+          StoryQuizOption(
+            text: 'Balon Warna-warni',
+            illustrationKey: 'balon',
+            isCorrect: true,
+            feedbackText: 'Tepat sekali! Dodi membawa seikat balon pelangi yang indah!',
+          ),
+          StoryQuizOption(
+            text: 'Topi Petualang',
+            illustrationKey: 'topi',
+            isCorrect: false,
+            feedbackText: 'Dodi membawa seikat balon warna-warni yang menari di udara!',
+          ),
+          StoryQuizOption(
+            text: 'Sepatu Olahraga',
+            illustrationKey: 'sepatu',
+            isCorrect: false,
+            feedbackText: 'Bukan sepatu, benda yang dibawa adalah balon warna-warni!',
+          ),
+        ],
+      ),
+      StoryQuizQuestion(
+        questionText: 'Kepada siapa Dodi membagikan balonnya?',
+        options: [
+          StoryQuizOption(
+            text: 'Sahabat di lembah',
+            illustrationKey: 'burung',
+            isCorrect: true,
+            feedbackText: 'Hebat sekali! Dodi membagikan balon kepada burung dan sahabatnya!',
+          ),
+          StoryQuizOption(
+            text: 'Harimau galak',
+            illustrationKey: 'harimau',
+            isCorrect: false,
+            feedbackText: 'Dodi membagikan balon kepada para sahabat yang ramah!',
           ),
         ],
       ),
