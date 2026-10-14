@@ -281,6 +281,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
       default:
         return MapScreen(
           onSelectGame: _navigateTo,
+          onBonusStars: _addStars,
         );
     }
   }
