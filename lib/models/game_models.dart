@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 class LetterTracingData {
@@ -53,6 +54,32 @@ class QuizQuestionData {
     required this.answerKey,
     required this.answerName,
     required this.choices,
+  });
+}
+
+class MazeWordData {
+  final String word;
+  final String illustrationKey;
+  final List<String> sequence;
+  final int rows;
+  final int cols;
+  final List<List<int>> grid;
+  final Point<int> startPos;
+  final Point<int> goalPos;
+  final List<Point<int>> itemPositions;
+  final List<Point<int>> bonusStars;
+
+  const MazeWordData({
+    required this.word,
+    required this.illustrationKey,
+    required this.sequence,
+    required this.rows,
+    required this.cols,
+    required this.grid,
+    required this.startPos,
+    required this.goalPos,
+    required this.itemPositions,
+    this.bonusStars = const [],
   });
 }
 
@@ -638,6 +665,302 @@ class GameRepository {
   }
 
   static List<QuizQuestionData> get quizQuestions => getQuizQuestions(1);
+
+  // ==========================================
+  // LABIRIN KATA AJAIB (MAZE) MULTI-LEVEL DATA
+  // ==========================================
+  static final List<MazeWordData> mazeWordsLevel1 = [
+    const MazeWordData(
+      word: 'BOLA',
+      illustrationKey: 'bola',
+      sequence: ['B', 'O', 'L', 'A'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 1, 0, 0, 0],
+        [1, 1, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(0, 2), Point(2, 1), Point(2, 4), Point(4, 2)],
+      bonusStars: [Point(4, 0), Point(0, 6)],
+    ),
+    const MazeWordData(
+      word: 'BUKU',
+      illustrationKey: 'buku',
+      sequence: ['B', 'U', 'K', 'U'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(0, 3), Point(2, 1), Point(2, 5), Point(4, 3)],
+      bonusStars: [Point(2, 0), Point(4, 0)],
+    ),
+    const MazeWordData(
+      word: 'APEL',
+      illustrationKey: 'apel',
+      sequence: ['A', 'P', 'E', 'L'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 1, 0, 0, 0, 0],
+        [1, 0, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(1, 1), Point(2, 3), Point(3, 5), Point(4, 2)],
+      bonusStars: [Point(0, 4), Point(4, 0)],
+    ),
+    const MazeWordData(
+      word: 'IKAN',
+      illustrationKey: 'ikan',
+      sequence: ['I', 'K', 'A', 'N'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 0, 1, 0, 0],
+        [0, 1, 1, 0, 1, 0, 1],
+        [0, 1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(0, 2), Point(2, 3), Point(2, 6), Point(4, 2)],
+      bonusStars: [Point(0, 6), Point(3, 2)],
+    ),
+    const MazeWordData(
+      word: 'ROTI',
+      illustrationKey: 'roti',
+      sequence: ['R', 'O', 'T', 'I'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0, 1, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(0, 2), Point(1, 4), Point(3, 2), Point(3, 5)],
+      bonusStars: [Point(3, 0), Point(4, 3)],
+    ),
+  ];
+
+  static final List<MazeWordData> mazeWordsLevel2 = [
+    const MazeWordData(
+      word: 'KUDA',
+      illustrationKey: 'kuda',
+      sequence: ['KU', 'DA'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 1, 0, 0, 0],
+        [1, 1, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(2, 1), Point(4, 3)],
+      bonusStars: [Point(4, 0), Point(0, 6)],
+    ),
+    const MazeWordData(
+      word: 'SAPI',
+      illustrationKey: 'sapi',
+      sequence: ['SA', 'PI'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(2, 2), Point(2, 5)],
+      bonusStars: [Point(2, 0), Point(4, 0)],
+    ),
+    const MazeWordData(
+      word: 'MATA',
+      illustrationKey: 'mata',
+      sequence: ['MA', 'TA'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 1, 0, 0, 0, 0],
+        [1, 0, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(2, 2), Point(3, 5)],
+      bonusStars: [Point(0, 4), Point(4, 0)],
+    ),
+    const MazeWordData(
+      word: 'RUMAH',
+      illustrationKey: 'rumah',
+      sequence: ['RU', 'MAH'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 0, 1, 0, 0],
+        [0, 1, 1, 0, 1, 0, 1],
+        [0, 1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(2, 3), Point(4, 3)],
+      bonusStars: [Point(0, 6), Point(3, 2)],
+    ),
+    const MazeWordData(
+      word: 'PISANG',
+      illustrationKey: 'pisang',
+      sequence: ['PI', 'SANG'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0, 1, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(1, 4), Point(3, 4)],
+      bonusStars: [Point(3, 0), Point(4, 3)],
+    ),
+  ];
+
+  static final List<MazeWordData> mazeWordsLevel3 = [
+    const MazeWordData(
+      word: 'KERETA',
+      illustrationKey: 'kereta',
+      sequence: ['KE', 'RE', 'TA'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 1, 0, 0, 0],
+        [1, 1, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(0, 2), Point(2, 3), Point(4, 2)],
+      bonusStars: [Point(4, 0), Point(0, 6)],
+    ),
+    const MazeWordData(
+      word: 'PESAWAT',
+      illustrationKey: 'pesawat',
+      sequence: ['PE', 'SA', 'WAT'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(0, 4), Point(2, 2), Point(4, 2)],
+      bonusStars: [Point(2, 0), Point(4, 0)],
+    ),
+    const MazeWordData(
+      word: 'KELAPA',
+      illustrationKey: 'apel',
+      sequence: ['KE', 'LA', 'PA'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 1, 0, 0, 0, 0],
+        [1, 0, 1, 0, 1, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(1, 1), Point(2, 4), Point(4, 3)],
+      bonusStars: [Point(0, 4), Point(4, 0)],
+    ),
+    const MazeWordData(
+      word: 'PELANGI',
+      illustrationKey: 'balon',
+      sequence: ['PE', 'LA', 'NGI'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 0, 1, 0, 0],
+        [0, 1, 1, 0, 1, 0, 1],
+        [0, 1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(0, 3), Point(2, 4), Point(4, 2)],
+      bonusStars: [Point(0, 6), Point(3, 2)],
+    ),
+    const MazeWordData(
+      word: 'KUCING',
+      illustrationKey: 'kucing',
+      sequence: ['KU', 'CI', 'NG'],
+      rows: 5,
+      cols: 7,
+      grid: [
+        [0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 0, 1, 0],
+        [0, 1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0, 1, 0],
+      ],
+      startPos: Point(0, 0),
+      goalPos: Point(4, 6),
+      itemPositions: [Point(0, 2), Point(2, 4), Point(3, 5)],
+      bonusStars: [Point(3, 0), Point(4, 3)],
+    ),
+  ];
+
+  static List<MazeWordData> getMazeWords(int level) {
+    switch (level) {
+      case 2:
+        return mazeWordsLevel2;
+      case 3:
+        return mazeWordsLevel3;
+      case 1:
+      default:
+        return mazeWordsLevel1;
+    }
+  }
+
+  static List<MazeWordData> get mazeWords => getMazeWords(1);
 
   static final List<StickerItemData> stickers = [
     StickerItemData(
