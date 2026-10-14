@@ -132,20 +132,21 @@ class _TrainScreenState extends State<TrainScreen>
             if (hasMoreInLevel) {
               // Regular word victory
               widget.onVictory(3);
-              setState(() {
-                _currentIndex++;
-              });
-              StorageService.saveGameLevelIndex(
-                  'train', _currentLevel, _currentIndex);
+              final solvedWord = _current.word;
 
               showDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (_) => VictoryDialog(
-                  title: 'Hebat! Kata "${_current.word}"!',
+                  title: 'Hebat! Kata "$solvedWord"!',
                   subtitle:
-                      'Kereta meluncur membawa kata ${_current.word}!',
+                      'Kereta meluncur membawa kata $solvedWord!',
                   onNext: () {
+                    setState(() {
+                      _currentIndex++;
+                    });
+                    StorageService.saveGameLevelIndex(
+                        'train', _currentLevel, _currentIndex);
                     _startWord();
                   },
                 ),
