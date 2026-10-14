@@ -14,6 +14,7 @@ import 'screens/balloon_screen.dart';
 import 'screens/quiz_screen.dart';
 import 'screens/sticker_playground_screen.dart';
 import 'screens/storybook_screen.dart';
+import 'screens/maze_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -167,6 +168,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         _mascotText = 'Tempel dan geser stikermu untuk menghias taman ajaib!';
       } else if (route == 'storybook') {
         _mascotText = 'Buka bukunya dan dengarkan dongeng ajaib bersama Miko!';
+      } else if (route == 'maze') {
+        _mascotText = 'Pandu Miko di labirin untuk menjemput huruf rahasia!';
       }
     });
   }
@@ -274,6 +277,11 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         );
       case 'storybook':
         return StorybookScreen(
+          onVictory: _addStars,
+          onBack: () => _navigateTo('map'),
+        );
+      case 'maze':
+        return MazeScreen(
           onVictory: _addStars,
           onBack: () => _navigateTo('map'),
         );
