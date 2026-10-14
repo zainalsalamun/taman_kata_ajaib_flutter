@@ -29,6 +29,7 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
 
   final List<_BalloonItem> _activeBalloons = [];
   final List<String> _poppedWords = [];
+  final List<_PopParticle> _particles = [];
 
   BalloonWordData get _current => _balloonWords[_currentIndex];
 
@@ -56,6 +57,7 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
   void _startBalloonGame() {
     _poppedWords.clear();
     _activeBalloons.clear();
+    _particles.clear();
 
     final colors = [
       const [Color(0xFFFF6B6B), Color(0xFFEE5253)],
@@ -92,6 +94,16 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
         b.y = 280;
       }
     }
+
+    // Update pop particles
+    for (final p in _particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.12; // soft gravity
+      p.opacity = (p.opacity - 0.035).clamp(0.0, 1.0);
+    }
+    _particles.removeWhere((p) => p.opacity <= 0.0);
+
     setState(() {});
   }
 
@@ -99,6 +111,33 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
     if (_poppedWords.contains(item.word)) return;
 
     HapticFeedback.lightImpact();
+
+    // Spawn Burst Particles at balloon center
+    final rand = math.Random();
+    const particleChars = ['⭐', '✨', '🎈', '🎉', '•'];
+    const particleColors = [
+      Color(0xFFF59E0B),
+      Color(0xFFEF4444),
+      Color(0xFF3B82F6),
+      Color(0xFF10B981),
+      Color(0xFF8B5CF6),
+      Color(0xFFEC4899),
+    ];
+
+    for (int i = 0; i < 14; i++) {
+      final angle = rand.nextDouble() * math.pi * 2;
+      final speed = 1.8 + rand.nextDouble() * 4.0;
+      _particles.add(
+        _PopParticle(
+          x: item.x + 35,
+          y: item.y + 40,
+          vx: math.cos(angle) * speed,
+          vy: math.sin(angle) * speed - 1.2,
+          color: particleColors[rand.nextInt(particleColors.length)],
+          char: particleChars[rand.nextInt(particleChars.length)],
+        ),
+      );
+    }
 
     setState(() {
       _poppedWords.add(item.word);
@@ -249,9 +288,48 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
             ),
           );
         }),
+
+        // Star Burst & Confetti Particles on Pop
+        ..._particles.map((p) {
+          return Positioned(
+            left: p.x,
+            top: p.y,
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: p.opacity,
+                child: Text(
+                  p.char,
+                  style: TextStyle(
+                    fontSize: p.char == '•' ? 22 : 18,
+                    color: p.color,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
       ],
     );
   }
+}
+
+class _PopParticle {
+  double x;
+  double y;
+  final double vx;
+  double vy;
+  final Color color;
+  final String char;
+  double opacity = 1.0;
+
+  _PopParticle({
+    required this.x,
+    required this.y,
+    required this.vx,
+    required this.vy,
+    required this.color,
+    required this.char,
+  });
 }
 
 class _BalloonItem {
