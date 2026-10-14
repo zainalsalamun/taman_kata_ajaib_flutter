@@ -5,7 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
 import '../widgets/victory_dialog.dart';
+import '../widgets/level_milestone_dialog.dart';
+import '../widgets/level_selector_ribbon.dart';
 import '../services/audio_service.dart';
+import '../services/storage_service.dart';
 
 class BalloonScreen extends StatefulWidget {
   final Function(int starsAdded) onVictory;
@@ -21,9 +24,12 @@ class BalloonScreen extends StatefulWidget {
   State<BalloonScreen> createState() => _BalloonScreenState();
 }
 
-class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProviderStateMixin {
-  final List<BalloonWordData> _balloonWords = GameRepository.balloonWords;
+class _BalloonScreenState extends State<BalloonScreen>
+    with SingleTickerProviderStateMixin {
+  int _currentLevel = 1;
+  int _unlockedLevel = 1;
   int _currentIndex = 0;
+  List<BalloonWordData> _balloonWords = GameRepository.getBalloonWords(1);
   final AudioService _audio = AudioService();
   late AnimationController _animController;
 
@@ -31,7 +37,9 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
   final List<String> _poppedWords = [];
   final List<_PopParticle> _particles = [];
 
-  BalloonWordData get _current => _balloonWords[_currentIndex];
+  BalloonWordData get _current => _currentIndex < _balloonWords.length
+      ? _balloonWords[_currentIndex]
+      : _balloonWords[0];
 
   @override
   void initState() {
@@ -43,9 +51,45 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
 
     _animController.addListener(_updatePhysics);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _loadLevelData();
+  }
+
+  void _loadLevelData() async {
+    final lvl = await StorageService.getGameLevel('balloon');
+    final unl = await StorageService.getUnlockedGameLevel('balloon');
+    final idx = await StorageService.getGameLevelIndex('balloon', lvl);
+    final words = GameRepository.getBalloonWords(lvl);
+
+    if (mounted) {
+      setState(() {
+        _currentLevel = lvl;
+        _unlockedLevel = unl;
+        _balloonWords = words;
+        _currentIndex = (idx < words.length) ? idx : 0;
+      });
       _startBalloonGame();
+    }
+  }
+
+  void _switchLevel(int newLevel) async {
+    final words = GameRepository.getBalloonWords(newLevel);
+    final idx = await StorageService.getGameLevelIndex('balloon', newLevel);
+    await StorageService.saveGameLevel('balloon', newLevel);
+
+    setState(() {
+      _currentLevel = newLevel;
+      _balloonWords = words;
+      _currentIndex = (idx < words.length) ? idx : 0;
     });
+
+    _startBalloonGame();
+    final titles = {
+      1: 'Tunas Ajaib',
+      2: 'Petualang Kata',
+      3: 'Master Literasi'
+    };
+    _audio.speak(
+        'Tingkat $_currentLevel: ${titles[_currentLevel]}! Ayo cari kata ${_current.target}!');
   }
 
   @override
@@ -67,13 +111,14 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
     ];
 
     final shuffled = List<String>.from(_current.choices)..shuffle();
+    final spacing = 580.0 / shuffled.length;
     for (int i = 0; i < shuffled.length; i++) {
       _activeBalloons.add(
         _BalloonItem(
           word: shuffled[i],
           colors: colors[i % colors.length],
-          x: 60.0 + i * 160.0 + math.Random().nextDouble() * 20,
-          y: 160.0 + math.Random().nextDouble() * 60,
+          x: 60.0 + i * spacing + math.Random().nextDouble() * 15,
+          y: 160.0 + math.Random().nextDouble() * 50,
           speedY: 0.6 + math.Random().nextDouble() * 0.4,
           angle: math.Random().nextDouble() * math.pi * 2,
         ),
@@ -148,23 +193,65 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
       _audio.playSfx('pop');
       _audio.speak('Pop! ${item.word}! Benar!');
 
-      Future.delayed(const Duration(milliseconds: 400), () {
-        widget.onVictory(3);
+      Future.delayed(const Duration(milliseconds: 400), () async {
         if (!mounted) return;
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => VictoryDialog(
-            title: 'Pintar! Balon "${item.word}"!',
-            subtitle: 'Kamu berhasil menemukan kata ${item.word}!',
-            onNext: () {
+
+        final hasMoreInLevel = _currentIndex + 1 < _balloonWords.length;
+
+        if (hasMoreInLevel) {
+          // Regular word victory
+          widget.onVictory(3);
+          setState(() {
+            _currentIndex++;
+          });
+          StorageService.saveGameLevelIndex(
+              'balloon', _currentLevel, _currentIndex);
+
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => VictoryDialog(
+              title: 'Pintar! Balon "${item.word}"!',
+              subtitle: 'Kamu berhasil menemukan kata ${item.word}!',
+              onNext: () {
+                _startBalloonGame();
+              },
+            ),
+          );
+        } else {
+          // LEVEL GRADUATION / MILESTONE CEREMONY!
+          widget.onVictory(15);
+          final nextLvl = _currentLevel + 1;
+          if (nextLvl <= 3) {
+            await StorageService.saveUnlockedGameLevel('balloon', nextLvl);
+            if (nextLvl > _unlockedLevel) {
               setState(() {
-                _currentIndex = (_currentIndex + 1) % _balloonWords.length;
+                _unlockedLevel = nextLvl;
               });
-              _startBalloonGame();
-            },
-          ),
-        );
+            }
+          }
+          await StorageService.addTrophy('balloon_l$_currentLevel');
+          await StorageService.saveGameLevelIndex('balloon', _currentLevel, 0);
+
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => LevelMilestoneDialog(
+              gameTitle: 'Balon Kata Ajaib',
+              completedLevel: _currentLevel,
+              onNextLevel: () {
+                _switchLevel(_currentLevel + 1);
+              },
+              onReplay: () {
+                setState(() {
+                  _currentIndex = 0;
+                });
+                _startBalloonGame();
+              },
+              onBackToMap: widget.onBack,
+            ),
+          );
+        }
       });
     } else {
       _audio.speak('Itu kata ${item.word}. Ayo cari ${_current.target}!');
@@ -193,52 +280,68 @@ class _BalloonScreenState extends State<BalloonScreen> with SingleTickerProvider
           ),
         ),
 
-        // Target Banner
-        Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 24),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: const Color(0xFFF43F5E), width: 3),
-                boxShadow: const [
-                  BoxShadow(color: Color(0xFFE11D48), offset: Offset(0, 4)),
-                ],
+        // Top Control Bar: LevelSelectorRibbon + Target Banner
+        Positioned(
+          top: 22,
+          left: 24,
+          right: 24,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              LevelSelectorRibbon(
+                currentLevel: _currentLevel,
+                unlockedLevel: _unlockedLevel,
+                onSelectLevel: _switchLevel,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ObjectIllustrationWidget(
-                    illustrationKey: _current.illustrationKey,
-                    size: 42,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    _current.target,
-                    style: GoogleFonts.nunito(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFFBE123C),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: const Color(0xFFF43F5E), width: 3),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0xFFE11D48), offset: Offset(0, 4)),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ObjectIllustrationWidget(
+                      illustrationKey: _current.illustrationKey,
+                      size: 42,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () => _audio.speak('Ayo cari kata ${_current.target}'),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFDE047),
-                        shape: BoxShape.circle,
+                    const SizedBox(width: 10),
+                    Text(
+                      _current.target,
+                      style: GoogleFonts.nunito(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFFBE123C),
                       ),
-                      child: const VectorIconWidget(icon: 'speaker', size: 16, color: Color(0xFF854D0E)),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        _audio.speak('Ayo cari kata ${_current.target}');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFDE047),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const VectorIconWidget(
+                            icon: 'speaker',
+                            size: 16,
+                            color: Color(0xFF854D0E)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
 
