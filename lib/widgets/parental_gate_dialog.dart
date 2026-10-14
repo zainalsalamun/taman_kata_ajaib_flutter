@@ -1,17 +1,138 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/storage_service.dart';
 import '../services/audio_service.dart';
+import 'vector_illustrations.dart';
+
+class TrophyDef {
+  final String id;
+  final String title;
+  final String icon;
+  final String island;
+  final String desc;
+  final Color glowColor;
+
+  const TrophyDef({
+    required this.id,
+    required this.title,
+    required this.icon,
+    required this.island,
+    required this.desc,
+    required this.glowColor,
+  });
+}
+
+const List<TrophyDef> _allTrophies = [
+  TrophyDef(
+    id: 'train_l1',
+    title: 'Piala Tunas Kereta',
+    icon: '🏆',
+    island: 'Kereta Suku Kata',
+    desc: 'Tamat Tingkat 1: 16 kata 2 suku kata (KV-KV)',
+    glowColor: Color(0xFFFACC15),
+  ),
+  TrophyDef(
+    id: 'train_l2',
+    title: 'Piala Petualang Kereta',
+    icon: '🥈',
+    island: 'Kereta Suku Kata',
+    desc: 'Tamat Tingkat 2: 12 kata 3 suku kata (KV-KV-KV)',
+    glowColor: Color(0xFF38BDF8),
+  ),
+  TrophyDef(
+    id: 'train_l3',
+    title: 'Mahkota Master Kereta',
+    icon: '👑',
+    island: 'Kereta Suku Kata',
+    desc: 'Tamat Tingkat 3: Konsonan rangkap & sengau NG/NY',
+    glowColor: Color(0xFFA855F7),
+  ),
+  TrophyDef(
+    id: 'balloon_l1',
+    title: 'Piala Balon Ceria',
+    icon: '🏆',
+    island: 'Balon Kata Ajaib',
+    desc: 'Tamat Tingkat 1: Letuskan 8 kata benda visual',
+    glowColor: Color(0xFFF43F5E),
+  ),
+  TrophyDef(
+    id: 'balloon_l2',
+    title: 'Piala Balon Petualang',
+    icon: '🥈',
+    island: 'Balon Kata Ajaib',
+    desc: 'Tamat Tingkat 2: 8 kata kerja & aksi ceria',
+    glowColor: Color(0xFFEC4899),
+  ),
+  TrophyDef(
+    id: 'balloon_l3',
+    title: 'Mahkota Master Balon',
+    icon: '👑',
+    island: 'Balon Kata Ajaib',
+    desc: 'Tamat Tingkat 3: Lengkapi kalimat mini rumpang',
+    glowColor: Color(0xFF8B5CF6),
+  ),
+  TrophyDef(
+    id: 'quiz_l1',
+    title: 'Piala Kuis Pintar',
+    icon: '🏆',
+    island: 'Kuis Sentuh Pintar',
+    desc: 'Tamat Tingkat 1: 12 soal identifikasi objek',
+    glowColor: Color(0xFF10B981),
+  ),
+  TrophyDef(
+    id: 'quiz_l2',
+    title: 'Piala Fonik Pintar',
+    icon: '🥈',
+    island: 'Kuis Sentuh Pintar',
+    desc: 'Tamat Tingkat 2: 12 soal fonik awal & suku kata',
+    glowColor: Color(0xFF06B6D4),
+  ),
+  TrophyDef(
+    id: 'quiz_l3',
+    title: 'Mahkota Logika Pintar',
+    icon: '👑',
+    island: 'Kuis Sentuh Pintar',
+    desc: 'Tamat Tingkat 3: 12 teka-teki logika ceria',
+    glowColor: Color(0xFFF59E0B),
+  ),
+  TrophyDef(
+    id: 'tracing_alphabet_master',
+    title: 'Piala Emas 26 Huruf',
+    icon: '🌟',
+    island: 'Jejak Huruf',
+    desc: 'Tulis dan kuasai seluruh alfabet A sampai Z',
+    glowColor: Color(0xFFEAB308),
+  ),
+  TrophyDef(
+    id: 'story_comprehension_master',
+    title: 'Mahkota Pendongeng Ajaib',
+    icon: '👑',
+    island: 'Buku Cerita Ajaib',
+    desc: 'Tamat 4 dongeng bergambar dan tuntaskan kuis pemahaman!',
+    glowColor: Color(0xFFC084FC),
+  ),
+  TrophyDef(
+    id: 'sticker_artist_master',
+    title: 'Piala Seniman Cilik',
+    icon: '🎨',
+    island: 'Taman Stiker',
+    desc: 'Hias kanvas kreasi dengan stiker ajaib pilihanmu!',
+    glowColor: Color(0xFF10B981),
+  ),
+];
 
 class ParentalGateDialog extends StatefulWidget {
   final int totalStars;
   final Function(int newLimitMinutes)? onLimitChanged;
+  final VoidCallback? onDataReset;
 
   const ParentalGateDialog({
     super.key,
     required this.totalStars,
     this.onLimitChanged,
+    this.onDataReset,
   });
 
   @override
@@ -26,22 +147,50 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
   bool _isUnlocked = false;
   int _limitMinutes = 0;
   int _todaySeconds = 0;
+  int _activeTab = 0; // 0: Trofi, 1: Rapor, 2: Waktu & Reset
+
+  List<String> _trophies = [];
+  int _trainLevel = 1;
+  int _balloonLevel = 1;
+  int _quizLevel = 1;
+  int _tracingIndex = 0;
+  int _storiesCount = 0;
+  int _stickersCount = 0;
 
   @override
   void initState() {
     super.initState();
     _generateMath();
-    _loadScreenTime();
+    _loadDashboardData();
   }
 
-  void _loadScreenTime() async {
+  void _loadDashboardData() async {
     final limit = await StorageService.getScreenTimeLimit();
     final todaySec = await StorageService.getTodayPlayTimeSeconds();
+    final trophies = await StorageService.getTrophies();
+    final trLvl = await StorageService.getUnlockedGameLevel('train');
+    final blLvl = await StorageService.getUnlockedGameLevel('balloon');
+    final qzLvl = await StorageService.getUnlockedGameLevel('quiz');
+    final trcIdx = await StorageService.getTracingIndex();
+    final stories = await StorageService.getCompletedStories();
+    final stickers = await StorageService.getUnlockedStickers();
+
+    if (stories.length >= 4 && !trophies.contains('story_comprehension_master')) {
+      await StorageService.addTrophy('story_comprehension_master');
+      trophies.add('story_comprehension_master');
+    }
 
     if (mounted) {
       setState(() {
         _limitMinutes = limit;
         _todaySeconds = todaySec;
+        _trophies = trophies;
+        _trainLevel = trLvl;
+        _balloonLevel = blLvl;
+        _quizLevel = qzLvl;
+        _tracingIndex = trcIdx;
+        _storiesCount = stories.length;
+        _stickersCount = stickers.length;
       });
     }
   }
@@ -82,8 +231,10 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
       setState(() {
         _isUnlocked = true;
       });
+      HapticFeedback.mediumImpact();
     } else {
       _controller.clear();
+      HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Jawaban belum tepat. Area ini khusus orang tua.'),
@@ -93,14 +244,102 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
     }
   }
 
+  void _confirmResetLevelOne() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Ulangi Dari Tingkat 1?',
+          style: GoogleFonts.fredoka(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Ronde materi akan dimulai dari Tingkat 1 lagi agar anak bisa mengulang belajar. Trofi piala dan bintang anak tetap aman tersimpan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7E22CE),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await StorageService.resetToLevelOneKeepTrophies();
+              _loadDashboardData();
+              widget.onDataReset?.call();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Materi telah disetel kembali ke Tingkat 1.'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Text('Ya, Ulangi'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmResetFactory() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Reset Total Data Belajar?',
+          style: GoogleFonts.fredoka(
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFFDC2626),
+          ),
+        ),
+        content: const Text(
+          'Semua bintang, stiker, dan trofi piala akan dihapus seperti baru diinstal. Gunakan ini jika anak baru/adik yang lebih kecil ingin memulai dari nol.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await StorageService.resetAllDataFactory();
+              _loadDashboardData();
+              widget.onDataReset?.call();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Semua data belajar telah di-reset dari awal.'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Text('Reset Total'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Container(
-        width: 460,
-        padding: const EdgeInsets.all(24),
+        width: _isUnlocked ? 660 : 460,
+        height: _isUnlocked ? 460 : null,
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
@@ -113,268 +352,833 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Zona Orang Tua',
-              style: GoogleFonts.fredoka(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF7E22CE),
-              ),
-            ),
-            const SizedBox(height: 12),
+        child: _isUnlocked ? _buildUnlockedDashboard() : _buildLockScreen(),
+      ),
+    );
+  }
 
-            if (!_isUnlocked) ...[
+  Widget _buildLockScreen() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Zona Orang Tua',
+          style: GoogleFonts.fredoka(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF7E22CE),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Jawab soal ini untuk membuka lemari trofi & laporan perkembangan anak:',
+          style: GoogleFonts.fredoka(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF64748B),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3E8FF),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
               Text(
-                'Jawab soal ini untuk membuka laporan perkembangan anak:',
-                style: GoogleFonts.fredoka(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF64748B),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF3E8FF),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Berapa $_a + $_b = ?',
-                      style: GoogleFonts.nunito(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF7E22CE),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: 100,
-                      child: TextField(
-                        controller: _controller,
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.nunito(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF581C87),
-                        ),
-                        decoration: InputDecoration(
-                          hintText: '?',
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFC084FC), width: 2),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                'Berapa $_a + $_b = ?',
+                style: GoogleFonts.nunito(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF7E22CE),
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _verify,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7E22CE),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        'Buka Kunci',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF1F5F9),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
-                    ),
-                    child: Text(
-                      'Tutup',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF475569),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              // 1. Screen Time Control Section
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F3FF),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '⏱️ Batas Waktu Main Harian',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF6B21A8),
-                          ),
-                        ),
-                        if (_todaySeconds > 0)
-                          GestureDetector(
-                            onTap: _resetTodayTime,
-                            child: Text(
-                              'Reset Hari Ini',
-                              style: GoogleFonts.fredoka(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF9333EA),
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Minute Chips
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [0, 15, 30, 45, 60].map((mins) {
-                          final isSel = _limitMinutes == mins;
-                          return GestureDetector(
-                            onTap: () => _setLimit(mins),
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: isSel ? const Color(0xFF7E22CE) : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: isSel ? const Color(0xFF6B21A8) : const Color(0xFFD8B4FE),
-                                ),
-                              ),
-                              child: Text(
-                                mins == 0 ? 'Mati' : '$mins Menit',
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSel ? Colors.white : const Color(0xFF6B21A8),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Status Indicator
-                    Text(
-                      _limitMinutes == 0
-                          ? '• Status: Bermain bebas tanpa batas waktu.'
-                          : '• Waktu hari ini: ${(_todaySeconds / 60).floor()} menit / $_limitMinutes menit (Sisa: ${math.max(0, _limitMinutes - (_todaySeconds / 60).floor())} mnt).',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF581C87),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // 2. Child Progress Statistics
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('• Bintang Terkumpul: ${widget.totalStars} Bintang ⭐', style: _statStyle()),
-                    const SizedBox(height: 6),
-                    Text('• Materi Dikuasai: Fonik Huruf A–Z, Kereta Suku Kata, Dongeng.', style: _statStyle()),
-                    const SizedBox(height: 6),
-                    Text('• Mode: 100% Offline (Local-First), Bebas Iklan & Aman.', style: _statStyle()),
-                    const SizedBox(height: 6),
-                    Text('• Rekomendasi: Bermain santai sambil mendampingi anak mengeja kata.', style: _statStyle()),
-                    const SizedBox(height: 6),
-                    Text('• Mesin Suara: ${AudioService().engineStatus}', style: _statStyle()),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
+              const SizedBox(height: 10),
               SizedBox(
-                width: double.infinity,
-                height: 42,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7E22CE),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                width: 100,
+                child: TextField(
+                  controller: _controller,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  autofocus: true,
+                  style: GoogleFonts.nunito(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF581C87),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '?',
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xFFC084FC), width: 2),
                     ),
                   ),
-                  child: Text(
-                    'Kembali ke Game',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  onSubmitted: (_) => _verify(),
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _verify,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7E22CE),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text(
+                  'Buka Kunci',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF1F5F9),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
+              ),
+              child: Text(
+                'Tutup',
+                style: GoogleFonts.fredoka(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF475569),
+                ),
+              ),
+            ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnlockedDashboard() {
+    return Column(
+      children: [
+        // Header Bar with Title and Close Button
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const MascotWidget(size: 32),
+                const SizedBox(width: 10),
+                Text(
+                  'Zona Orang Tua & Prestasi Anak',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF6B21A8),
+                  ),
+                ),
+              ],
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Tabs Selector (Trofi, Rapor, Pengaturan)
+        Row(
+          children: [
+            _buildTabButton(
+              index: 0,
+              icon: '🏆',
+              label: 'Lemari Trofi (${_trophies.length}/${_allTrophies.length})',
+            ),
+            const SizedBox(width: 8),
+            _buildTabButton(
+              index: 1,
+              icon: '📊',
+              label: 'Rapor Belajar',
+            ),
+            const SizedBox(width: 8),
+            _buildTabButton(
+              index: 2,
+              icon: '⚙️',
+              label: 'Waktu & Reset',
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Active Tab Viewport
+        Expanded(
+          child: _buildActiveTabContent(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabButton({
+    required int index,
+    required String icon,
+    required String label,
+  }) {
+    final isSelected = _activeTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          setState(() {
+            _activeTab = index;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF7E22CE) : const Color(0xFFF3E8FF),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF6B21A8)
+                  : const Color(0xFFDDD6FE),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.fredoka(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : const Color(0xFF6B21A8),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  TextStyle _statStyle() {
-    return GoogleFonts.fredoka(
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      color: const Color(0xFF334155),
-      height: 1.4,
+  Widget _buildActiveTabContent() {
+    switch (_activeTab) {
+      case 0:
+        return _buildTrophyShelf();
+      case 1:
+        return _buildLearningReport();
+      case 2:
+      default:
+        return _buildSettingsAndReset();
+    }
+  }
+
+  // --- TAB 1: LEMARI TROFI ---
+  Widget _buildTrophyShelf() {
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 2.7,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: _allTrophies.length,
+      itemBuilder: (context, idx) {
+        final trophy = _allTrophies[idx];
+        final isUnlocked = _trophies.contains(trophy.id);
+
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            if (isUnlocked) {
+              AudioService().speak(
+                  'Piala ${trophy.title}! Diraih karena kamu telah menyelesaikan ${trophy.desc}!');
+            } else {
+              AudioService().speak(
+                  'Trofi ini masih terkunci. Tamatkan ${trophy.desc} untuk membukanya!');
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isUnlocked ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isUnlocked ? const Color(0xFFFACC15) : const Color(0xFFE2E8F0),
+                width: isUnlocked ? 2 : 1,
+              ),
+              boxShadow: isUnlocked
+                  ? [
+                      BoxShadow(
+                        color: trophy.glowColor.withOpacity(0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isUnlocked
+                        ? trophy.glowColor.withOpacity(0.2)
+                        : const Color(0xFFE2E8F0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      isUnlocked ? trophy.icon : '🔒',
+                      style: TextStyle(fontSize: isUnlocked ? 24 : 18),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              trophy.title,
+                              style: GoogleFonts.fredoka(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isUnlocked
+                                    ? const Color(0xFF854D0E)
+                                    : const Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isUnlocked)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF22C55E),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'DIRAIH',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        trophy.desc,
+                        style: GoogleFonts.nunito(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: isUnlocked
+                              ? const Color(0xFF713F12)
+                              : const Color(0xFF94A3B8),
+                          height: 1.15,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // --- TAB 2: RAPOR BELAJAR ANAK ---
+  Widget _buildLearningReport() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Total Stars Header Banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFEF08A), Color(0xFFFDE047)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFEAB308), width: 2),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Text('⭐', style: TextStyle(fontSize: 24)),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${widget.totalStars} Bintang Juara Terkumpul!',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF854D0E),
+                          ),
+                        ),
+                        Text(
+                          'Prestasi luar biasa dalam membaca & eksplorasi kata.',
+                          style: GoogleFonts.nunito(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF713F12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16A34A),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Aktif Belajar',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // 6 Islands Report Cards Grid
+          Row(
+            children: [
+              Expanded(
+                child: _buildIslandProgressCard(
+                  title: 'Jejak Huruf',
+                  icon: '✍️',
+                  levelInfo: '$_tracingIndex / 26 Huruf Terlatih',
+                  detail: 'Melatih motorik halus & bentuk fonik A–Z.',
+                  color: const Color(0xFFFEF9C3),
+                  borderColor: const Color(0xFFFDE047),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildIslandProgressCard(
+                  title: 'Kereta Suku Kata',
+                  icon: '🚂',
+                  levelInfo: 'Tingkat $_trainLevel dari 3',
+                  detail: 'Menyusun suku kata terbuka & tertutup.',
+                  color: const Color(0xFFE0F2FE),
+                  borderColor: const Color(0xFFBAE6FD),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildIslandProgressCard(
+                  title: 'Balon Kata Ajaib',
+                  icon: '🎈',
+                  levelInfo: 'Tingkat $_balloonLevel dari 3',
+                  detail: 'Refleks cepat membaca & kosakata rumpang.',
+                  color: const Color(0xFFFCE7F3),
+                  borderColor: const Color(0xFFFBCFE8),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildIslandProgressCard(
+                  title: 'Kuis Sentuh Pintar',
+                  icon: '🧠',
+                  levelInfo: 'Tingkat $_quizLevel dari 3',
+                  detail: 'Analisis fonik awal & teka-teki logika.',
+                  color: const Color(0xFFEDE9FE),
+                  borderColor: const Color(0xFFDDD6FE),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildIslandProgressCard(
+                  title: 'Buku Cerita Ajaib',
+                  icon: '📖',
+                  levelInfo: '$_storiesCount dari 4 Dongeng Tamat',
+                  detail: 'Pemahaman bacaan & kuis dongeng.',
+                  color: const Color(0xFFF3E8FF),
+                  borderColor: const Color(0xFFD8B4FE),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildIslandProgressCard(
+                  title: 'Taman Stiker',
+                  icon: '🎨',
+                  levelInfo: '$_stickersCount Stiker Terbuka',
+                  detail: 'Kreativitas visual & komposisi seni.',
+                  color: const Color(0xFFDCFCE7),
+                  borderColor: const Color(0xFF86EFAC),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Pedagogical Insights Card
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('💡', style: TextStyle(fontSize: 18)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Tips Edukasi: Aplikasi ini 100% lokal offline dan bebas iklan. Ajak anak membaca kata secara bersuara saat bermain kereta dan berikan apresiasi saat mereka menyelesaikan setiap tingkat!',
+                    style: GoogleFonts.nunito(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF475569),
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIslandProgressCard({
+    required String title,
+    required String icon,
+    required String levelInfo,
+    required String detail,
+    required Color color,
+    required Color borderColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 22)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.fredoka(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                Text(
+                  levelInfo,
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF0369A1),
+                  ),
+                ),
+                Text(
+                  detail,
+                  style: GoogleFonts.nunito(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- TAB 3: WAKTU MAIN & RESET AMAN ---
+  Widget _buildSettingsAndReset() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Screen Time Section
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F3FF),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFDDD6FE), width: 1.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '⏱️ Batas Waktu Main Harian',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF6B21A8),
+                      ),
+                    ),
+                    if (_todaySeconds > 0)
+                      GestureDetector(
+                        onTap: _resetTodayTime,
+                        child: Text(
+                          'Reset Hari Ini',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF9333EA),
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [0, 15, 30, 45, 60].map((mins) {
+                    final isSel = _limitMinutes == mins;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => _setLimit(mins),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isSel ? const Color(0xFF7E22CE) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSel
+                                  ? const Color(0xFF6B21A8)
+                                  : const Color(0xFFD8B4FE),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              mins == 0 ? 'Mati' : '$mins Mnt',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isSel
+                                    ? Colors.white
+                                    : const Color(0xFF6B21A8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _limitMinutes == 0
+                      ? '• Status: Bermain santai bebas tanpa batas waktu.'
+                      : '• Waktu hari ini: ${(_todaySeconds / 60).floor()} menit / $_limitMinutes menit (Sisa: ${math.max(0, _limitMinutes - (_todaySeconds / 60).floor())} mnt).',
+                  style: GoogleFonts.nunito(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF581C87),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 2. Granular Reset Section
+          Text(
+            'Zona Reset Progres Belajar',
+            style: GoogleFonts.fredoka(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // Option A: Repeat from Level 1
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '🔄 Ulangi Materi Dari Tingkat 1',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Menyetel kembali materi belajar ke tingkat 1 agar anak dapat mengulang, tanpa menghapus piala dan bintang yang telah diraih.',
+                        style: GoogleFonts.nunito(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7E22CE),
+                    foregroundColor: Colors.white,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _confirmResetLevelOne,
+                  child: Text(
+                    'Ulangi',
+                    style: GoogleFonts.fredoka(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Option B: Total Factory Reset
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFFECACA)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '⚠️ Reset Total Data Belajar',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFDC2626),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Menghapus semua bintang, stiker, dan trofi piala untuk memulai dari awal (cocok jika tablet digunakan oleh adik baru).',
+                        style: GoogleFonts.nunito(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF991B1B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: _confirmResetFactory,
+                  child: Text(
+                    'Reset',
+                    style: GoogleFonts.fredoka(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
