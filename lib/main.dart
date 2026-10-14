@@ -201,6 +201,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           });
           _checkScreenTimeLimit();
         },
+        onDataReset: _loadStoredData,
       ),
     );
   }
