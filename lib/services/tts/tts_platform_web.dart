@@ -5,21 +5,6 @@ import 'tts_platform.dart';
 @JS('speechSynthesis')
 external SpeechSynthesis? get _synth;
 
-@JS('MmsTtsEngine')
-external JSMmsTtsEngine? get _mmsEngine;
-
-@JS()
-extension type JSMmsTtsEngine._(JSObject _) implements JSObject {
-  external JSPromise<JSBoolean> speak(String text);
-  external void stop();
-  external bool isReady();
-  external String getStatus();
-  external String getStatusMessage();
-  external void setMmsEnabled(bool enabled);
-  external bool hasCached(String text);
-  external void preload(String text);
-}
-
 @JS()
 extension type SpeechSynthesis._(JSObject _) implements JSObject {
   external void cancel();
@@ -54,7 +39,6 @@ extension type SpeechSynthesisVoice._(JSObject _) implements JSObject {
 
 class TtsPlatformWeb implements TtsPlatform {
   SpeechSynthesisVoice? _indonesianVoice;
-  int _speakRequestId = 0;
 
   SpeechSynthesis? _getSynth() {
     try {
@@ -82,7 +66,7 @@ class TtsPlatformWeb implements TtsPlatform {
       final synth = _getSynth();
       if (synth == null) return;
       final voices = synth.getVoices().toDart;
-      
+
       SpeechSynthesisVoice? bestVoice;
       int bestScore = -1;
 
@@ -99,7 +83,7 @@ class TtsPlatformWeb implements TtsPlatform {
 
         int score = 10;
 
-        // Microsoft / Edge Natural & Neural voices (highest fidelity human recordings)
+        // Microsoft Natural / Neural voices
         if (name.contains('natural') || name.contains('neural')) {
           score += 100;
         }
@@ -142,94 +126,47 @@ class TtsPlatformWeb implements TtsPlatform {
   @override
   Future<void> speak(String text) async {
     try {
+      final synth = _getSynth();
+      if (synth == null) return;
+
       final cleaned = _sanitizeText(text);
       if (cleaned.isEmpty) return;
 
-      // Ensure voices are loaded
       if (_indonesianVoice == null) {
         _loadVoices();
       }
 
-      final mms = _mmsEngine;
-
-      // 1. Instant 0ms memory playback if preloaded/cached in MmsTtsEngine AudioBuffer
-      if (mms != null && mms.hasCached(cleaned)) {
-        try {
-          final jsPromise = mms.speak(cleaned);
-          final res = await jsPromise.toDart;
-          if (res.toDart) {
-            return; // Spoken instantly in 0ms!
-          }
-        } catch (_) {}
+      // Immediately cancel any previous speech for instant 0ms response
+      synth.cancel();
+      if (synth.paused) {
+        synth.resume();
       }
 
-      // 2. High-quality Web Speech API with natural human settings
-      // If browser has a ranked natural human voice (Google Bahasa Indonesia,
-      // Damayanti Siri, or Microsoft Gadis Natural), speak IMMEDIATELY (0ms)!
-      final synth = _getSynth();
-      if (synth != null && _indonesianVoice != null) {
-        final currentId = ++_speakRequestId;
+      final utterance = SpeechSynthesisUtterance();
+      utterance.text = cleaned;
+      // Natural human conversational pace: articulate, cheerful, and smooth
+      utterance.rate = 0.90;
+      // Warm, child-friendly human vocal intonation (natural human frequency)
+      utterance.pitch = 1.08;
+      utterance.volume = 1.0;
 
-        synth.cancel();
-        if (synth.paused) {
-          synth.resume();
-        }
-
-        if (currentId != _speakRequestId) return;
-
-        final utterance = SpeechSynthesisUtterance();
-        utterance.text = cleaned;
-        utterance.rate = 0.94; // Natural human cadence for clear comprehension
-        utterance.pitch = 1.0;  // Authentic human vocal pitch (eliminates robotic distortion)
-        utterance.volume = 1.0;
+      if (_indonesianVoice != null) {
         utterance.voice = _indonesianVoice;
         utterance.lang = _indonesianVoice!.lang;
-
-        // Silent error handler ensures cancellations never throw or log error spam
-        utterance.onError = ((JSObject _) {}).toJS;
-        utterance.onEnd = ((JSObject _) {}).toJS;
-
-        synth.speak(utterance);
-
-        // Preload into audio cache in the background for instant AudioBuffer next time
-        if (mms != null) {
-          mms.preload(cleaned);
-        }
-        return;
-      }
-
-      // 3. Fallback to MMS engine (fetches stream or ONNX inference)
-      if (mms != null) {
-        try {
-          final jsPromise = mms.speak(cleaned);
-          final res = await jsPromise.toDart;
-          if (res.toDart) return;
-        } catch (_) {}
-      }
-
-      // 4. Ultimate fallback to standard Web Speech
-      if (synth != null) {
-        synth.cancel();
-        if (synth.paused) synth.resume();
-
-        final utterance = SpeechSynthesisUtterance();
-        utterance.text = cleaned;
-        utterance.rate = 0.94;
-        utterance.pitch = 1.0;
-        utterance.volume = 1.0;
+      } else {
         utterance.lang = 'id-ID';
-        utterance.onError = ((JSObject _) {}).toJS;
-        utterance.onEnd = ((JSObject _) {}).toJS;
-
-        synth.speak(utterance);
       }
+
+      utterance.onError = ((JSObject _) {}).toJS;
+      utterance.onEnd = ((JSObject _) {}).toJS;
+
+      synth.speak(utterance);
     } catch (_) {}
   }
 
   @override
   Future<void> stop() async {
     try {
-      _mmsEngine?.stop();
       final synth = _getSynth();
       if (synth != null) {
         synth.cancel();
@@ -244,10 +181,6 @@ class TtsPlatformWeb implements TtsPlatform {
 
   @override
   String getEngineStatus() {
-    final mms = _mmsEngine;
-    if (mms != null && mms.isReady()) {
-      return 'AI Offline (Meta MMS-TTS Aktif)';
-    }
     if (_indonesianVoice != null) {
       return 'Suara Alami: ${_indonesianVoice!.name}';
     }
