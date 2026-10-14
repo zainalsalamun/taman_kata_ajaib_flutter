@@ -201,11 +201,6 @@ class _BalloonScreenState extends State<BalloonScreen>
         if (hasMoreInLevel) {
           // Regular word victory
           widget.onVictory(3);
-          setState(() {
-            _currentIndex++;
-          });
-          StorageService.saveGameLevelIndex(
-              'balloon', _currentLevel, _currentIndex);
 
           showDialog(
             context: context,
@@ -214,6 +209,11 @@ class _BalloonScreenState extends State<BalloonScreen>
               title: 'Pintar! Balon "${item.word}"!',
               subtitle: 'Kamu berhasil menemukan kata ${item.word}!',
               onNext: () {
+                setState(() {
+                  _currentIndex++;
+                });
+                StorageService.saveGameLevelIndex(
+                    'balloon', _currentLevel, _currentIndex);
                 _startBalloonGame();
               },
             ),
