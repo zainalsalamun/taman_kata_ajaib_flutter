@@ -6,6 +6,9 @@ import '../widgets/vector_illustrations.dart';
 import '../widgets/victory_dialog.dart';
 import '../services/audio_service.dart';
 
+import '../widgets/level_milestone_dialog.dart';
+import '../services/storage_service.dart';
+
 class CrayonColor {
   final String name;
   final Color innerColor;
@@ -63,9 +66,18 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _loadStoredTracing();
+  }
+
+  void _loadStoredTracing() async {
+    final idx = await StorageService.getTracingIndex();
+    if (mounted) {
+      setState(() {
+        _currentIndex = (idx < _letters.length) ? idx : 0;
+      });
       _startLetter();
-    });
+      _scrollToCurrentLetter();
+    }
   }
 
   @override
@@ -89,6 +101,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     setState(() {
       _currentIndex = index;
     });
+    StorageService.saveTracingIndex(index);
     _startLetter();
     _scrollToCurrentLetter();
   }
@@ -130,20 +143,50 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     if (rate >= 0.75 && !_isCompleted) {
       _isCompleted = true;
       _audio.speakPraise();
-      widget.onVictory(3);
 
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => VictoryDialog(
-          title: 'Huruf ${_current.letter} Berhasil!',
-          subtitle: 'Hebat sekali! Huruf ${_current.letter} untuk ${_current.word}!',
-          onNext: () {
-            _selectLetter((_currentIndex + 1) % _letters.length);
-          },
-        ),
-      );
+      final hasMore = _currentIndex + 1 < _letters.length;
+
+      if (hasMore) {
+        widget.onVictory(3);
+        StorageService.saveTracingIndex(_currentIndex + 1);
+
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => VictoryDialog(
+            title: 'Huruf ${_current.letter} Berhasil!',
+            subtitle:
+                'Hebat sekali! Huruf ${_current.letter} untuk ${_current.word}!',
+            onNext: () {
+              _selectLetter(_currentIndex + 1);
+            },
+          ),
+        );
+      } else {
+        // ENTIRE ALPHABET COMPLETED!
+        widget.onVictory(20);
+        StorageService.saveTracingIndex(0);
+        StorageService.addTrophy('tracing_alphabet_master');
+
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => LevelMilestoneDialog(
+            gameTitle: 'Jejak Huruf',
+            completedLevel: 1,
+            totalLevels: 1,
+            onNextLevel: () {
+              _selectLetter(0);
+            },
+            onReplay: () {
+              _selectLetter(0);
+            },
+            onBackToMap: widget.onBack,
+          ),
+        );
+      }
     }
   }
 
