@@ -506,6 +506,11 @@ class _ObjectPainter extends CustomPainter {
       bg1 = const Color(0xFFE0E7FF);
       bg2 = const Color(0xFFC7D2FE);
       border = const Color(0xFF6366F1);
+    } else if (keyLower.contains('dino')) {
+      symbol = '🦖';
+      bg1 = const Color(0xFFDCFCE7);
+      bg2 = const Color(0xFFBBF7D0);
+      border = const Color(0xFF16A34A);
     } else if (keyLower.contains('gajah')) {
       symbol = '🐘';
       bg1 = const Color(0xFFF1F5F9);
