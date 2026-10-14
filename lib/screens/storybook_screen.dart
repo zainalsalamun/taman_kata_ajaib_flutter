@@ -42,6 +42,15 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
   // Tapped word feedback
   String? _lastTappedWord;
 
+  // Reading Comprehension Quiz State
+  bool _isInQuizMode = false;
+  int _currentQuizQuestionIndex = 0;
+  int? _selectedQuizOptionIndex;
+  bool? _isCurrentAnswerCorrect;
+  bool _isAnswering = false;
+  int _earnedBonusStars = 0;
+  Timer? _quizAdvanceTimer;
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +68,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
 
   @override
   void dispose() {
+    _quizAdvanceTimer?.cancel();
     _karaokeTimer?.cancel();
     _bubbleTimer?.cancel();
     super.dispose();
@@ -74,12 +84,20 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
       _isPlayingNarration = false;
       _activeInteractiveId = null;
       _activeBubbleText = null;
+      _lastTappedWord = null;
+      _isInQuizMode = false;
+      _currentQuizQuestionIndex = 0;
+      _selectedQuizOptionIndex = null;
+      _isCurrentAnswerCorrect = null;
+      _isAnswering = false;
+      _earnedBonusStars = 0;
     });
 
     _audio.speak('Buku ${book.title}! Ayo kita baca bersama!');
   }
 
   void _closeBook() {
+    _quizAdvanceTimer?.cancel();
     _karaokeTimer?.cancel();
     _bubbleTimer?.cancel();
     _audio.stop();
@@ -87,6 +105,11 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
       _selectedBook = null;
       _isPlayingNarration = false;
       _karaokeWordIndex = null;
+      _isInQuizMode = false;
+      _currentQuizQuestionIndex = 0;
+      _selectedQuizOptionIndex = null;
+      _isCurrentAnswerCorrect = null;
+      _isAnswering = false;
     });
   }
 
@@ -107,6 +130,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
       _activeInteractiveId = null;
       _activeBubbleText = null;
       _lastTappedWord = null;
+      _isInQuizMode = false;
     });
 
     // Auto-read page sentence for child
@@ -191,14 +215,103 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
     });
   }
 
+  void _startComprehensionQuiz(StoryBook book) {
+    if (book.quizQuestions.isEmpty) {
+      _finishStory();
+      return;
+    }
+    _karaokeTimer?.cancel();
+    _bubbleTimer?.cancel();
+    _audio.stop();
+    HapticFeedback.mediumImpact();
+    _audio.playSfx('whoosh');
+
+    setState(() {
+      _isInQuizMode = true;
+      _currentQuizQuestionIndex = 0;
+      _selectedQuizOptionIndex = null;
+      _isCurrentAnswerCorrect = null;
+      _isAnswering = false;
+      _earnedBonusStars = 0;
+    });
+
+    _audio.speak('Hebat! Kamu sudah membaca ceritanya! Sekarang mari kita jawab kuis pemahaman dongeng!');
+    Timer(const Duration(milliseconds: 2600), () {
+      if (mounted && _isInQuizMode && _selectedBook != null) {
+        _speakCurrentQuizQuestion();
+      }
+    });
+  }
+
+  void _speakCurrentQuizQuestion() {
+    if (_selectedBook == null) return;
+    if (_currentQuizQuestionIndex >= _selectedBook!.quizQuestions.length) return;
+    final q = _selectedBook!.quizQuestions[_currentQuizQuestionIndex];
+    _audio.speak(q.questionText);
+  }
+
+  void _onQuizOptionSelected(int optionIndex) {
+    if (_isAnswering || _selectedBook == null) return;
+    final question = _selectedBook!.quizQuestions[_currentQuizQuestionIndex];
+    if (optionIndex < 0 || optionIndex >= question.options.length) return;
+
+    final option = question.options[optionIndex];
+    setState(() {
+      _selectedQuizOptionIndex = optionIndex;
+      _isCurrentAnswerCorrect = option.isCorrect;
+    });
+
+    if (option.isCorrect) {
+      _isAnswering = true;
+      HapticFeedback.heavyImpact();
+      _audio.playSfx('star');
+      _earnedBonusStars++;
+      _audio.speak(option.feedbackText);
+
+      _quizAdvanceTimer?.cancel();
+      _quizAdvanceTimer = Timer(const Duration(milliseconds: 1800), () {
+        if (!mounted || !_isInQuizMode || _selectedBook == null) return;
+        if (_currentQuizQuestionIndex + 1 < _selectedBook!.quizQuestions.length) {
+          setState(() {
+            _currentQuizQuestionIndex++;
+            _selectedQuizOptionIndex = null;
+            _isCurrentAnswerCorrect = null;
+            _isAnswering = false;
+          });
+          _speakCurrentQuizQuestion();
+        } else {
+          _finishStory();
+        }
+      });
+    } else {
+      HapticFeedback.lightImpact();
+      _audio.playSfx('whoosh');
+      _audio.speak(option.feedbackText);
+
+      _quizAdvanceTimer?.cancel();
+      _quizAdvanceTimer = Timer(const Duration(milliseconds: 1600), () {
+        if (mounted && _isInQuizMode) {
+          setState(() {
+            _selectedQuizOptionIndex = null;
+            _isCurrentAnswerCorrect = null;
+          });
+        }
+      });
+    }
+  }
+
   void _finishStory() {
     HapticFeedback.heavyImpact();
     _audio.playSfx('star');
-    widget.onVictory(3);
+    final totalReward = 3 + _earnedBonusStars;
+    widget.onVictory(totalReward);
 
     if (_selectedBook != null) {
       _completedStories.add(_selectedBook!.id);
       StorageService.saveCompletedStories(_completedStories.toList());
+      if (_completedStories.length >= sampleStoryBooks.length) {
+        StorageService.addTrophy('story_comprehension_master');
+      }
       setState(() {});
     }
 
@@ -206,8 +319,8 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
       context: context,
       barrierDismissible: false,
       builder: (_) => VictoryDialog(
-        title: 'Tamat! Kamu Pembaca Hebat!',
-        subtitle: 'Selamat! Kamu telah membaca seluruh cerita "${_selectedBook?.title}"!',
+        title: 'Tamat! Kamu Juara Dongeng!',
+        subtitle: 'Hebat! Kamu berhasil membaca seluruh cerita "${_selectedBook?.title}" dan menjawab kuis pemahaman dengan gemilang!\nKamu mendapatkan +$totalReward Bintang Juara!',
         onNext: () {
           _closeBook();
         },
@@ -231,7 +344,9 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
       ),
       child: _selectedBook == null
           ? _buildLibraryShelf()
-          : _buildStoryReader(),
+          : _isInQuizMode
+              ? _buildComprehensionQuizView(_selectedBook!)
+              : _buildStoryReader(),
     );
   }
 
@@ -630,7 +745,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
               // Tombol Selanjutnya / Tamat
               isLastPage
                   ? ElevatedButton.icon(
-                      onPressed: _finishStory,
+                      onPressed: () => _startComprehensionQuiz(book),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF59E0B),
                         foregroundColor: Colors.white,
@@ -639,9 +754,9 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
-                      icon: const Text('⭐', style: TextStyle(fontSize: 16)),
+                      icon: const Text('❓', style: TextStyle(fontSize: 16)),
                       label: Text(
-                        'Selesai & Rayakan!',
+                        'Jawab Kuis Dongeng ⭐',
                         style: GoogleFonts.fredoka(fontSize: 14, fontWeight: FontWeight.w900),
                       ),
                     )
@@ -701,26 +816,36 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                 alignment: item.alignment,
                 child: GestureDetector(
                   onTap: () => _onInteractiveItemTapped(item),
-                  child: AnimatedScale(
-                    scale: isTouched ? 1.25 : 1.0,
-                    duration: const Duration(milliseconds: 250),
+                  child: AnimatedRotation(
+                    turns: isTouched ? 0.04 : 0.0,
+                    duration: const Duration(milliseconds: 200),
                     curve: Curves.elasticOut,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.85),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.12),
-                            blurRadius: 6,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: ObjectIllustrationWidget(
-                        illustrationKey: item.illustrationKey,
-                        size: item.size,
+                    child: AnimatedScale(
+                      scale: isTouched ? 1.25 : 1.0,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.elasticOut,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.92),
+                          border: isTouched
+                              ? Border.all(color: const Color(0xFFF59E0B), width: 3)
+                              : null,
+                          boxShadow: [
+                            BoxShadow(
+                              color: isTouched
+                                  ? const Color(0x66F59E0B)
+                                  : Colors.black.withOpacity(0.12),
+                              blurRadius: isTouched ? 10 : 6,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: ObjectIllustrationWidget(
+                          illustrationKey: item.illustrationKey,
+                          size: item.size,
+                        ),
                       ),
                     ),
                   ),
@@ -945,6 +1070,313 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
           ),
         ],
       ),
+    );
+  }
+
+  // ==========================================
+  // 5. KUIS PEMAHAMAN MEMBACA (COMPREHENSION QUIZ)
+  // ==========================================
+  Widget _buildComprehensionQuizView(StoryBook book) {
+    if (book.quizQuestions.isEmpty || _currentQuizQuestionIndex >= book.quizQuestions.length) {
+      return const SizedBox.shrink();
+    }
+
+    final question = book.quizQuestions[_currentQuizQuestionIndex];
+    final totalQuestions = book.quizQuestions.length;
+
+    return Column(
+      children: [
+        // Top Toolbar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          child: Row(
+            children: [
+              _buildBackButton(
+                onTap: () {
+                  _audio.stop();
+                  setState(() {
+                    _isInQuizMode = false;
+                  });
+                },
+                icon: Icons.menu_book_rounded,
+                tooltip: 'Kembali Baca Dongeng',
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: book.coverColor, width: 2),
+                ),
+                child: Row(
+                  children: [
+                    const Text('🧠', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Kuis Pemahaman Dongeng',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: book.coverColor,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: book.coverColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Soal ${_currentQuizQuestionIndex + 1}/$totalQuestions',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          color: book.coverColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: _speakCurrentQuizQuestion,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  elevation: 3,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+                icon: const Icon(Icons.volume_up_rounded, size: 20),
+                label: Text(
+                  'Dengarkan Soal 🔊',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Main Quiz Body
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Column(
+              children: [
+                // Question Banner
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: const Color(0xFFCBD5E1), width: 2.5),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x14000000),
+                        offset: Offset(0, 4),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFFCD34D)),
+                        ),
+                        child: const Text('❓', style: TextStyle(fontSize: 22)),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          question.questionText,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF1E293B),
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Choice Options
+                Expanded(
+                  child: Row(
+                    children: List.generate(question.options.length, (optIdx) {
+                      final opt = question.options[optIdx];
+                      final isSelected = _selectedQuizOptionIndex == optIdx;
+                      final isCorrect = _isCurrentAnswerCorrect == true;
+
+                      Color cardBg = Colors.white;
+                      Color borderColor = const Color(0xFFE2E8F0);
+                      double borderWidth = 2.5;
+
+                      if (isSelected) {
+                        if (isCorrect) {
+                          cardBg = const Color(0xFFECFDF5);
+                          borderColor = const Color(0xFF10B981);
+                          borderWidth = 3.5;
+                        } else {
+                          cardBg = const Color(0xFFFEF2F2);
+                          borderColor = const Color(0xFFEF4444);
+                          borderWidth = 3.5;
+                        }
+                      }
+
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: GestureDetector(
+                            onTap: () => _onQuizOptionSelected(optIdx),
+                            child: AnimatedScale(
+                              scale: isSelected ? 1.04 : 1.0,
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOutBack,
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: cardBg,
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(color: borderColor, width: borderWidth),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: isSelected && isCorrect
+                                          ? const Color(0x3310B981)
+                                          : const Color(0x12000000),
+                                      offset: const Offset(0, 6),
+                                      blurRadius: 10,
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Center(
+                                        child: ObjectIllustrationWidget(
+                                          illustrationKey: opt.illustrationKey,
+                                          size: 85,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      opt.text,
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.fredoka(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: isSelected && isCorrect
+                                            ? const Color(0xFF047857)
+                                            : const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    if (isSelected && isCorrect)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF10B981),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          'BENAR! ⭐',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    else if (isSelected && !isCorrect)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEF4444),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          'Coba Lagi Ya! 😊',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          'Sentuh Pilihan 👆',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Hint Prompt
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('💡', style: TextStyle(fontSize: 13)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Pilih gambar jawaban yang paling tepat sesuai dengan cerita yang telah kamu baca!',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF475569),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
