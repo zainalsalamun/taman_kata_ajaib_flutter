@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,26 +21,40 @@ class QuizScreen extends StatefulWidget {
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
+class _QuizScreenState extends State<QuizScreen>
+    with SingleTickerProviderStateMixin {
   final List<QuizQuestionData> _quizList = GameRepository.quizQuestions;
   int _currentIndex = 0;
   String? _selectedKey;
+  String? _wobbleKey;
   bool _isAnswered = false;
   final AudioService _audio = AudioService();
+  late AnimationController _wobbleController;
 
   QuizQuestionData get _current => _quizList[_currentIndex];
 
   @override
   void initState() {
     super.initState();
+    _wobbleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startQuestion();
     });
   }
 
+  @override
+  void dispose() {
+    _wobbleController.dispose();
+    super.dispose();
+  }
+
   void _startQuestion() {
     setState(() {
       _selectedKey = null;
+      _wobbleKey = null;
       _isAnswered = false;
     });
     _audio.speak(_current.question);
@@ -53,8 +68,6 @@ class _QuizScreenState extends State<QuizScreen> {
     setState(() {
       _selectedKey = choiceKey;
     });
-
-    _audio.speak(choiceKey);
 
     if (choiceKey == _current.answerKey) {
       // Correct!
@@ -85,9 +98,16 @@ class _QuizScreenState extends State<QuizScreen> {
         );
       });
     } else {
-      // Wrong
-      Future.delayed(const Duration(milliseconds: 300), () {
-        _audio.speak('Itu ${choiceKey.toUpperCase()}. ${_current.question}');
+      // Wrong choice - Gentle wobble shake & encouraging voice guidance
+      HapticFeedback.lightImpact();
+      setState(() {
+        _wobbleKey = choiceKey;
+      });
+      _wobbleController.forward(from: 0.0);
+
+      Future.delayed(const Duration(milliseconds: 250), () {
+        _audio.speak(
+            'Itu gambar ${choiceKey.toUpperCase()}. Coba cari ${_current.answerName} ya!');
       });
     }
   }
@@ -126,17 +146,41 @@ class _QuizScreenState extends State<QuizScreen> {
                 ),
                 const SizedBox(width: 14),
                 GestureDetector(
-                  onTap: () => _audio.speak(_current.question),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _audio.speak(_current.question);
+                  },
                   child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFDE047),
-                      shape: BoxShape.circle,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDE047),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0xFFCA8A04),
+                          offset: Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    child: const VectorIconWidget(
-                      icon: 'speaker',
-                      size: 18,
-                      color: Color(0xFF854D0E),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const VectorIconWidget(
+                          icon: 'speaker',
+                          size: 18,
+                          color: Color(0xFF854D0E),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Dengar',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF854D0E),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -168,47 +212,63 @@ class _QuizScreenState extends State<QuizScreen> {
 
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: GestureDetector(
-                  onTap: () => _onChoiceTapped(key),
-                  child: Container(
-                    width: 200,
-                    height: 190,
-                    decoration: BoxDecoration(
-                      color: cardBg,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: borderColor, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: shadowColor,
-                          offset: const Offset(0, 6),
-                        ),
-                        const BoxShadow(
-                          color: Color(0x10000000),
-                          blurRadius: 12,
-                          offset: Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ObjectIllustrationWidget(
-                          illustrationKey: key,
-                          size: 74,
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          key.toUpperCase(),
-                          style: GoogleFonts.nunito(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: isCorrect
-                                ? const Color(0xFF166534)
-                                : const Color(0xFF1E293B),
-                            letterSpacing: 1,
+                child: AnimatedBuilder(
+                  animation: _wobbleController,
+                  builder: (context, child) {
+                    double wobbleOffset = 0.0;
+                    if (_wobbleKey == key && _wobbleController.isAnimating) {
+                      final val = _wobbleController.value;
+                      // 3 full sine cycles decaying smoothly to 0
+                      wobbleOffset =
+                          math.sin(val * math.pi * 6) * 10.0 * (1.0 - val);
+                    }
+                    return Transform.translate(
+                      offset: Offset(wobbleOffset, 0),
+                      child: child,
+                    );
+                  },
+                  child: GestureDetector(
+                    onTap: () => _onChoiceTapped(key),
+                    child: Container(
+                      width: 200,
+                      height: 190,
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: borderColor, width: 4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: shadowColor,
+                            offset: const Offset(0, 6),
                           ),
-                        ),
-                      ],
+                          const BoxShadow(
+                            color: Color(0x10000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ObjectIllustrationWidget(
+                            illustrationKey: key,
+                            size: 74,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            key.toUpperCase(),
+                            style: GoogleFonts.nunito(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: isCorrect
+                                  ? const Color(0xFF166534)
+                                  : const Color(0xFF1E293B),
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
