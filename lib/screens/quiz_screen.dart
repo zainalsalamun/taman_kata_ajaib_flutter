@@ -121,7 +121,8 @@ class _QuizScreenState extends State<QuizScreen>
       });
 
       Future.delayed(const Duration(milliseconds: 350), () async {
-        _audio.speak('Benar! Ini ${_current.answerName}! Hebat!');
+        final solvedQuestion = _current;
+        _audio.speak('Benar! Ini ${solvedQuestion.answerName}! Hebat!');
 
         if (!mounted) return;
 
@@ -129,20 +130,20 @@ class _QuizScreenState extends State<QuizScreen>
 
         if (hasMoreInLevel) {
           widget.onVictory(3);
-          setState(() {
-            _currentIndex++;
-          });
-          StorageService.saveGameLevelIndex(
-              'quiz', _currentLevel, _currentIndex);
 
           showDialog(
             context: context,
             barrierDismissible: false,
             builder: (_) => VictoryDialog(
-              title: 'Hebat! ${_current.answerName}!',
+              title: 'Hebat! ${solvedQuestion.answerName}!',
               subtitle:
-                  'Kamu pintar sekali menemukan ${_current.answerName}!',
+                  'Kamu pintar sekali menemukan ${solvedQuestion.answerName}!',
               onNext: () {
+                setState(() {
+                  _currentIndex++;
+                });
+                StorageService.saveGameLevelIndex(
+                    'quiz', _currentLevel, _currentIndex);
                 _startQuestion();
               },
             ),
