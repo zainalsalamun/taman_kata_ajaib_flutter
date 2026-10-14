@@ -81,7 +81,8 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
         HapticFeedback.mediumImpact();
         _audio.playSfx('tuut');
         Future.delayed(const Duration(milliseconds: 300), () {
-          _audio.speak('Tuut tuut! ${_current.word}! Kereta meluncur!');
+          final syllablesSpelled = _current.syllables.join('... ');
+          _audio.speak('$syllablesSpelled... ${_current.word}! Tuut tuut, kereta meluncur!');
           _trainAnimController.forward();
 
           Future.delayed(const Duration(milliseconds: 1400), () {
@@ -150,7 +151,10 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
                 ),
                 const SizedBox(width: 12),
                 GestureDetector(
-                  onTap: () => _audio.speak(_current.word),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _audio.speak('Susun kata ${_current.word}!');
+                  },
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
@@ -211,7 +215,9 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
                               border: Border.all(color: const Color(0xFFB91C1C), width: 3),
                             ),
                             child: Stack(
+                              clipBehavior: Clip.none,
                               children: [
+                                // Smokestack
                                 Positioned(
                                   top: -12,
                                   left: 18,
@@ -224,6 +230,45 @@ class _TrainScreenState extends State<TrainScreen> with SingleTickerProviderStat
                                     ),
                                   ),
                                 ),
+                                // Animated Smoke Puffs
+                                if (_trainAnimController.value > 0.02) ...[
+                                  Positioned(
+                                    top: -24 - (20 * _trainAnimController.value),
+                                    left: 20 - (8 * _trainAnimController.value),
+                                    child: Opacity(
+                                      opacity: (1.0 - _trainAnimController.value).clamp(0.0, 1.0),
+                                      child: Container(
+                                        width: 14 + (10 * _trainAnimController.value),
+                                        height: 14 + (10 * _trainAnimController.value),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withAlpha(220),
+                                          shape: BoxShape.circle,
+                                          boxShadow: const [
+                                            BoxShadow(color: Color(0x20000000), blurRadius: 4),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -38 - (32 * _trainAnimController.value),
+                                    left: 14 - (16 * _trainAnimController.value),
+                                    child: Opacity(
+                                      opacity: (0.85 - _trainAnimController.value).clamp(0.0, 1.0),
+                                      child: Container(
+                                        width: 20 + (16 * _trainAnimController.value),
+                                        height: 20 + (16 * _trainAnimController.value),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withAlpha(190),
+                                          shape: BoxShape.circle,
+                                          boxShadow: const [
+                                            BoxShadow(color: Color(0x20000000), blurRadius: 4),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                                 Center(
                                   child: Container(
                                     width: 22,
