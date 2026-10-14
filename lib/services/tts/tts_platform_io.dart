@@ -8,8 +8,8 @@ class TtsPlatformIo implements TtsPlatform {
   Future<void> init() async {
     try {
       await _flutterTts.setLanguage("id-ID");
-      await _flutterTts.setSpeechRate(0.48); // Clear, natural conversational tempo
-      await _flutterTts.setPitch(1.0);       // Natural human vocal pitch
+      await _flutterTts.setSpeechRate(0.50); // Natural conversational tempo
+      await _flutterTts.setPitch(1.08);       // Warm, cheerful human vocal intonation
       await _flutterTts.setVolume(1.0);
     } catch (_) {}
   }
