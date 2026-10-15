@@ -397,118 +397,143 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Back Button
-              ElevatedButton.icon(
-                onPressed: widget.onBack,
-                icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF78350F), size: 18),
-                label: Text(
-                  'Peta',
-                  style: GoogleFonts.fredoka(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF78350F),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: ElevatedButton.icon(
+                  onPressed: widget.onBack,
+                  icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF78350F), size: 18),
+                  label: Text(
+                    'Peta',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF78350F),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFEF3C7),
+                    elevation: 2,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFEF3C7),
-                  elevation: 2,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                ),
               ),
+              const SizedBox(width: 8),
 
               // Title Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(240),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF86EFAC), width: 2),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x10000000), blurRadius: 6, offset: Offset(0, 2)),
-                  ],
+              Flexible(
+                flex: 4,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(240),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF86EFAC), width: 2),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x10000000), blurRadius: 6, offset: Offset(0, 2)),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _currentTheme == 'ocean' ? '🌊' : _currentTheme == 'galaxy' ? '🌌' : '🎨',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Taman Kreasi Stiker',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF15803D),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${_placedStickers.length}',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF16A34A),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+              ),
+              const SizedBox(width: 8),
+
+              // Theme Switcher Segmented Pill
+              Flexible(
+                flex: 5,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.center,
+                  child: _buildThemeSwitcher(),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Action Buttons: Clear & Open Album
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _currentTheme == 'ocean' ? '🌊' : _currentTheme == 'galaxy' ? '🌌' : '🎨',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Taman Kreasi Stiker',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF15803D),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDCFCE7),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${_placedStickers.length}',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF16A34A),
+                    if (_placedStickers.isNotEmpty) ...[
+                      ElevatedButton.icon(
+                        onPressed: _clearCanvas,
+                        icon: const Icon(Icons.cleaning_services_rounded, color: Color(0xFFDC2626), size: 16),
+                        label: Text(
+                          'Bersihkan',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFDC2626),
+                          ),
                         ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFEE2E2),
+                          elevation: 1,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    ElevatedButton.icon(
+                      onPressed: widget.onOpenAlbum,
+                      icon: const Icon(Icons.collections_bookmark_rounded, color: Color(0xFFBE185D), size: 16),
+                      label: Text(
+                        'Album',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFBE185D),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFCE7F3),
+                        elevation: 1,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                     ),
                   ],
                 ),
-              ),
-
-              // Theme Switcher Segmented Pill
-              _buildThemeSwitcher(),
-
-              // Action Buttons: Clear & Open Album
-              Row(
-                children: [
-                  if (_placedStickers.isNotEmpty) ...[
-                    ElevatedButton.icon(
-                      onPressed: _clearCanvas,
-                      icon: const Icon(Icons.cleaning_services_rounded, color: Color(0xFFDC2626), size: 16),
-                      label: Text(
-                        'Bersihkan',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFDC2626),
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFEE2E2),
-                        elevation: 1,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  ElevatedButton.icon(
-                    onPressed: widget.onOpenAlbum,
-                    icon: const Icon(Icons.collections_bookmark_rounded, color: Color(0xFFBE185D), size: 16),
-                    label: Text(
-                      'Album',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFFBE185D),
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFCE7F3),
-                      elevation: 1,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
