@@ -105,55 +105,63 @@ class _LevelMilestoneDialogState extends State<LevelMilestoneDialog>
     final currentLevelName = levelNames[widget.completedLevel] ?? 'Tingkat ${widget.completedLevel}';
     final nextLevelName = levelNames[nextLevel] ?? 'Tingkat $nextLevel';
 
+    final screenSize = MediaQuery.of(context).size;
+    final dialogWidth = math.min(520.0, screenSize.width * 0.92);
+    final dialogMaxHeight = screenSize.height * 0.92;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        width: 520,
-        child: Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            // Fireworks & Confetti
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _animController,
-                builder: (context, _) {
-                  return CustomPaint(
-                    painter: _MilestoneConfettiPainter(
-                      progress: _animController.value,
-                      particles: _particles,
-                    ),
-                  );
-                },
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: dialogMaxHeight),
+        child: SizedBox(
+          width: dialogWidth,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // Fireworks & Confetti
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _animController,
+                  builder: (context, _) {
+                    return CustomPaint(
+                      painter: _MilestoneConfettiPainter(
+                        progress: _animController.value,
+                        particles: _particles,
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
 
-            // Card Container
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: const Color(0xFFFBBF24), width: 6),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x40F59E0B),
-                    blurRadius: 36,
-                    spreadRadius: 6,
-                    offset: Offset(0, 10),
-                  ),
-                  BoxShadow(
-                    color: Color(0x20000000),
-                    blurRadius: 20,
-                    offset: Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              // Card Container
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: const Color(0xFFFBBF24), width: 6),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x40F59E0B),
+                      blurRadius: 36,
+                      spreadRadius: 6,
+                      offset: Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: Color(0x20000000),
+                      blurRadius: 20,
+                      offset: Offset(0, 12),
+                    ),
+                  ],
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                   // Golden Trophy + Laurel Wreath Header
                   _buildTrophyHeader(),
 
@@ -340,10 +348,12 @@ class _LevelMilestoneDialogState extends State<LevelMilestoneDialog>
                       ),
                     ],
                   ),
-                ],
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
