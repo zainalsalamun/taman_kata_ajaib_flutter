@@ -81,56 +81,64 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final dialogWidth = math.min(480.0, screenSize.width * 0.92);
+    final dialogMaxHeight = screenSize.height * 0.92;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: SizedBox(
-        width: 480,
-        child: Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            // 1. Confetti Particles Fireworks Layer
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: _animController,
-                builder: (context, _) {
-                  return CustomPaint(
-                    painter: _ConfettiPainter(
-                      progress: _animController.value,
-                      particles: _particles,
-                    ),
-                  );
-                },
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: dialogMaxHeight),
+        child: SizedBox(
+          width: dialogWidth,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // 1. Confetti Particles Fireworks Layer
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _animController,
+                  builder: (context, _) {
+                    return CustomPaint(
+                      painter: _ConfettiPainter(
+                        progress: _animController.value,
+                        particles: _particles,
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
 
-            // 2. Main Victory Card
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: const Color(0xFFFDE047), width: 5),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x35F59E0B),
-                    blurRadius: 36,
-                    spreadRadius: 6,
-                    offset: Offset(0, 8),
-                  ),
-                  BoxShadow(
-                    color: Color(0x25000000),
-                    blurRadius: 20,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              // 2. Main Victory Card
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(color: const Color(0xFFFDE047), width: 5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x35F59E0B),
+                      blurRadius: 36,
+                      spreadRadius: 6,
+                      offset: Offset(0, 8),
+                    ),
+                    BoxShadow(
+                      color: Color(0x25000000),
+                      blurRadius: 20,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                   // 3 Animated Stars Burst
                   _buildAnimatedStars(),
                   const SizedBox(height: 10),
@@ -226,10 +234,12 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                       ),
                     ),
                   ),
-                ],
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
