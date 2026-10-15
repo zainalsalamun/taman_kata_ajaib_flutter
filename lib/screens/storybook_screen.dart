@@ -378,29 +378,38 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                     children: [
                       const Text('📖', style: TextStyle(fontSize: 20)),
                       const SizedBox(width: 8),
-                      Text(
-                        'PULAU BUKU CERITA AJAIB',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF7E22CE),
-                          letterSpacing: 0.5,
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'PULAU BUKU CERITA AJAIB',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF7E22CE),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
                       ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3E8FF),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFD8B4FE)),
-                        ),
-                        child: Text(
-                          '${_completedStories.length}/${sampleStoryBooks.length} Tamat ⭐',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF7E22CE),
+                      const SizedBox(width: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3E8FF),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFD8B4FE)),
+                          ),
+                          child: Text(
+                            '${_completedStories.length}/${sampleStoryBooks.length} Tamat ⭐',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF7E22CE),
+                            ),
                           ),
                         ),
                       ),
@@ -414,20 +423,30 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
 
         // Book Cards Grid / Row
         Expanded(
-          child: Center(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: sampleStoryBooks.map((book) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: _buildBookCoverCard(book),
-                  );
-                }).toList(),
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final shelfHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
+                  ? constraints.maxHeight
+                  : 320.0;
+              return Center(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  child: SizedBox(
+                    height: shelfHeight - 24,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: sampleStoryBooks.map((book) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: _buildBookCoverCard(book),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -615,49 +634,58 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                 tooltip: 'Kembali ke Rak Buku',
               ),
               const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: book.coverColor, width: 2),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      book.title,
-                      style: GoogleFonts.fredoka(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: book.coverColor,
-                      ),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: book.coverColor, width: 2),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: book.coverColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        'Hal ${_currentPageIndex + 1}/${book.pages.length}',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: book.coverColor,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          book.title,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: book.coverColor,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: book.coverColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'Hal ${_currentPageIndex + 1}/${book.pages.length}',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: book.coverColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
 
               // Button: Listen / Re-read Page
-              ElevatedButton.icon(
-                onPressed: _playPageNarration,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isPlayingNarration ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: ElevatedButton.icon(
+                  onPressed: _playPageNarration,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isPlayingNarration ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
                   foregroundColor: Colors.white,
                   elevation: 3,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -675,7 +703,8 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                   ),
                 ),
               ),
-            ],
+            ),
+          ],
           ),
         ),
 
@@ -1102,60 +1131,70 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                 tooltip: 'Kembali Baca Dongeng',
               ),
               const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: book.coverColor, width: 2),
-                ),
-                child: Row(
-                  children: [
-                    const Text('🧠', style: TextStyle(fontSize: 16)),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Kuis Pemahaman Dongeng',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: book.coverColor,
-                      ),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: book.coverColor, width: 2),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: book.coverColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        'Soal ${_currentQuizQuestionIndex + 1}/$totalQuestions',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: book.coverColor,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🧠', style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Kuis Pemahaman Dongeng',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: book.coverColor,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: book.coverColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            'Soal ${_currentQuizQuestionIndex + 1}/$totalQuestions',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: book.coverColor,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: _speakCurrentQuizQuestion,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  elevation: 3,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
-                icon: const Icon(Icons.volume_up_rounded, size: 20),
-                label: Text(
-                  'Dengarkan Soal 🔊',
-                  style: GoogleFonts.fredoka(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+              const SizedBox(width: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: ElevatedButton.icon(
+                  onPressed: _speakCurrentQuizQuestion,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    elevation: 3,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  icon: const Icon(Icons.volume_up_rounded, size: 20),
+                  label: Text(
+                    'Dengarkan Soal 🔊',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
