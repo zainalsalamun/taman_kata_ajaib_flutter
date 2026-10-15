@@ -201,75 +201,96 @@ class _TrainScreenState extends State<TrainScreen>
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Top Control Bar: Level Selector Ribbon + Target Object Banner
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              LevelSelectorRibbon(
-                currentLevel: _currentLevel,
-                unlockedLevel: _unlockedLevel,
-                onSelectLevel: _switchLevel,
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFF86EFAC), width: 3),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0xFF4ADE80), offset: Offset(0, 4)),
-                  ],
+              Flexible(
+                flex: 4,
+                child: LevelSelectorRibbon(
+                  currentLevel: _currentLevel,
+                  unlockedLevel: _unlockedLevel,
+                  onSelectLevel: _switchLevel,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ObjectIllustrationWidget(
-                      illustrationKey: _current.illustrationKey,
-                      size: 48,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                flex: 6,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFF86EFAC), width: 3),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0xFF4ADE80), offset: Offset(0, 4)),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Text(
-                      _current.word,
-                      style: GoogleFonts.nunito(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF166534),
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        _audio.speak('Susun kata ${_current.word}!');
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFDE047),
-                          shape: BoxShape.circle,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ObjectIllustrationWidget(
+                          illustrationKey: _current.illustrationKey,
+                          size: 42,
                         ),
-                        child: const VectorIconWidget(
-                            icon: 'speaker',
-                            size: 18,
-                            color: Color(0xFF854D0E)),
-                      ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _current.word,
+                          style: GoogleFonts.nunito(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF166534),
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _audio.speak('Susun kata ${_current.word}!');
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFDE047),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const VectorIconWidget(
+                                icon: 'speaker',
+                                size: 16,
+                                color: Color(0xFF854D0E)),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
           ),
 
-          // Train Track & Train Assembly
-          SizedBox(
-            height: 140,
-            child: Stack(
+          // Main Responsive Game Area (Track + Choices)
+          Expanded(
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(
+                  width: 700,
+                  height: 230,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Train Track & Train Assembly
+                      SizedBox(
+                        height: 135,
+                        child: Stack(
               alignment: Alignment.bottomCenter,
               children: [
                 // Railroad Track Line
@@ -476,6 +497,12 @@ class _TrainScreenState extends State<TrainScreen>
                   ),
                 );
               }).toList(),
+            ),
+          ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],
