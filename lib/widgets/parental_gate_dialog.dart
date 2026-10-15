@@ -121,6 +121,30 @@ const List<TrophyDef> _allTrophies = [
     desc: 'Hias kanvas kreasi dengan stiker ajaib pilihanmu!',
     glowColor: Color(0xFF10B981),
   ),
+  TrophyDef(
+    id: 'maze_l1',
+    title: 'Piala Tunas Labirin',
+    icon: '🧭',
+    island: 'Labirin Kata',
+    desc: 'Tamat Tingkat 1: Pandu Miko jemput huruf alfabet di labirin',
+    glowColor: Color(0xFFF97316),
+  ),
+  TrophyDef(
+    id: 'maze_l2',
+    title: 'Piala Suku Kata Labirin',
+    icon: '🥈',
+    island: 'Labirin Kata',
+    desc: 'Tamat Tingkat 2: Pandu Miko jemput suku kata berirama',
+    glowColor: Color(0xFFFB923C),
+  ),
+  TrophyDef(
+    id: 'maze_l3',
+    title: 'Mahkota Master Labirin',
+    icon: '👑',
+    island: 'Labirin Kata',
+    desc: 'Tamat Tingkat 3: Taklukkan labirin kata kaya 3 suku kata',
+    glowColor: Color(0xFFEA580C),
+  ),
 ];
 
 class ParentalGateDialog extends StatefulWidget {
@@ -148,11 +172,15 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
   int _limitMinutes = 0;
   int _todaySeconds = 0;
   int _activeTab = 0; // 0: Trofi, 1: Rapor, 2: Waktu & Reset
+  String _childName = 'Juara Cilik';
+  int _trophyFilterIndex = 0; // 0: Semua, 1: Diraih, 2: Terkunci
+  String? _tappedTrophyId;
 
   List<String> _trophies = [];
   int _trainLevel = 1;
   int _balloonLevel = 1;
   int _quizLevel = 1;
+  int _mazeLevel = 1;
   int _tracingIndex = 0;
   int _storiesCount = 0;
   int _stickersCount = 0;
@@ -171,9 +199,11 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
     final trLvl = await StorageService.getUnlockedGameLevel('train');
     final blLvl = await StorageService.getUnlockedGameLevel('balloon');
     final qzLvl = await StorageService.getUnlockedGameLevel('quiz');
+    final mzLvl = await StorageService.getUnlockedGameLevel('maze');
     final trcIdx = await StorageService.getTracingIndex();
     final stories = await StorageService.getCompletedStories();
     final stickers = await StorageService.getUnlockedStickers();
+    final name = await StorageService.getChildName();
 
     if (stories.length >= 4 && !trophies.contains('story_comprehension_master')) {
       await StorageService.addTrophy('story_comprehension_master');
@@ -188,9 +218,11 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
         _trainLevel = trLvl;
         _balloonLevel = blLvl;
         _quizLevel = qzLvl;
+        _mazeLevel = mzLvl;
         _tracingIndex = trcIdx;
         _storiesCount = stories.length;
         _stickersCount = stickers.length;
+        _childName = name;
       });
     }
   }
@@ -333,26 +365,36 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final dialogMaxWidth = math.min(_isUnlocked ? 680.0 : 460.0, screenSize.width * 0.94);
+    final dialogMaxHeight = math.min(_isUnlocked ? 480.0 : 420.0, screenSize.height * 0.92);
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Container(
-        width: _isUnlocked ? 660 : 460,
-        height: _isUnlocked ? 460 : null,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFC084FC), width: 4),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33000000),
-              blurRadius: 30,
-              offset: Offset(0, 10),
-            ),
-          ],
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: dialogMaxWidth,
+          maxHeight: dialogMaxHeight,
         ),
-        child: _isUnlocked ? _buildUnlockedDashboard() : _buildLockScreen(),
+        child: Container(
+          width: dialogMaxWidth,
+          height: _isUnlocked ? dialogMaxHeight : null,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFFC084FC), width: 4),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 30,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: _isUnlocked ? _buildUnlockedDashboard() : _buildLockScreen(),
+        ),
       ),
     );
   }
@@ -483,49 +525,85 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: [
+                    const MascotWidget(size: 32),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Zona Orang Tua',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF6B21A8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             Row(
               children: [
-                const MascotWidget(size: 32),
-                const SizedBox(width: 10),
-                Text(
-                  'Zona Orang Tua & Prestasi Anak',
-                  style: GoogleFonts.fredoka(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: const Color(0xFF6B21A8),
+                ElevatedButton.icon(
+                  onPressed: _openCertificateDialog,
+                  icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFB45309), size: 16),
+                  label: Text(
+                    '📜 Sertifikat Juara',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFB45309),
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFEF3C7),
+                    elevation: 1,
+                    side: const BorderSide(color: Color(0xFFFDE047), width: 1.5),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ],
-            ),
-            IconButton(
-              icon: const Icon(Icons.close, color: Color(0xFF64748B)),
-              onPressed: () => Navigator.of(context).pop(),
             ),
           ],
         ),
         const SizedBox(height: 8),
 
         // Tabs Selector (Trofi, Rapor, Pengaturan)
-        Row(
-          children: [
-            _buildTabButton(
-              index: 0,
-              icon: '🏆',
-              label: 'Lemari Trofi (${_trophies.length}/${_allTrophies.length})',
-            ),
-            const SizedBox(width: 8),
-            _buildTabButton(
-              index: 1,
-              icon: '📊',
-              label: 'Rapor Belajar',
-            ),
-            const SizedBox(width: 8),
-            _buildTabButton(
-              index: 2,
-              icon: '⚙️',
-              label: 'Waktu & Reset',
-            ),
-          ],
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTabButton(
+                index: 0,
+                icon: '🏆',
+                label: 'Lemari Trofi (${_trophies.length}/${_allTrophies.length})',
+              ),
+              const SizedBox(width: 8),
+              _buildTabButton(
+                index: 1,
+                icon: '📊',
+                label: 'Rapor Belajar',
+              ),
+              const SizedBox(width: 8),
+              _buildTabButton(
+                index: 2,
+                icon: '⚙️',
+                label: 'Waktu & Reset',
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
 
@@ -586,7 +664,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
   Widget _buildActiveTabContent() {
     switch (_activeTab) {
       case 0:
-        return _buildTrophyShelf();
+        return _buildLuxuryTrophyCabinet();
       case 1:
         return _buildLearningReport();
       case 2:
@@ -595,132 +673,761 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
     }
   }
 
-  // --- TAB 1: LEMARI TROFI ---
-  Widget _buildTrophyShelf() {
-    return GridView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 2.7,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemCount: _allTrophies.length,
-      itemBuilder: (context, idx) {
-        final trophy = _allTrophies[idx];
-        final isUnlocked = _trophies.contains(trophy.id);
+  // --- TAB 1: LEMARI TROFI MEWAH BERKILAU ---
+  Widget _buildLuxuryTrophyCabinet() {
+    List<TrophyDef> displayedTrophies;
+    if (_trophyFilterIndex == 1) {
+      displayedTrophies = _allTrophies.where((t) => _trophies.contains(t.id)).toList();
+    } else if (_trophyFilterIndex == 2) {
+      displayedTrophies = _allTrophies.where((t) => !_trophies.contains(t.id)).toList();
+    } else {
+      displayedTrophies = _allTrophies;
+    }
 
-        return GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            if (isUnlocked) {
-              AudioService().speak(
-                  'Piala ${trophy.title}! Diraih karena kamu telah menyelesaikan ${trophy.desc}!');
-            } else {
-              AudioService().speak(
-                  'Trofi ini masih terkunci. Tamatkan ${trophy.desc} untuk membukanya!');
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isUnlocked ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isUnlocked ? const Color(0xFFFACC15) : const Color(0xFFE2E8F0),
-                width: isUnlocked ? 2 : 1,
+    return Column(
+      children: [
+        // Filter Chips Row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildTrophyFilterChip(0, 'Semua (${_allTrophies.length})'),
+                    const SizedBox(width: 6),
+                    _buildTrophyFilterChip(1, '🏆 Diraih (${_trophies.length})'),
+                    const SizedBox(width: 6),
+                    _buildTrophyFilterChip(2, '🔒 Terkunci (${_allTrophies.length - _trophies.length})'),
+                  ],
+                ),
               ),
-              boxShadow: isUnlocked
-                  ? [
-                      BoxShadow(
-                        color: trophy.glowColor.withOpacity(0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : null,
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isUnlocked
-                        ? trophy.glowColor.withOpacity(0.2)
-                        : const Color(0xFFE2E8F0),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      isUnlocked ? trophy.icon : '🔒',
-                      style: TextStyle(fontSize: isUnlocked ? 24 : 18),
-                    ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Sentuh piala untuk mendengar ucapan!',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFD97706),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              trophy.title,
-                              style: GoogleFonts.fredoka(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: isUnlocked
-                                    ? const Color(0xFF854D0E)
-                                    : const Color(0xFF64748B),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Polished Wooden Cabinet Container
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF2E1065), // Deep royal purple
+                  Color(0xFF451A03), // Mahogany wood
+                  Color(0xFF78350F), // Polished cedar
+                ],
+                stops: [0.0, 0.45, 1.0],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFF59E0B), width: 3),
+              boxShadow: const [
+                BoxShadow(color: Color(0x30000000), blurRadius: 10, offset: Offset(0, 4)),
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Top Golden Spotlight Rays
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _SpotlightRaysPainter(),
+                  ),
+                ),
+
+                // Trophies Grid
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 450;
+                    final crossAxisCount = isNarrow ? 1 : 2;
+                    final cardWidth = (constraints.maxWidth - 20 - (crossAxisCount - 1) * 10) / crossAxisCount;
+                    final cardAspectRatio = (cardWidth / 70.0).clamp(1.5, 3.8);
+
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(10),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: cardAspectRatio,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                      ),
+                      itemCount: displayedTrophies.length,
+                      itemBuilder: (context, idx) {
+                    final trophy = displayedTrophies[idx];
+                    final isUnlocked = _trophies.contains(trophy.id);
+                    final isTapped = _tappedTrophyId == trophy.id;
+
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.heavyImpact();
+                        setState(() {
+                          _tappedTrophyId = trophy.id;
+                        });
+                        Future.delayed(const Duration(milliseconds: 600), () {
+                          if (mounted && _tappedTrophyId == trophy.id) {
+                            setState(() => _tappedTrophyId = null);
+                          }
+                        });
+
+                        if (isUnlocked) {
+                          AudioService().playSfx('star');
+                          AudioService().speak(
+                              'Piala ${trophy.title}! Diraih dengan membanggakan oleh ananda $_childName karena telah ${trophy.desc}!');
+                        } else {
+                          AudioService().playSfx('pop');
+                          AudioService().speak(
+                              'Piala ${trophy.title} masih terkunci. Ayo semangati ananda untuk menyelesaikan ${trophy.desc}!');
+                        }
+                      },
+                      child: AnimatedScale(
+                        scale: isTapped ? 1.08 : 1.0,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.elasticOut,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            gradient: isUnlocked
+                                ? const LinearGradient(
+                                    colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      Colors.black.withAlpha(90),
+                                      Colors.black.withAlpha(120),
+                                    ],
+                                  ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isUnlocked ? const Color(0xFFFACC15) : const Color(0xFF78716C),
+                              width: isUnlocked ? 2.2 : 1.2,
                             ),
+                            boxShadow: isUnlocked
+                                ? [
+                                    BoxShadow(
+                                      color: trophy.glowColor.withOpacity(0.4),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
                           ),
-                          if (isUnlocked)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 5, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF22C55E),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                'DIRAIH',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
+                          child: Row(
+                            children: [
+                              // 3D Pedestal Stand with Trophy
+                              Container(
+                                width: 46,
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  color: isUnlocked
+                                      ? trophy.glowColor.withOpacity(0.25)
+                                      : const Color(0xFF44403C),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isUnlocked ? const Color(0xFFFDE047) : const Color(0xFF78716C),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    isUnlocked ? trophy.icon : '🔒',
+                                    style: TextStyle(fontSize: isUnlocked ? 24 : 18),
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            trophy.title,
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isUnlocked
+                                                  ? const Color(0xFF854D0E)
+                                                  : const Color(0xFFD6D3D1),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isUnlocked)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF16A34A),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: const Text(
+                                              'DIRAIH',
+                                              style: TextStyle(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      trophy.desc,
+                                      style: GoogleFonts.nunito(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: isUnlocked
+                                            ? const Color(0xFF713F12)
+                                            : const Color(0xFFA8A29E),
+                                        height: 1.15,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrophyFilterChip(int index, String label) {
+    final isSel = _trophyFilterIndex == index;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _trophyFilterIndex = index);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSel ? const Color(0xFF7E22CE) : const Color(0xFFF3E8FF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSel ? const Color(0xFF6B21A8) : const Color(0xFFDDD6FE),
+            width: 1.2,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.fredoka(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: isSel ? Colors.white : const Color(0xFF6B21A8),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- SERTIFIKAT DIGITAL KELULUSAN JUARA CILIK ---
+  void _openCertificateDialog() {
+    HapticFeedback.mediumImpact();
+    AudioService().playSfx('star');
+    AudioService().speak('Sertifikat Penghargaan Juara Cilik untuk ananda $_childName!');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final now = DateTime.now();
+          final months = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+          ];
+          final dateStr = '${now.day} ${months[now.month - 1]} ${now.year}';
+          final screenSize = MediaQuery.of(context).size;
+          final certMaxWidth = math.min(680.0, screenSize.width * 0.95);
+          final certMaxHeight = math.min(540.0, screenSize.height * 0.94);
+
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: certMaxWidth,
+                maxHeight: certMaxHeight,
+              ),
+              child: Container(
+                width: certMaxWidth,
+                padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                // Antique Parchment Ivory
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFFFFDF5),
+                    Color(0xFFFEFCE8),
+                    Color(0xFFFFFDF5),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFD97706), width: 5),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x40000000), blurRadius: 28, offset: Offset(0, 10)),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  // Inner Ornate Thin Border
+                  Positioned.fill(
+                    child: Container(
+                      margin: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFFDE68A), width: 2),
+                      ),
+                    ),
+                  ),
+
+                  // Close Button top right
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFCBD5E1)),
+                        ),
+                        child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                      ),
+                    ),
+                  ),
+
+                  // Certificate Content
+                  SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Top Royal Emblems
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('⭐', style: TextStyle(fontSize: 16)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'TAMAN KATA AJAIB • PROGRAM LITERASI ANAK',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFB45309),
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text('⭐', style: TextStyle(fontSize: 16)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+
+                          // Certificate Title
+                          Text(
+                            'SERTIFIKAT KELULUSAN JUARA',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF854D0E),
+                              letterSpacing: 0.8,
                             ),
+                          ),
+                          Text(
+                            'Penghargaan Prestasi Membaca & Literasi Dini',
+                            style: GoogleFonts.nunito(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF78350F),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Decorative Star Ribbon Divider
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(width: 60, height: 1.5, color: const Color(0xFFF59E0B)),
+                              const SizedBox(width: 8),
+                              const Text('👑', style: TextStyle(fontSize: 16)),
+                              const SizedBox(width: 8),
+                              Container(width: 60, height: 1.5, color: const Color(0xFFF59E0B)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          Text(
+                            'Sertifikat ini dianugerahkan dengan penuh rasa bangga kepada:',
+                            style: GoogleFonts.nunito(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF475569),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Recipient Child Name with Edit Pen Button
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _childName,
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF7E22CE),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _editChildNameDialog(setDialogState),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF3E8FF),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFDDD6FE), width: 1.2),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.edit_rounded, size: 12, color: Color(0xFF7E22CE)),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'Ubah Nama',
+                                        style: GoogleFonts.fredoka(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF7E22CE),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Citation Text
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'Atas ketekunan, keceriaan, dan keberhasilan luar biasa dalam menguasai alfabet A–Z, merangkai suku kata, memecahkan teka-teki logika membaca, dan mengumpulkan prestasi bintang di Taman Kata Ajaib.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.nunito(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF334155),
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // 3 Achievement Seals
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildCertificateMiniBadge(
+                                  icon: '⭐',
+                                  title: '${widget.totalStars} Bintang',
+                                  subtitle: 'Bintang Terkumpul',
+                                  color: const Color(0xFFFEF08A),
+                                  borderColor: const Color(0xFFEAB308),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildCertificateMiniBadge(
+                                  icon: '🏆',
+                                  title: '${_trophies.length} / ${_allTrophies.length} Piala',
+                                  subtitle: 'Trofi Diraih',
+                                  color: const Color(0xFFEDE9FE),
+                                  borderColor: const Color(0xFFA855F7),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildCertificateMiniBadge(
+                                  icon: '🌟',
+                                  title: 'Tingkat $_trainLevel',
+                                  subtitle: 'Kategori Membaca',
+                                  color: const Color(0xFFDCFCE7),
+                                  borderColor: const Color(0xFF22C55E),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Bottom Signatures & Seal
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: SizedBox(
+                              width: 580,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Left: Official Wax Stamp of Miko
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 46,
+                                        height: 46,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: RadialGradient(
+                                            colors: [Color(0xFFDC2626), Color(0xFF991B1B)],
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(color: Color(0x30991B1B), blurRadius: 6, offset: Offset(0, 2)),
+                                          ],
+                                        ),
+                                        child: const Center(
+                                          child: Text('🐾', style: TextStyle(fontSize: 22)),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Cap Sahabat Miko',
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF991B1B),
+                                            ),
+                                          ),
+                                          Text(
+                                            'Miko si Kucing Ajaib',
+                                            style: GoogleFonts.nunito(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF64748B),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+
+                                  // Right: Date & Parent Signature
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        'Diterbitkan: $dateStr',
+                                        style: GoogleFonts.nunito(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Container(width: 110, height: 1, color: const Color(0xFF94A3B8)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Orang Tua / Pendidik',
+                                        style: GoogleFonts.fredoka(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF475569),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Screenshot / Print Tip
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFFDE047)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('📸', style: TextStyle(fontSize: 13)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Tips: Ambil tangkapan layar (screenshot) untuk dicetak atau dibagikan ke WhatsApp keluarga!',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF92400E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        trophy.desc,
-                        style: GoogleFonts.nunito(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: isUnlocked
-                              ? const Color(0xFF713F12)
-                              : const Color(0xFF94A3B8),
-                          height: 1.15,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
-      },
+        },
+      ),
+    );
+  }
+
+  void _editChildNameDialog(StateSetter setDialogState) {
+    final textController = TextEditingController(text: _childName);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Nama Ananda Juara',
+          style: GoogleFonts.fredoka(fontWeight: FontWeight.bold, color: const Color(0xFF7E22CE)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Ketik nama ananda agar tercantum indah di sertifikat penghargaan:',
+              style: GoogleFonts.nunito(fontSize: 12, color: const Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textController,
+              autofocus: true,
+              style: GoogleFonts.fredoka(fontSize: 16, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                hintText: 'Contoh: Aisyah, Kenzo, Fatih',
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7E22CE),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              final newName = textController.text.trim();
+              if (newName.isNotEmpty) {
+                setState(() {
+                  _childName = newName;
+                });
+                setDialogState(() {
+                  _childName = newName;
+                });
+                StorageService.saveChildName(newName);
+                AudioService().speak('Nama ananda tersimpan sebagai $newName!');
+              }
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCertificateMiniBadge({
+    required String icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required Color borderColor,
+  }) {
+    return Container(
+      width: 155,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Color(0x10000000), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 4),
+              Text(
+                title,
+                style: GoogleFonts.fredoka(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: GoogleFonts.nunito(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -866,6 +1573,22 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                   detail: 'Kreativitas visual & komposisi seni.',
                   color: const Color(0xFFDCFCE7),
                   borderColor: const Color(0xFF86EFAC),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildIslandProgressCard(
+                  title: 'Lembah Labirin Kata',
+                  icon: '🧭',
+                  levelInfo: 'Tingkat $_mazeLevel dari 3',
+                  detail: 'Logika arah & urutan fonem kata.',
+                  color: const Color(0xFFFFEDD5),
+                  borderColor: const Color(0xFFFED7AA),
                 ),
               ),
             ],
@@ -1181,4 +1904,39 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
       ),
     );
   }
+}
+
+class _SpotlightRaysPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final rayPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          const Color(0xFFFDE047).withAlpha(45),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
+
+    final rayPath = Path();
+    rayPath.moveTo(w * 0.35, 0);
+    rayPath.lineTo(w * 0.1, h);
+    rayPath.lineTo(w * 0.45, h);
+    rayPath.lineTo(w * 0.5, 0);
+    rayPath.close();
+
+    rayPath.moveTo(w * 0.65, 0);
+    rayPath.lineTo(w * 0.55, h);
+    rayPath.lineTo(w * 0.9, h);
+    rayPath.lineTo(w * 0.7, 0);
+    rayPath.close();
+
+    canvas.drawPath(rayPath, rayPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
