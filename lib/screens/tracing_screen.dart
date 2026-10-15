@@ -5,30 +5,95 @@ import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
 import '../widgets/victory_dialog.dart';
 import '../services/audio_service.dart';
-
 import '../widgets/level_milestone_dialog.dart';
 import '../services/storage_service.dart';
 
-class CrayonColor {
+enum BrushType { solid, rainbow, glitter }
+
+class BrushItem {
+  final String id;
   final String name;
+  final BrushType type;
   final Color innerColor;
   final Color glowColor;
   final String emoji;
+  final String voiceQuote;
 
-  const CrayonColor({
+  const BrushItem({
+    required this.id,
     required this.name,
+    this.type = BrushType.solid,
     required this.innerColor,
     required this.glowColor,
     required this.emoji,
+    required this.voiceQuote,
   });
 }
 
-const List<CrayonColor> _kCrayons = [
-  CrayonColor(name: 'Oranye Mentari', innerColor: Color(0xFFF97316), glowColor: Color(0xFFFDE047), emoji: '☀️'),
-  CrayonColor(name: 'Biru Langit', innerColor: Color(0xFF0284C7), glowColor: Color(0xFFBAE6FD), emoji: '🌊'),
-  CrayonColor(name: 'Hijau Daun', innerColor: Color(0xFF16A34A), glowColor: Color(0xFFBBF7D0), emoji: '🌱'),
-  CrayonColor(name: 'Merah Ceri', innerColor: Color(0xFFE11D48), glowColor: Color(0xFFFECDD3), emoji: '🍒'),
-  CrayonColor(name: 'Ungu Ajaib', innerColor: Color(0xFF9333EA), glowColor: Color(0xFFE9D5FF), emoji: '💜'),
+const List<BrushItem> _kBrushes = [
+  BrushItem(
+    id: 'brush_orange',
+    name: 'Oranye Mentari',
+    type: BrushType.solid,
+    innerColor: Color(0xFFF97316),
+    glowColor: Color(0xFFFDE047),
+    emoji: '☀️',
+    voiceQuote: 'Krayon Oranye Mentari ceria!',
+  ),
+  BrushItem(
+    id: 'brush_blue',
+    name: 'Biru Langit',
+    type: BrushType.solid,
+    innerColor: Color(0xFF0284C7),
+    glowColor: Color(0xFFBAE6FD),
+    emoji: '🌊',
+    voiceQuote: 'Krayon Biru Langit yang sejuk!',
+  ),
+  BrushItem(
+    id: 'brush_green',
+    name: 'Hijau Daun',
+    type: BrushType.solid,
+    innerColor: Color(0xFF16A34A),
+    glowColor: Color(0xFFBBF7D0),
+    emoji: '🌱',
+    voiceQuote: 'Krayon Hijau Daun segar!',
+  ),
+  BrushItem(
+    id: 'brush_red',
+    name: 'Merah Ceri',
+    type: BrushType.solid,
+    innerColor: Color(0xFFE11D48),
+    glowColor: Color(0xFFFECDD3),
+    emoji: '🍒',
+    voiceQuote: 'Krayon Merah Ceri manis!',
+  ),
+  BrushItem(
+    id: 'brush_purple',
+    name: 'Ungu Ajaib',
+    type: BrushType.solid,
+    innerColor: Color(0xFF9333EA),
+    glowColor: Color(0xFFE9D5FF),
+    emoji: '💜',
+    voiceQuote: 'Krayon Ungu Ajaib!',
+  ),
+  BrushItem(
+    id: 'brush_rainbow',
+    name: 'Pelangi Ajaib',
+    type: BrushType.rainbow,
+    innerColor: Color(0xFFF59E0B),
+    glowColor: Color(0xFF38BDF8),
+    emoji: '🌈',
+    voiceQuote: 'Kuas Pelangi Ajaib! Goresanmu memancarkan warna-warni pelangi!',
+  ),
+  BrushItem(
+    id: 'brush_glitter',
+    name: 'Pena Bintang',
+    type: BrushType.glitter,
+    innerColor: Color(0xFFFACC15),
+    glowColor: Color(0xFFFEF08A),
+    emoji: '✨',
+    voiceQuote: 'Pena Bintang Berkilau! Tulisanmu bertabur bintang emas bercahaya!',
+  ),
 ];
 
 class TracingScreen extends StatefulWidget {
@@ -50,12 +115,13 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
   int _currentIndex = 0;
   final List<Offset> _userStrokes = [];
   bool _isCompleted = false;
+  bool _isFreehandMode = false; // Mode Panduan Titik vs Mode Menulis Mandiri
   final AudioService _audio = AudioService();
   final ScrollController _scrollController = ScrollController();
-  int _selectedCrayonIndex = 0;
+  int _selectedBrushIndex = 0;
   late AnimationController _guideAnimController;
 
-  CrayonColor get _selectedCrayon => _kCrayons[_selectedCrayonIndex];
+  BrushItem get _selectedBrush => _kBrushes[_selectedBrushIndex];
   LetterTracingData get _current => _letters[_currentIndex];
 
   @override
@@ -129,7 +195,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
   }
 
   void _checkProgress() {
-    if (_userStrokes.length < 20) return;
+    if (_userStrokes.length < 18) return;
 
     int hits = 0;
     const radius = 50.0;
@@ -142,30 +208,52 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     final rate = hits / _current.guidePoints.length;
     if (rate >= 0.75 && !_isCompleted) {
       _isCompleted = true;
-      _audio.speakPraise();
+
+      // Determine Star Rating: 1 to 3 stars
+      int awardedStars = 3;
+      String starTitle = '⭐⭐⭐ Sempurna!';
+      String praiseMessage = 'Luar biasa! Tulisan huruf ${_current.letter} sangat rapi!';
+
+      if (rate >= 0.90 && _userStrokes.length >= 26) {
+        awardedStars = 5;
+        starTitle = '⭐⭐⭐ Sempurna!';
+        praiseMessage = 'Sempurna! Tulisan huruf ${_current.letter} sangat indah!';
+      } else if (rate >= 0.80) {
+        awardedStars = 4;
+        starTitle = '⭐⭐ Bagus Sekali!';
+        praiseMessage = 'Bagus sekali! Huruf ${_current.letter} terselesaikan dengan rapi!';
+      } else {
+        awardedStars = 3;
+        starTitle = '⭐ Hebat!';
+        praiseMessage = 'Hebat! Kamu berhasil menulis huruf ${_current.letter}!';
+      }
+
+      _audio.playSfx('star');
+      _audio.speak(praiseMessage);
 
       final hasMore = _currentIndex + 1 < _letters.length;
+      final nextIndex = _currentIndex + 1;
 
       if (hasMore) {
-        widget.onVictory(3);
-        StorageService.saveTracingIndex(_currentIndex + 1);
+        widget.onVictory(awardedStars);
+        StorageService.saveTracingIndex(nextIndex);
 
         if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (_) => VictoryDialog(
-            title: 'Huruf ${_current.letter} Berhasil!',
+            title: '$starTitle Huruf ${_current.letter}!',
             subtitle:
-                'Hebat sekali! Huruf ${_current.letter} untuk ${_current.word}!',
+                '$praiseMessage\nKamu dapat +$awardedStars Bintang Juara!',
             onNext: () {
-              _selectLetter(_currentIndex + 1);
+              _selectLetter(nextIndex);
             },
           ),
         );
       } else {
-        // ENTIRE ALPHABET COMPLETED!
-        widget.onVictory(20);
+        // Entire alphabet completed
+        widget.onVictory(25);
         StorageService.saveTracingIndex(0);
         StorageService.addTrophy('tracing_alphabet_master');
 
@@ -193,13 +281,13 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
         children: [
-          // Top Letter Selector Ribbon & Reset
+          // Top Bar: Alphabet Ribbon, Freehand Mode Toggle, and Clear Button
           Row(
             children: [
-              // Scrollable Ribbon
+              // Scrollable Alphabet Ribbon
               Expanded(
                 child: SingleChildScrollView(
                   controller: _scrollController,
@@ -207,7 +295,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(220),
+                      color: Colors.white.withAlpha(230),
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                     ),
@@ -218,26 +306,32 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                           onTap: () => _selectLetter(idx),
                           child: Container(
                             margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width: 36,
-                            height: 36,
+                            width: 32,
+                            height: 32,
                             decoration: BoxDecoration(
-                              color: isSel ? const Color(0xFFFACC15) : Colors.white,
+                              color: isSel ? const Color(0xFFF97316) : Colors.white,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isSel ? const Color(0xFFEAB308) : const Color(0xFFCBD5E1),
+                                color: isSel ? const Color(0xFFEA580C) : const Color(0xFFCBD5E1),
                                 width: 2,
                               ),
                               boxShadow: isSel
-                                  ? [const BoxShadow(color: Color(0xFFCA8A04), offset: Offset(0, 2))]
+                                  ? [
+                                      const BoxShadow(
+                                        color: Color(0x33F97316),
+                                        blurRadius: 6,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ]
                                   : null,
                             ),
                             child: Center(
                               child: Text(
                                 _letters[idx].letter,
                                 style: GoogleFonts.fredoka(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  color: const Color(0xFF1E293B),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSel ? Colors.white : const Color(0xFF1E293B),
                                 ),
                               ),
                             ),
@@ -248,20 +342,28 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
 
-              // Reset Button
+              // Mode Switcher: Panduan vs Mandiri
+              _buildModeSwitcher(),
+
+              const SizedBox(width: 10),
+
+              // Clear Canvas Button
               ElevatedButton.icon(
                 onPressed: () {
+                  HapticFeedback.lightImpact();
                   setState(() {
                     _userStrokes.clear();
+                    _isCompleted = false;
                   });
+                  _audio.playSfx('whoosh');
                 },
                 icon: const VectorIconWidget(icon: 'reload', size: 16, color: Color(0xFFEA580C)),
                 label: Text(
                   'Hapus',
                   style: GoogleFonts.fredoka(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFFEA580C),
                   ),
@@ -270,30 +372,34 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFF97316), width: 2),
+                    side: const BorderSide(color: Color(0xFFF97316), width: 1.8),
                   ),
                   elevation: 2,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // Main Tracing Layout
+          // Main Tracing Layout (Left Guide Card, Center Canvas, Right Brush Rack)
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Left Guide Card
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _audio.speak('${_current.letter}! ${_current.word}!');
-                  },
-                  child: Container(
-                    width: 210,
-                    padding: const EdgeInsets.all(14),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Left Guide Card
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _audio.speak('${_current.letter}! ${_current.word}!');
+                      },
+                      child: Container(
+                        width: 205,
+                        height: 320,
+                        padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
@@ -335,7 +441,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                         ),
                         ObjectIllustrationWidget(
                           illustrationKey: _current.illustrationKey,
-                          size: 64,
+                          size: 60,
                         ),
                         Column(
                           children: [
@@ -400,17 +506,22 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                 ),
                 const SizedBox(width: 16),
 
-                // Center Drawing Canvas with Animated Guide Hand
+                // Center Drawing Canvas (Guided vs Freehand 3-Line Mode)
                 Container(
                   width: 320,
                   height: 320,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: _selectedCrayon.glowColor, width: 4),
+                    border: Border.all(
+                      color: _selectedBrush.type == BrushType.rainbow
+                          ? const Color(0xFF38BDF8)
+                          : _selectedBrush.glowColor,
+                      width: 4,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: _selectedCrayon.innerColor.withAlpha(40),
+                        color: _selectedBrush.innerColor.withAlpha(40),
                         blurRadius: 18,
                         offset: const Offset(0, 6),
                       ),
@@ -432,10 +543,10 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                                   strokes: _userStrokes,
                                   startPoint: _current.guidePoints.isNotEmpty ? _current.guidePoints[0] : null,
                                   guidePoints: _current.guidePoints,
-                                  innerColor: _selectedCrayon.innerColor,
-                                  glowColor: _selectedCrayon.glowColor,
+                                  brush: _selectedBrush,
                                   guideProgress: _guideAnimController.value,
-                                  showGuideHand: _userStrokes.isEmpty,
+                                  showGuideHand: _userStrokes.isEmpty && !_isFreehandMode,
+                                  isFreehandMode: _isFreehandMode,
                                 ),
                               );
                             },
@@ -447,9 +558,9 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                 ),
                 const SizedBox(width: 16),
 
-                // Right Crayon Color Rack
+                // Right Brush Rack (7 Brushes: 5 Crayons + Rainbow + Glitter)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(24),
@@ -466,40 +577,57 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Krayon',
+                        'Kuas Ajaib',
                         style: GoogleFonts.fredoka(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF64748B),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      ...List.generate(_kCrayons.length, (idx) {
-                        final crayon = _kCrayons[idx];
-                        final isSel = idx == _selectedCrayonIndex;
+                      const SizedBox(height: 6),
+                      ...List.generate(_kBrushes.length, (idx) {
+                        final brush = _kBrushes[idx];
+                        final isSel = idx == _selectedBrushIndex;
                         return GestureDetector(
                           onTap: () {
                             HapticFeedback.lightImpact();
                             setState(() {
-                              _selectedCrayonIndex = idx;
+                              _selectedBrushIndex = idx;
                             });
+                            if (brush.type == BrushType.rainbow || brush.type == BrushType.glitter) {
+                              _audio.playSfx('star');
+                            } else {
+                              _audio.playSfx('ding');
+                            }
+                            _audio.speak(brush.voiceQuote);
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.symmetric(vertical: 4),
-                            width: isSel ? 44 : 36,
-                            height: isSel ? 44 : 36,
+                            margin: const EdgeInsets.symmetric(vertical: 3),
+                            width: isSel ? 38 : 32,
+                            height: isSel ? 38 : 32,
                             decoration: BoxDecoration(
-                              color: crayon.innerColor,
+                              gradient: brush.type == BrushType.rainbow
+                                  ? const LinearGradient(
+                                      colors: [
+                                        Color(0xFFEF4444),
+                                        Color(0xFFF59E0B),
+                                        Color(0xFF10B981),
+                                        Color(0xFF06B6D4),
+                                        Color(0xFF8B5CF6),
+                                      ],
+                                    )
+                                  : null,
+                              color: brush.type != BrushType.rainbow ? brush.innerColor : null,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isSel ? Colors.white : crayon.glowColor,
-                                width: isSel ? 3.5 : 2,
+                                color: isSel ? Colors.white : brush.glowColor,
+                                width: isSel ? 3.0 : 1.8,
                               ),
                               boxShadow: isSel
                                   ? [
                                       BoxShadow(
-                                        color: crayon.innerColor.withAlpha(160),
+                                        color: brush.innerColor.withAlpha(160),
                                         blurRadius: 8,
                                         spreadRadius: 2,
                                       )
@@ -508,8 +636,8 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                             ),
                             child: Center(
                               child: Text(
-                                crayon.emoji,
-                                style: TextStyle(fontSize: isSel ? 18 : 13),
+                                brush.emoji,
+                                style: TextStyle(fontSize: isSel ? 16 : 13),
                               ),
                             ),
                           ),
@@ -521,7 +649,90 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
               ],
             ),
           ),
+        ),
+      ),
         ],
+      ),
+    );
+  }
+
+  // Top Mode Switcher Pill (Panduan vs Mandiri)
+  Widget _buildModeSwitcher() {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+        boxShadow: const [
+          BoxShadow(color: Color(0x10000000), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildModePill(
+            isFreehand: false,
+            icon: '✍️',
+            label: 'Panduan',
+            isActive: !_isFreehandMode,
+          ),
+          const SizedBox(width: 4),
+          _buildModePill(
+            isFreehand: true,
+            icon: '📝',
+            label: 'Mandiri',
+            isActive: _isFreehandMode,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModePill({
+    required bool isFreehand,
+    required String icon,
+    required String label,
+    required bool isActive,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        if (_isFreehandMode != isFreehand) {
+          setState(() {
+            _isFreehandMode = isFreehand;
+            _userStrokes.clear();
+            _isCompleted = false;
+          });
+          if (isFreehand) {
+            _audio.speak('Mode Menulis Mandiri! Coba tulis huruf ${_current.letter} sendiri ya!');
+          } else {
+            _audio.speak('Mode Panduan Titik! Ikuti arah panduan tangan ya!');
+          }
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF0284C7) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 12)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.fredoka(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isActive ? Colors.white : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -532,25 +743,52 @@ class _CanvasTracingPainter extends CustomPainter {
   final List<Offset> strokes;
   final Offset? startPoint;
   final List<Offset> guidePoints;
-  final Color innerColor;
-  final Color glowColor;
+  final BrushItem brush;
   final double guideProgress;
   final bool showGuideHand;
+  final bool isFreehandMode;
 
   _CanvasTracingPainter({
     required this.letter,
     required this.strokes,
     this.startPoint,
     required this.guidePoints,
-    required this.innerColor,
-    required this.glowColor,
+    required this.brush,
     required this.guideProgress,
     required this.showGuideHand,
+    required this.isFreehandMode,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Base Stencil Letter
+    // 0. Kindergarten 3-Line Ruling in Freehand Mode
+    if (isFreehandMode) {
+      final topY = size.height * 0.22;
+      final midY = size.height * 0.50;
+      final botY = size.height * 0.78;
+
+      // Top line (headline - soft red)
+      final topPaint = Paint()
+        ..color = const Color(0xFFF87171).withAlpha(120)
+        ..strokeWidth = 2.0;
+      canvas.drawLine(Offset(18, topY), Offset(size.width - 18, topY), topPaint);
+
+      // Mid line (dashed midline - sky blue)
+      final midPaint = Paint()
+        ..color = const Color(0xFF38BDF8).withAlpha(150)
+        ..strokeWidth = 1.8;
+      for (double x = 18; x < size.width - 18; x += 12) {
+        canvas.drawLine(Offset(x, midY), Offset(x + 6, midY), midPaint);
+      }
+
+      // Bottom line (baseline - slate blue)
+      final botPaint = Paint()
+        ..color = const Color(0xFF64748B).withAlpha(140)
+        ..strokeWidth = 2.5;
+      canvas.drawLine(Offset(18, botY), Offset(size.width - 18, botY), botPaint);
+    }
+
+    // 1. Base Stencil Letter (Solid in Guided Mode, Faint dashed watermark in Freehand Mode)
     final textPainter = TextPainter(
       text: TextSpan(
         text: letter,
@@ -558,9 +796,9 @@ class _CanvasTracingPainter extends CustomPainter {
           fontSize: 220,
           fontWeight: FontWeight.bold,
           foreground: Paint()
-            ..color = const Color(0xFFF1F5F9)
+            ..color = isFreehandMode ? const Color(0xFFF1F5F9).withAlpha(140) : const Color(0xFFF1F5F9)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 34
+            ..strokeWidth = isFreehandMode ? 14 : 34
             ..strokeCap = StrokeCap.round
             ..strokeJoin = StrokeJoin.round,
         ),
@@ -574,39 +812,41 @@ class _CanvasTracingPainter extends CustomPainter {
     );
     textPainter.paint(canvas, textOffset);
 
-    // 2. Inner Dotted / Guide Outline
-    final innerDotted = TextPainter(
-      text: TextSpan(
-        text: letter,
-        style: TextStyle(
-          fontSize: 220,
-          fontWeight: FontWeight.bold,
-          foreground: Paint()
-            ..color = const Color(0xFF38BDF8).withAlpha(140)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 5
-            ..strokeCap = StrokeCap.round,
+    // 2. Inner Dotted Guide Outline (Only in Guided Mode)
+    if (!isFreehandMode) {
+      final innerDotted = TextPainter(
+        text: TextSpan(
+          text: letter,
+          style: TextStyle(
+            fontSize: 220,
+            fontWeight: FontWeight.bold,
+            foreground: Paint()
+              ..color = const Color(0xFF38BDF8).withAlpha(140)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 5
+              ..strokeCap = StrokeCap.round,
+          ),
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    innerDotted.paint(canvas, textOffset);
+        textDirection: TextDirection.ltr,
+      )..layout();
+      innerDotted.paint(canvas, textOffset);
+    }
 
-    // 3. Start Point Marker ("1")
-    if (startPoint != null) {
+    // 3. Start Point Marker ("1") in Guided Mode
+    if (!isFreehandMode && startPoint != null) {
       if (showGuideHand) {
         final haloRadius = 13.0 + 7.0 * guideProgress;
         canvas.drawCircle(
           startPoint!,
           haloRadius,
-          Paint()..color = innerColor.withAlpha((100 * (1.0 - guideProgress)).toInt()),
+          Paint()..color = brush.innerColor.withAlpha((100 * (1.0 - guideProgress)).toInt()),
         );
       }
 
       canvas.drawCircle(
         startPoint!,
         12,
-        Paint()..color = innerColor,
+        Paint()..color = brush.innerColor,
       );
       final numP = TextPainter(
         text: const TextSpan(
@@ -618,8 +858,8 @@ class _CanvasTracingPainter extends CustomPainter {
       numP.paint(canvas, Offset(startPoint!.dx - 4, startPoint!.dy - 7));
     }
 
-    // 4. Animated Guided Hand / Arrow Pointer (when child hasn't started drawing)
-    if (showGuideHand && guidePoints.length >= 2) {
+    // 4. Animated Guided Hand / Arrow Pointer (when child hasn't started drawing in Guided Mode)
+    if (showGuideHand && !isFreehandMode && guidePoints.length >= 2) {
       final p1 = guidePoints[0];
       final p2 = guidePoints[1];
       final currentGuidePos = Offset.lerp(p1, p2, guideProgress)!;
@@ -628,16 +868,16 @@ class _CanvasTracingPainter extends CustomPainter {
       canvas.drawCircle(
         currentGuidePos,
         14,
-        Paint()..color = glowColor.withAlpha(180),
+        Paint()..color = brush.glowColor.withAlpha(180),
       );
       // Center finger/pointer dot
       canvas.drawCircle(
         currentGuidePos,
         8,
-        Paint()..color = innerColor,
+        Paint()..color = brush.innerColor,
       );
 
-      // Cute animated pointing finger icon
+      // Pointing finger icon
       final pointerText = TextPainter(
         text: const TextSpan(
           text: '👆',
@@ -648,30 +888,106 @@ class _CanvasTracingPainter extends CustomPainter {
       pointerText.paint(canvas, Offset(currentGuidePos.dx + 4, currentGuidePos.dy + 4));
     }
 
-    // 5. Drawn Strokes with Selected Crayon Color
+    // 5. Drawn Strokes with Selected Brush Effect
     if (strokes.length > 1) {
-      final outerGlow = Paint()
-        ..color = glowColor
-        ..strokeWidth = 26
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke;
-
-      final innerStroke = Paint()
-        ..color = innerColor
-        ..strokeWidth = 14
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke;
-
       final path = Path()..moveTo(strokes[0].dx, strokes[0].dy);
       for (int i = 1; i < strokes.length; i++) {
         path.lineTo(strokes[i].dx, strokes[i].dy);
       }
 
-      canvas.drawPath(path, outerGlow);
-      canvas.drawPath(path, innerStroke);
+      if (brush.type == BrushType.rainbow) {
+        // Rainbow Gradient Effect
+        final bounds = path.getBounds();
+        final rainbowRect = (bounds.width > 0 && bounds.height > 0)
+            ? bounds
+            : Rect.fromLTWH(0, 0, size.width, size.height);
+
+        final rainbowShader = const LinearGradient(
+          colors: [
+            Color(0xFFEF4444), // Red
+            Color(0xFFF97316), // Orange
+            Color(0xFFFACC15), // Yellow
+            Color(0xFF22C55E), // Green
+            Color(0xFF06B6D4), // Cyan
+            Color(0xFF3B82F6), // Blue
+            Color(0xFFA855F7), // Purple
+          ],
+        ).createShader(rainbowRect);
+
+        // Rainbow Outer Glow
+        final glowPaint = Paint()
+          ..shader = rainbowShader
+          ..strokeWidth = 26
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+        canvas.drawPath(path, glowPaint);
+
+        // Rainbow Core Stroke
+        final corePaint = Paint()
+          ..shader = rainbowShader
+          ..strokeWidth = 15
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawPath(path, corePaint);
+      } else if (brush.type == BrushType.glitter) {
+        // Glitter Star Pen with Golden Halo & Twinkles
+        final goldHalo = Paint()
+          ..color = const Color(0xFFFDE047).withAlpha(150)
+          ..strokeWidth = 26
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+        canvas.drawPath(path, goldHalo);
+
+        // Core Golden Stroke
+        final corePaint = Paint()
+          ..color = const Color(0xFFFEF08A)
+          ..strokeWidth = 14
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawPath(path, corePaint);
+
+        // Draw twinkling stars along stroke samples
+        for (int i = 0; i < strokes.length; i += 8) {
+          _drawMiniStar(canvas, strokes[i], 5.0, Colors.white);
+        }
+      } else {
+        // Standard Solid Crayon
+        final outerGlow = Paint()
+          ..color = brush.glowColor
+          ..strokeWidth = 26
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke;
+
+        final innerStroke = Paint()
+          ..color = brush.innerColor
+          ..strokeWidth = 14
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..style = PaintingStyle.stroke;
+
+        canvas.drawPath(path, outerGlow);
+        canvas.drawPath(path, innerStroke);
+      }
     }
+  }
+
+  void _drawMiniStar(Canvas canvas, Offset center, double radius, Color color) {
+    final paint = Paint()..color = color;
+    final path = Path()
+      ..moveTo(center.dx, center.dy - radius)
+      ..quadraticBezierTo(center.dx, center.dy, center.dx + radius, center.dy)
+      ..quadraticBezierTo(center.dx, center.dy, center.dx, center.dy + radius)
+      ..quadraticBezierTo(center.dx, center.dy, center.dx - radius, center.dy)
+      ..quadraticBezierTo(center.dx, center.dy, center.dx, center.dy - radius)
+      ..close();
+    canvas.drawPath(path, paint);
   }
 
   @override
