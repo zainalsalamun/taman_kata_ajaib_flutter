@@ -98,6 +98,9 @@ class _BalloonScreenState extends State<BalloonScreen>
     super.dispose();
   }
 
+  double _canvasWidth = 700;
+  double _canvasHeight = 350;
+
   void _startBalloonGame() {
     _poppedWords.clear();
     _activeBalloons.clear();
@@ -111,14 +114,15 @@ class _BalloonScreenState extends State<BalloonScreen>
     ];
 
     final shuffled = List<String>.from(_current.choices)..shuffle();
-    final spacing = 580.0 / shuffled.length;
+    final availWidth = (_canvasWidth - 140).clamp(240.0, 1400.0);
+    final spacing = availWidth / shuffled.length;
     for (int i = 0; i < shuffled.length; i++) {
       _activeBalloons.add(
         _BalloonItem(
           word: shuffled[i],
           colors: colors[i % colors.length],
-          x: 60.0 + i * spacing + math.Random().nextDouble() * 15,
-          y: 160.0 + math.Random().nextDouble() * 50,
+          x: 40.0 + i * spacing + math.Random().nextDouble() * 15,
+          y: (_canvasHeight * 0.45).clamp(110.0, 450.0) + math.Random().nextDouble() * 40,
           speedY: 0.6 + math.Random().nextDouble() * 0.4,
           angle: math.Random().nextDouble() * math.pi * 2,
         ),
@@ -135,8 +139,8 @@ class _BalloonScreenState extends State<BalloonScreen>
       b.angle += 0.03;
       b.x += math.sin(b.angle) * 0.5;
 
-      if (b.y < -100) {
-        b.y = 280;
+      if (b.y < -110) {
+        b.y = (_canvasHeight * 0.78).clamp(200.0, 600.0);
       }
     }
 
@@ -260,90 +264,106 @@ class _BalloonScreenState extends State<BalloonScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Sky Background
-        Container(
-          margin: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            gradient: const RadialGradient(
-              center: Alignment.bottomCenter,
-              radius: 1.1,
-              colors: [
-                Color(0xFFE0F2FE),
-                Color(0xFFBAE6FD),
-                Color(0xFF7DD3FC),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFF38BDF8), width: 3),
-          ),
-        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _canvasWidth = constraints.maxWidth;
+        _canvasHeight = constraints.maxHeight;
 
-        // Top Control Bar: LevelSelectorRibbon + Target Banner
-        Positioned(
-          top: 22,
-          left: 24,
-          right: 24,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              LevelSelectorRibbon(
-                currentLevel: _currentLevel,
-                unlockedLevel: _unlockedLevel,
-                onSelectLevel: _switchLevel,
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: const Color(0xFFF43F5E), width: 3),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0xFFE11D48), offset: Offset(0, 4)),
+        return Stack(
+          children: [
+            // Sky Background
+            Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const RadialGradient(
+                  center: Alignment.bottomCenter,
+                  radius: 1.1,
+                  colors: [
+                    Color(0xFFE0F2FE),
+                    Color(0xFFBAE6FD),
+                    Color(0xFF7DD3FC),
                   ],
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ObjectIllustrationWidget(
-                      illustrationKey: _current.illustrationKey,
-                      size: 42,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF38BDF8), width: 3),
+              ),
+            ),
+
+            // Top Control Bar: LevelSelectorRibbon + Target Banner
+            Positioned(
+              top: 14,
+              left: 16,
+              right: 16,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    flex: 4,
+                    child: LevelSelectorRibbon(
+                      currentLevel: _currentLevel,
+                      unlockedLevel: _unlockedLevel,
+                      onSelectLevel: _switchLevel,
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      _current.target,
-                      style: GoogleFonts.nunito(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFFBE123C),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        _audio.speak('Ayo cari kata ${_current.target}');
-                      },
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    flex: 6,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
                       child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFDE047),
-                          shape: BoxShape.circle,
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: const Color(0xFFF43F5E), width: 3),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0xFFE11D48), offset: Offset(0, 4)),
+                          ],
                         ),
-                        child: const VectorIconWidget(
-                            icon: 'speaker',
-                            size: 16,
-                            color: Color(0xFF854D0E)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ObjectIllustrationWidget(
+                              illustrationKey: _current.illustrationKey,
+                              size: 40,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              _current.target,
+                              style: GoogleFonts.nunito(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFFBE123C),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                _audio.speak('Ayo cari kata ${_current.target}');
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFDE047),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const VectorIconWidget(
+                                    icon: 'speaker',
+                                    size: 16,
+                                    color: Color(0xFF854D0E)),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
 
         // Floating Balloons
         ..._activeBalloons.map((b) {
@@ -413,6 +433,8 @@ class _BalloonScreenState extends State<BalloonScreen>
         }),
       ],
     );
+  },
+);
   }
 }
 
