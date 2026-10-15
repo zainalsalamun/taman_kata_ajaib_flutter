@@ -61,37 +61,45 @@ class _RestTimeDialogState extends State<RestTimeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final dialogWidth = min(500.0, screenSize.width * 0.92);
+    final dialogMaxHeight = screenSize.height * 0.92;
+
     return PopScope(
       canPop: false, // Prevents child from dismissing accidentally
       child: Dialog(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Container(
-          width: 500,
-          padding: const EdgeInsets.all(26),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFF0FDF4),
-                Color(0xFFDCFCE7),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: dialogMaxHeight),
+          child: Container(
+            width: dialogWidth,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFF0FDF4),
+                  Color(0xFFDCFCE7),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: const Color(0xFF86EFAC), width: 5),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x3516A34A),
+                  blurRadius: 32,
+                  offset: Offset(0, 10),
+                ),
               ],
             ),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: const Color(0xFF86EFAC), width: 5),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x3516A34A),
-                blurRadius: 32,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
               // Mascot & Calm Icon
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -254,6 +262,8 @@ class _RestTimeDialogState extends State<RestTimeDialog> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 }
