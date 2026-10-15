@@ -55,6 +55,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   int _trainLevel = 1;
   int _balloonLevel = 1;
   int _quizLevel = 1;
+  int _mazeLevel = 1;
 
   String _selectedIslandRoute = 'tracing';
   List<String> _openedChests = [];
@@ -137,6 +138,19 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       speechQuote: 'Taman Kreasi Stiker! Hias pulau ajaib dengan koleksi stikermu!',
     ),
     const IslandData(
+      route: 'maze',
+      title: 'Lembah Labirin Kata',
+      shortName: 'Labirin Kata',
+      ageRecommendation: 'Usia 4-7 Thn',
+      description: 'Pandu Miko di labirin untuk menjemput huruf pembentuk kata!',
+      illustrationKey: 'kucing',
+      primaryColor: Color(0xFFFED7AA),
+      secondaryColor: Color(0xFFFB923C),
+      accentColor: Color(0xFFEA580C),
+      mapPosition: Offset(1310, 80),
+      speechQuote: 'Lembah Labirin Kata! Pandu Miko mengumpulkan huruf rahasia!',
+    ),
+    const IslandData(
       route: 'storybook',
       title: 'Kastil Dongeng Ajaib',
       shortName: 'Buku Dongeng',
@@ -146,7 +160,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       primaryColor: Color(0xFFFDE68A),
       secondaryColor: Color(0xFFFBBF24),
       accentColor: Color(0xFFD97706),
-      mapPosition: Offset(1310, 80),
+      mapPosition: Offset(1550, 160),
       speechQuote: 'Kastil Dongeng Ajaib! Buka lembaran dongeng bersama sahabat Miko!',
     ),
   ];
@@ -179,6 +193,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final tr = await StorageService.getUnlockedGameLevel('train');
     final bl = await StorageService.getUnlockedGameLevel('balloon');
     final qz = await StorageService.getUnlockedGameLevel('quiz');
+    final mz = await StorageService.getUnlockedGameLevel('maze');
     final lastIsland = await StorageService.getLastVisitedIsland();
     final chests = await StorageService.getOpenedChests();
 
@@ -187,6 +202,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         _trainLevel = tr;
         _balloonLevel = bl;
         _quizLevel = qz;
+        _mazeLevel = mz;
         _selectedIslandRoute = lastIsland;
         _openedChests = chests;
         _isLoading = false;
@@ -281,6 +297,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         return '🌱 26 Huruf';
       case 'playground':
         return '🎨 3 Tema';
+      case 'maze':
+        return 'Tingkat $_mazeLevel ${_mazeLevel > 1 ? "⭐" : ""}';
       case 'storybook':
         return '📖 4 Cerita';
       default:
@@ -310,31 +328,37 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Adventure Title Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(245),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: const Color(0xFFFCD34D), width: 2.5),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x18000000), blurRadius: 8, offset: Offset(0, 3)),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('⛵', style: TextStyle(fontSize: 16)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'PETA KEPULAUAN KATA AJAIB',
-                      style: GoogleFonts.fredoka(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFFD97706),
-                        letterSpacing: 0.5,
-                      ),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(245),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFFCD34D), width: 2.5),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x18000000), blurRadius: 8, offset: Offset(0, 3)),
+                      ],
                     ),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('⛵', style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'PETA KEPULAUAN KATA AJAIB',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFFD97706),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
 
@@ -458,7 +482,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // 1. ADVENTURE MAP VIEW (LIVING ARCHIPELAGO)
   // ==========================================
   Widget _buildAdventureMapView() {
-    const mapCanvasWidth = 1540.0;
+    const mapCanvasWidth = 1780.0;
     const mapCanvasHeight = 360.0;
 
     final currentIsland = _islands.firstWhere(
@@ -483,16 +507,26 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           stops: [0.0, 0.55, 1.0],
         ),
       ),
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: SizedBox(
-          width: mapCanvasWidth,
-          height: mapCanvasHeight,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final canvasHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
+              ? constraints.maxHeight
+              : mapCanvasHeight;
+          return SingleChildScrollView(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: SizedBox(
+              height: canvasHeight,
+              child: FittedBox(
+                fit: BoxFit.fitHeight,
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: mapCanvasWidth,
+                  height: mapCanvasHeight,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
               // Custom Maritime Wave & Stepping Path Painter
               Positioned.fill(
                 child: CustomPaint(
@@ -531,8 +565,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 top: 12,
                 child: _buildSkyCloud(size: 36),
               ),
+              Positioned(
+                left: 1480,
+                top: 18,
+                child: _buildSkyCloud(size: 38),
+              ),
 
-              // 6 Living Islands
+              // 7 Living Islands
               ..._islands.map((island) {
                 final isSelected = island.route == _selectedIslandRoute;
                 final levelBadge = _getIslandLevelBadge(island.route);
@@ -558,9 +597,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 top: shipTargetY,
                 child: _buildSailingShipWidget(),
               ),
-            ],
-          ),
-        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -1045,21 +1088,28 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
-      child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(top: 58, left: 16, right: 16, bottom: 16),
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: _islands.map((island) {
-              final levelBadge = _getIslandLevelBadge(island.route);
-              return Container(
-                margin: const EdgeInsets.only(right: 14),
-                child: _buildIslandQuickCard(island, levelBadge),
-              );
-            }).toList(),
-          ),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 58, left: 16, right: 16, bottom: 16),
+              scrollDirection: Axis.horizontal,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _islands.map((island) {
+                    final levelBadge = _getIslandLevelBadge(island.route);
+                    return Container(
+                      margin: const EdgeInsets.only(right: 14),
+                      child: _buildIslandQuickCard(island, levelBadge),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
