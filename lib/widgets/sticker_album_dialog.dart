@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
@@ -50,28 +51,37 @@ class _StickerAlbumDialogState extends State<StickerAlbumDialog> {
   @override
   Widget build(BuildContext context) {
     final stickers = GameRepository.stickers;
+    final screenSize = MediaQuery.of(context).size;
+    final dialogWidth = math.min(520.0, screenSize.width * 0.94);
+    final dialogMaxHeight = screenSize.height * 0.92;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(20),
-      child: Container(
-        width: 520,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFF472B6), width: 4),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x33000000),
-              blurRadius: 30,
-              offset: Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: dialogMaxHeight),
+        child: Container(
+          width: dialogWidth,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFFF472B6), width: 4),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 30,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
             Text(
               'Buku Album Stiker',
               style: GoogleFonts.fredoka(
@@ -247,6 +257,9 @@ class _StickerAlbumDialogState extends State<StickerAlbumDialog> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  ),
+),
+);
+}
 }
