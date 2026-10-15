@@ -18,6 +18,17 @@ class StorageService {
   static const String _keyPlaygroundTheme = 'taman_kata_playground_theme';
   static const String _keyLastVisitedIsland = 'taman_kata_last_visited_island';
   static const String _keyOpenedChests = 'taman_kata_opened_chests';
+  static const String _keyChildName = 'taman_kata_child_name';
+
+  static Future<String> getChildName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyChildName) ?? 'Juara Cilik';
+  }
+
+  static Future<void> saveChildName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyChildName, name.trim().isEmpty ? 'Juara Cilik' : name.trim());
+  }
 
   static Future<String> getLastVisitedIsland() async {
     final prefs = await SharedPreferences.getInstance();
