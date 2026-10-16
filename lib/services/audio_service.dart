@@ -11,20 +11,49 @@ class AudioService {
   final TtsPlatform _platform = createPlatformTts();
   final AssetAudioPlayer _assetPlayer = createAssetAudioPlayer();
   bool _isMuted = false;
+  bool _isBgmMuted = false;
 
   AudioService._internal() {
     _platform.init();
   }
 
   bool get isMuted => _isMuted;
+  bool get isBgmMuted => _isBgmMuted;
+  bool get isBgmPlaying => _assetPlayer.isBgmPlaying;
   String get engineStatus => _platform.getEngineStatus();
 
+  /// Toggles master mute (mutes TTS speech, SFX, and BGM)
   bool toggleMute() {
     _isMuted = !_isMuted;
     if (_isMuted) {
       stop();
+      _assetPlayer.stopBgm();
+    } else if (!_isBgmMuted) {
+      _assetPlayer.startBgm();
     }
     return _isMuted;
+  }
+
+  /// Toggles background music independently
+  bool toggleBgm() {
+    _isBgmMuted = !_isBgmMuted;
+    if (_isBgmMuted || _isMuted) {
+      _assetPlayer.stopBgm();
+    } else {
+      _assetPlayer.startBgm();
+    }
+    return _isBgmMuted;
+  }
+
+  /// Starts background music if not muted
+  void startBgm() {
+    if (_isMuted || _isBgmMuted) return;
+    _assetPlayer.startBgm();
+  }
+
+  /// Stops background music
+  void stopBgm() {
+    _assetPlayer.stopBgm();
   }
 
   /// Speaks text instantly using the local speech synthesis engine with natural human intonation.
@@ -35,12 +64,13 @@ class AudioService {
     } catch (_) {}
   }
 
-  /// Play sound effects (e.g., 'pop', 'ding', 'star', 'tuut', 'whoosh')
+  /// Play sound effects (e.g., 'pop', 'ding', 'star', 'tuut', 'whoosh', 'twinkle', 'boing', 'fanfare')
   void playSfx(String sfxType) {
     if (_isMuted) return;
     _assetPlayer.playProceduralSfx(sfxType);
   }
 
+  /// Stops current speech and temporary SFX
   Future<void> stop() async {
     try {
       _assetPlayer.stop();
