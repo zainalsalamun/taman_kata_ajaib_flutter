@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'services/storage_service.dart';
+import 'services/audio_service.dart';
 import 'widgets/ui_header.dart';
 import 'widgets/sticker_album_dialog.dart';
 import 'widgets/parental_gate_dialog.dart';
@@ -79,6 +80,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
   @override
   void dispose() {
     _playTimer?.cancel();
+    AudioService().stopBgm();
     super.dispose();
   }
 
@@ -95,6 +97,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         _todayPlayTimeSeconds = todaySec;
       });
       _startPlayTimer();
+      AudioService().startBgm();
     }
   }
 
