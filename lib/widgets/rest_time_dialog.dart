@@ -97,9 +97,11 @@ class _RestTimeDialogState extends State<RestTimeDialog> {
             ),
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              child: SizedBox(
+                width: 400,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
               // Mascot & Calm Icon
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -262,6 +264,7 @@ class _RestTimeDialogState extends State<RestTimeDialog> {
           ),
         ),
       ),
+    ),
     ),
   ),
 );
