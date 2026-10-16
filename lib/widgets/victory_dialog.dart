@@ -37,7 +37,7 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
 
     // Haptic feedback & celebratory cheering audio
     HapticFeedback.heavyImpact();
-    AudioService().playSfx('star');
+    AudioService().playSfx('fanfare');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       AudioService().speakCelebration();
     });
@@ -136,105 +136,108 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                 ),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                  // 3 Animated Stars Burst
-                  _buildAnimatedStars(),
-                  const SizedBox(height: 10),
-
-                  // Title with warm glow
-                  Text(
-                    widget.title,
-                    style: GoogleFonts.fredoka(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFFEA580C),
-                      letterSpacing: 0.3,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Subtitle
-                  Text(
-                    widget.subtitle,
-                    style: GoogleFonts.fredoka(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF64748B),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Reward Badge (+3 Stars)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFEF08A), Color(0xFFFDE047)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFFACC15), width: 2),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0xFFEAB308), offset: Offset(0, 2)),
-                      ],
-                    ),
-                    child: Row(
+                  child: SizedBox(
+                    width: 360,
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('⭐', style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
+                        // 3 Animated Stars Burst
+                        _buildAnimatedStars(),
+                        const SizedBox(height: 10),
+
+                        // Title with warm glow
                         Text(
-                          '+3 Bintang Didapatkan!',
+                          widget.title,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFFEA580C),
+                            letterSpacing: 0.3,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+
+                        // Subtitle
+                        Text(
+                          widget.subtitle,
                           style: GoogleFonts.fredoka(
                             fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFB45309),
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF64748B),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Reward Badge (+3 Stars)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFEF08A), Color(0xFFFDE047)],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFFACC15), width: 2),
+                            boxShadow: const [
+                              BoxShadow(color: Color(0xFFEAB308), offset: Offset(0, 2)),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('⭐', style: TextStyle(fontSize: 16)),
+                              const SizedBox(width: 6),
+                              Text(
+                                '+3 Bintang Didapatkan!',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFB45309),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // "Lanjut Main" Action Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 46,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              HapticFeedback.mediumImpact();
+                              Navigator.of(context).pop();
+                              widget.onNext();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF22C55E),
+                              elevation: 4,
+                              shadowColor: const Color(0xFF15803D),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Lanjut Main',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // "Lanjut Main" Action Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 46,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        HapticFeedback.mediumImpact();
-                        Navigator.of(context).pop();
-                        widget.onNext();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF22C55E),
-                        elevation: 4,
-                        shadowColor: const Color(0xFF15803D),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Lanjut Main',
-                            style: GoogleFonts.fredoka(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-                        ],
-                      ),
-                    ),
-                  ),
-                    ],
                   ),
                 ),
               ),
