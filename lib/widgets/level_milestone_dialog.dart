@@ -159,9 +159,11 @@ class _LevelMilestoneDialogState extends State<LevelMilestoneDialog>
                 ),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                  child: SizedBox(
+                    width: 440,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                   // Golden Trophy + Laurel Wreath Header
                   _buildTrophyHeader(),
 
@@ -351,6 +353,7 @@ class _LevelMilestoneDialogState extends State<LevelMilestoneDialog>
                     ],
                   ),
                 ),
+              ),
               ),
             ],
           ),
