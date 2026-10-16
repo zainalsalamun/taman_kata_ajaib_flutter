@@ -600,7 +600,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
               _buildTabButton(
                 index: 2,
                 icon: '⚙️',
-                label: 'Waktu & Reset',
+                label: 'Waktu, Suara & Reset',
               ),
             ],
           ),
@@ -1779,7 +1779,100 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
           ),
           const SizedBox(height: 12),
 
-          // 2. Granular Reset Section
+          // 2. Audio & Musik Latar Section
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFBBF7D0), width: 1.5),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '🎵 Pengaturan Suara & Musik',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF166534),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            AudioService().isMuted ? Icons.volume_off : Icons.volume_up,
+                            color: const Color(0xFF16A34A),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Suara Efek & Narator',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF14532D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: !AudioService().isMuted,
+                      activeColor: const Color(0xFF16A34A),
+                      onChanged: (val) {
+                        setState(() {
+                          AudioService().toggleMute();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            (AudioService().isBgmMuted || AudioService().isMuted)
+                                ? Icons.music_off
+                                : Icons.music_note,
+                            color: const Color(0xFF16A34A),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Musik Latar Ceria (BGM)',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF14532D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: !AudioService().isBgmMuted && !AudioService().isMuted,
+                      activeColor: const Color(0xFF16A34A),
+                      onChanged: (val) {
+                        setState(() {
+                          AudioService().toggleBgm();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 3. Granular Reset Section
           Text(
             'Zona Reset Progres Belajar',
             style: GoogleFonts.fredoka(
