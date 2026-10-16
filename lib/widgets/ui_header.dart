@@ -144,6 +144,21 @@ class _UiHeaderState extends State<UiHeader> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // Music (BGM)
+                _buildRoundButton(
+                  onTap: () {
+                    setState(() {
+                      _audio.toggleBgm();
+                    });
+                  },
+                  bgColor: const Color(0xFFE0E7FF),
+                  child: VectorIconWidget(
+                    icon: (_audio.isBgmMuted || _audio.isMuted) ? 'musicOff' : 'musicOn',
+                    size: 20,
+                    color: const Color(0xFF4338CA),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 // Stickers
                 _buildRoundButton(
                   onTap: widget.onStickersPressed,
