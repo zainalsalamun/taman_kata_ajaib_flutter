@@ -519,7 +519,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             child: SizedBox(
               height: canvasHeight,
               child: FittedBox(
-                fit: BoxFit.fitHeight,
+                fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
                   width: mapCanvasWidth,
