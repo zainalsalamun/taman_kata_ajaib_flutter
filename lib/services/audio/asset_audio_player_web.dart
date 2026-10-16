@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js_interop';
 import 'package:flutter/services.dart' show rootBundle, AssetManifest;
 import 'asset_audio_player.dart';
@@ -45,6 +46,11 @@ extension type JSAudioParam._(JSObject _) implements JSObject {
 class AssetAudioPlayerWeb implements AssetAudioPlayer {
   JSAudio? _activeAudio;
   JSAudioContext? _ctx;
+  bool _isBgmPlaying = false;
+  Timer? _bgmTimer;
+
+  @override
+  bool get isBgmPlaying => _isBgmPlaying;
 
   JSAudioContext? _getContext() {
     try {
@@ -81,7 +87,8 @@ class AssetAudioPlayerWeb implements AssetAudioPlayer {
       }
 
       // Stop previous asset playback if running
-      stop();
+      _activeAudio?.pause();
+      _activeAudio = null;
 
       // In Flutter Web, assets are served at 'assets/' + assetPath
       final url = 'assets/$assetPath';
@@ -100,6 +107,50 @@ class AssetAudioPlayerWeb implements AssetAudioPlayer {
     try {
       _activeAudio?.pause();
       _activeAudio = null;
+      stopBgm();
+    } catch (_) {}
+  }
+
+  @override
+  void startBgm() {
+    if (_isBgmPlaying) return;
+    _isBgmPlaying = true;
+    _playBgmPhrase();
+    _bgmTimer?.cancel();
+    _bgmTimer = Timer.periodic(const Duration(milliseconds: 3200), (_) {
+      if (_isBgmPlaying) {
+        _playBgmPhrase();
+      }
+    });
+  }
+
+  @override
+  void stopBgm() {
+    _isBgmPlaying = false;
+    _bgmTimer?.cancel();
+    _bgmTimer = null;
+  }
+
+  void _playBgmPhrase() {
+    try {
+      final ctx = _getContext();
+      if (ctx == null) return;
+      final t = ctx.currentTime;
+      // Cheerful pentatonic music-box melody: C5, E5, G5, A5, G5, E5, D5, C5
+      final notes = [523.25, 659.25, 783.99, 880.00, 783.99, 659.25, 587.33, 523.25];
+      for (var i = 0; i < notes.length; i++) {
+        final noteTime = t + i * 0.35;
+        final osc = ctx.createOscillator();
+        final gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(notes[i], noteTime);
+        gain.gain.setValueAtTime(0.045, noteTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + 0.32);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(noteTime);
+        osc.stop(noteTime + 0.33);
+      }
     } catch (_) {}
   }
 
@@ -141,7 +192,7 @@ class AssetAudioPlayerWeb implements AssetAudioPlayer {
           break;
 
         case 'star':
-          // 3-note celebration arpeggio
+          // 4-note celebration arpeggio
           final notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
           for (var i = 0; i < notes.length; i++) {
             final noteTime = t + i * 0.08;
@@ -187,6 +238,57 @@ class AssetAudioPlayerWeb implements AssetAudioPlayer {
           gain.connect(ctx.destination);
           osc.start(t);
           osc.stop(t + 0.16);
+          break;
+
+        case 'twinkle':
+          // High shimmering bell
+          final twinkleNotes = [1318.5, 1568.0, 2093.0];
+          for (var i = 0; i < twinkleNotes.length; i++) {
+            final noteTime = t + i * 0.08;
+            final osc = ctx.createOscillator();
+            final gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(twinkleNotes[i], noteTime);
+            gain.gain.setValueAtTime(0.2, noteTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.2);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(noteTime);
+            osc.stop(noteTime + 0.21);
+          }
+          break;
+
+        case 'boing':
+          // Playful spring cartoon bounce
+          final osc = ctx.createOscillator();
+          final gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(160.0, t);
+          osc.frequency.linearRampToValueAtTime(380.0, t + 0.18);
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.26);
+          break;
+
+        case 'fanfare':
+          // Grand victory fanfare chords
+          final fanfareNotes = [523.25, 659.25, 783.99, 1046.5];
+          for (var i = 0; i < fanfareNotes.length; i++) {
+            final noteTime = t + i * 0.1;
+            final osc = ctx.createOscillator();
+            final gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(fanfareNotes[i], noteTime);
+            gain.gain.setValueAtTime(0.3, noteTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.45);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(noteTime);
+            osc.stop(noteTime + 0.46);
+          }
           break;
       }
     } catch (_) {}
