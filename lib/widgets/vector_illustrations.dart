@@ -738,6 +738,22 @@ class _VectorIconPainter extends CustomPainter {
         canvas.drawLine(const Offset(17, 9), const Offset(23, 15), p);
         canvas.drawLine(const Offset(23, 9), const Offset(17, 15), p);
         break;
+      case 'musicOn':
+        final noteHead = Path()..addOval(const Rect.fromLTWH(5, 13, 6, 5));
+        canvas.drawPath(noteHead, Paint()..color = color);
+        canvas.drawLine(const Offset(10.5, 15), const Offset(10.5, 5), p);
+        final flag = Path()..moveTo(10.5, 5)..quadraticBezierTo(16, 7, 16, 11);
+        canvas.drawPath(flag, p);
+        break;
+      case 'musicOff':
+        final noteHeadOff = Path()..addOval(const Rect.fromLTWH(5, 13, 6, 5));
+        canvas.drawPath(noteHeadOff, Paint()..color = color);
+        canvas.drawLine(const Offset(10.5, 15), const Offset(10.5, 5), p);
+        final flagOff = Path()..moveTo(10.5, 5)..quadraticBezierTo(16, 7, 16, 11);
+        canvas.drawPath(flagOff, p);
+        canvas.drawLine(const Offset(4, 4), const Offset(20, 20), Paint()..color = const Color(0xFFEF4444)..style = PaintingStyle.stroke..strokeWidth = 2);
+        break;
+
       case 'stickers':
         final book = Path()..moveTo(4, 4)..lineTo(20, 4)..lineTo(20, 20)..lineTo(4, 20)..close();
         canvas.drawPath(book, p);
