@@ -33,7 +33,7 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
   final AudioService _audio = AudioService();
 
   // Maze gameplay state
-  late Point<int> _currentPos;
+  Point<int> _currentPos = const Point<int>(1, 1);
   bool _facingLeft = false;
   final Set<int> _collectedIndices = <int>{};
   final Set<Point<int>> _collectedStars = <Point<int>>{};
@@ -52,6 +52,7 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _currentPos = _current.startPos;
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -612,8 +613,8 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
                           return GestureDetector(
                             onTap: () => _handleTileTap(r, c),
                             child: Container(
-                              width: cellSize,
-                              height: cellSize,
+                              width: cellSize - 3.0,
+                              height: cellSize - 3.0,
                               margin: const EdgeInsets.all(1.5),
                               decoration: BoxDecoration(
                                 color: isWall
@@ -689,10 +690,10 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
                   AnimatedPositioned(
                     duration: const Duration(milliseconds: 180),
                     curve: Curves.easeOutBack,
-                    left: _currentPos.x * cellSize + 2,
-                    top: _currentPos.y * cellSize + 2,
-                    width: cellSize - 4,
-                    height: cellSize - 4,
+                    left: _currentPos.x * cellSize + 1.5,
+                    top: _currentPos.y * cellSize + 1.5,
+                    width: cellSize - 3.0,
+                    height: cellSize - 3.0,
                     child: Center(
                       child: Transform.flip(
                         flipX: _facingLeft,
