@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="taman_kata_ajaib_flutter"
+        android:label="Taman Kata Ajaib"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
