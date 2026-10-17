@@ -37,11 +37,13 @@ class IslandData {
 class MapScreen extends StatefulWidget {
   final Function(String route) onSelectGame;
   final Function(int bonusStars)? onBonusStars;
+  final VoidCallback? onOpenTrophies;
 
   const MapScreen({
     super.key,
     required this.onSelectGame,
     this.onBonusStars,
+    this.onOpenTrophies,
   });
 
   @override
@@ -52,6 +54,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   final AudioService _audio = AudioService();
   final ScrollController _scrollController = ScrollController();
 
+  int _tracingLevel = 1;
   int _trainLevel = 1;
   int _balloonLevel = 1;
   int _quizLevel = 1;
@@ -190,6 +193,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   void _loadState() async {
+    final tc = await StorageService.getUnlockedGameLevel('tracing');
     final tr = await StorageService.getUnlockedGameLevel('train');
     final bl = await StorageService.getUnlockedGameLevel('balloon');
     final qz = await StorageService.getUnlockedGameLevel('quiz');
@@ -199,6 +203,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     if (mounted) {
       setState(() {
+        _tracingLevel = tc;
         _trainLevel = tr;
         _balloonLevel = bl;
         _quizLevel = qz;
@@ -285,20 +290,37 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     });
   }
 
+  bool _isIslandMastered(String route) {
+    switch (route) {
+      case 'tracing':
+        return _tracingLevel >= 3;
+      case 'train':
+        return _trainLevel >= 3;
+      case 'balloon':
+        return _balloonLevel >= 3;
+      case 'quiz':
+        return _quizLevel >= 3;
+      case 'maze':
+        return _mazeLevel >= 3;
+      default:
+        return false;
+    }
+  }
+
   String _getIslandLevelBadge(String route) {
     switch (route) {
-      case 'train':
-        return 'Tingkat $_trainLevel ${_trainLevel > 1 ? "⭐" : ""}';
-      case 'balloon':
-        return 'Tingkat $_balloonLevel ${_balloonLevel > 1 ? "⭐" : ""}';
-      case 'quiz':
-        return 'Tingkat $_quizLevel ${_quizLevel > 1 ? "⭐" : ""}';
       case 'tracing':
-        return '🌱 26 Huruf';
+        return _tracingLevel >= 3 ? '👑 Master ⭐' : 'Tingkat $_tracingLevel ${_tracingLevel > 1 ? "⭐" : ""}';
+      case 'train':
+        return _trainLevel >= 3 ? '👑 Master ⭐' : 'Tingkat $_trainLevel ${_trainLevel > 1 ? "⭐" : ""}';
+      case 'balloon':
+        return _balloonLevel >= 3 ? '👑 Master ⭐' : 'Tingkat $_balloonLevel ${_balloonLevel > 1 ? "⭐" : ""}';
+      case 'quiz':
+        return _quizLevel >= 3 ? '👑 Master ⭐' : 'Tingkat $_quizLevel ${_quizLevel > 1 ? "⭐" : ""}';
       case 'playground':
         return '🎨 3 Tema';
       case 'maze':
-        return 'Tingkat $_mazeLevel ${_mazeLevel > 1 ? "⭐" : ""}';
+        return _mazeLevel >= 3 ? '👑 Master ⭐' : 'Tingkat $_mazeLevel ${_mazeLevel > 1 ? "⭐" : ""}';
       case 'storybook':
         return '📖 4 Cerita';
       default:
@@ -392,6 +414,45 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
+
+              // Trophy Showcase Shortcut Button
+              if (widget.onOpenTrophies != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    widget.onOpenTrophies!();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFEF08A), Color(0xFFFBBF24)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFD97706), width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🏆', style: TextStyle(fontSize: 14)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Trofi',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF854D0E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -627,14 +688,27 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFFEF08A) : Colors.white.withAlpha(230),
+                  gradient: _isIslandMastered(island.route)
+                      ? const LinearGradient(colors: [Color(0xFFFEF08A), Color(0xFFFBBF24)])
+                      : null,
+                  color: _isIslandMastered(island.route)
+                      ? null
+                      : (isSelected ? const Color(0xFFFEF08A) : Colors.white.withAlpha(230)),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected ? const Color(0xFFEAB308) : const Color(0xFFCBD5E1),
-                    width: 1.5,
+                    color: _isIslandMastered(island.route)
+                        ? const Color(0xFFD97706)
+                        : (isSelected ? const Color(0xFFEAB308) : const Color(0xFFCBD5E1)),
+                    width: _isIslandMastered(island.route) ? 2.0 : 1.5,
                   ),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x15000000), blurRadius: 4, offset: Offset(0, 2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _isIslandMastered(island.route)
+                          ? const Color(0x40F59E0B)
+                          : const Color(0x15000000),
+                      blurRadius: _isIslandMastered(island.route) ? 6 : 4,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
                 child: Text(
@@ -1140,11 +1214,25 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF08A),
+                gradient: _isIslandMastered(island.route)
+                    ? const LinearGradient(colors: [Color(0xFFFEF08A), Color(0xFFFBBF24)])
+                    : null,
+                color: _isIslandMastered(island.route) ? null : const Color(0xFFFEF08A),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFEAB308), width: 1.5),
-                boxShadow: const [
-                  BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                border: Border.all(
+                  color: _isIslandMastered(island.route)
+                      ? const Color(0xFFD97706)
+                      : const Color(0xFFEAB308),
+                  width: _isIslandMastered(island.route) ? 2.0 : 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: _isIslandMastered(island.route)
+                        ? const Color(0x40F59E0B)
+                        : const Color(0x20000000),
+                    blurRadius: _isIslandMastered(island.route) ? 6 : 4,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
               child: Text(
