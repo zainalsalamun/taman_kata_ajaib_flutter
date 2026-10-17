@@ -6,6 +6,7 @@ import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
 import '../widgets/victory_dialog.dart';
 import '../widgets/level_milestone_dialog.dart';
+import '../widgets/island_mastery_dialog.dart';
 import '../widgets/level_selector_ribbon.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
@@ -220,6 +221,29 @@ class _BalloonScreenState extends State<BalloonScreen>
                     'balloon', _currentLevel, _currentIndex);
                 _startBalloonGame();
               },
+            ),
+          );
+        } else if (_currentLevel >= 3) {
+          // ISLAND CONQUERED! FULL MASTERY CELEBRATION!
+          widget.onVictory(30);
+          await StorageService.addTrophy('balloon_l3');
+          await StorageService.addTrophy('balloon_master');
+          await StorageService.saveGameLevelIndex('balloon', _currentLevel, 0);
+
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => IslandMasteryDialog(
+              islandTitle: 'Puncak Balon Ajaib',
+              islandRoute: 'balloon',
+              bonusStars: 30,
+              onReplay: () {
+                setState(() {
+                  _currentIndex = 0;
+                });
+                _startBalloonGame();
+              },
+              onBackToMap: widget.onBack,
             ),
           );
         } else {
