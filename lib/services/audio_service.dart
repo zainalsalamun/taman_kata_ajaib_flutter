@@ -102,4 +102,14 @@ class AudioService {
     final chosen = celebrations[Random().nextInt(celebrations.length)];
     await speak(chosen);
   }
+
+  Future<void> speakIslandMastery(String islandTitle) async {
+    final masteryQuotes = [
+      "LUAR BIASA! Selamat, kamu telah menuntaskan seluruh kata di $islandTitle! Kamu adalah Juara Sejati!",
+      "Horeee! Pesta kembang api untukmu! Seluruh tantangan di $islandTitle berhasil kamu taklukkan!",
+      "Wah mengagumkan! Mahkota emas untuk sang master di $islandTitle! Kamu hebat sekali!",
+    ];
+    final chosen = masteryQuotes[Random().nextInt(masteryQuotes.length)];
+    await speak(chosen);
+  }
 }
