@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/audio_service.dart';
 import 'vector_illustrations.dart';
+import 'interactive_fireworks.dart';
 
 class VictoryDialog extends StatefulWidget {
   final String title;
@@ -93,10 +94,14 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
         constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: dialogMaxHeight),
         child: SizedBox(
           width: dialogWidth,
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
+          child: InteractiveFireworksOverlay(
+            autoLaunch: false,
+            tapEnabled: true,
+            showTapHint: true,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
               // 1. Confetti Particles Fireworks Layer
               Positioned.fill(
                 child: AnimatedBuilder(
@@ -245,8 +250,9 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // 3 Animated Stars that pop into view sequentially
   Widget _buildAnimatedStars() {
