@@ -551,6 +551,11 @@ class _ObjectPainter extends CustomPainter {
       bg1 = const Color(0xFFFEF3C7);
       bg2 = const Color(0xFFFDE68A);
       border = const Color(0xFFD97706);
+    } else if (keyLower.contains('jus')) {
+      symbol = '🧃';
+      bg1 = const Color(0xFFFEF08A);
+      bg2 = const Color(0xFFFDE047);
+      border = const Color(0xFFF59E0B);
     } else if (keyLower.contains('obat')) {
       symbol = '💊';
       bg1 = const Color(0xFFE0F2FE);
@@ -774,6 +779,18 @@ class _VectorIconPainter extends CustomPainter {
         canvas.drawArc(const Rect.fromLTWH(3, 3, 18, 18), -math.pi / 4, 1.5 * math.pi, false, p);
         final arrow = Path()..moveTo(14, 2)..lineTo(18, 5)..lineTo(14, 8);
         canvas.drawPath(arrow, p);
+        break;
+      case 'gift':
+        final box = Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(4, 9, 16, 12), const Radius.circular(2)));
+        canvas.drawPath(box, Paint()..color = color.withAlpha(50));
+        canvas.drawPath(box, p);
+        final lid = Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(3, 7, 18, 4), const Radius.circular(1.5)));
+        canvas.drawPath(lid, Paint()..color = color);
+        canvas.drawLine(const Offset(12, 7), const Offset(12, 21), Paint()..color = const Color(0xFFEF4444)..style = PaintingStyle.stroke..strokeWidth = 2);
+        final bowLeft = Path()..addOval(const Rect.fromLTWH(7, 3, 5, 4));
+        final bowRight = Path()..addOval(const Rect.fromLTWH(12, 3, 5, 4));
+        canvas.drawPath(bowLeft, Paint()..color = const Color(0xFFEF4444)..style = PaintingStyle.stroke..strokeWidth = 1.5);
+        canvas.drawPath(bowRight, Paint()..color = const Color(0xFFEF4444)..style = PaintingStyle.stroke..strokeWidth = 1.5);
         break;
     }
 
