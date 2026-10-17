@@ -8,6 +8,8 @@ import 'widgets/ui_header.dart';
 import 'widgets/sticker_album_dialog.dart';
 import 'widgets/parental_gate_dialog.dart';
 import 'widgets/rest_time_dialog.dart';
+import 'widgets/daily_reward_dialog.dart';
+import 'widgets/trophy_showcase_dialog.dart';
 import 'screens/map_screen.dart';
 import 'screens/tracing_screen.dart';
 import 'screens/train_screen.dart';
@@ -70,6 +72,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
   int _todayPlayTimeSeconds = 0;
   Timer? _playTimer;
   bool _isRestDialogOpen = false;
+  bool _hasDailyReward = false;
 
   @override
   void initState() {
@@ -89,15 +92,25 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
     final stickers = await StorageService.getUnlockedStickers();
     final limit = await StorageService.getScreenTimeLimit();
     final todaySec = await StorageService.getTodayPlayTimeSeconds();
+    final canDaily = await StorageService.canClaimDailyReward();
     if (mounted) {
       setState(() {
         _stars = stars;
         _unlockedStickers = stickers;
         _limitMinutes = limit;
         _todayPlayTimeSeconds = todaySec;
+        _hasDailyReward = canDaily;
       });
       _startPlayTimer();
       AudioService().startBgm();
+
+      if (canDaily) {
+        Future.delayed(const Duration(milliseconds: 700), () {
+          if (mounted && _hasDailyReward) {
+            _openDailyRewardDialog();
+          }
+        });
+      }
     }
   }
 
@@ -196,6 +209,33 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
     );
   }
 
+  void _openDailyRewardDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => DailyRewardDialog(
+        currentStars: _stars,
+        unlockedStickers: _unlockedStickers,
+        onRewardClaimed: (newStars, newUnlocked) {
+          setState(() {
+            _stars = newStars;
+            _unlockedStickers = newUnlocked;
+            _hasDailyReward = false;
+          });
+        },
+      ),
+    );
+  }
+
+  void _openTrophyShowcase() {
+    showDialog(
+      context: context,
+      builder: (_) => TrophyShowcaseDialog(
+        onBackToMap: () => _navigateTo('map'),
+      ),
+    );
+  }
+
   void _openParentalGate() {
     showDialog(
       context: context,
@@ -234,6 +274,9 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
               UiHeader(
                 mascotText: _mascotText,
                 stars: _stars,
+                hasDailyReward: _hasDailyReward,
+                onDailyRewardPressed: _openDailyRewardDialog,
+                onTrophyPressed: _openTrophyShowcase,
                 onHomePressed: () => _navigateTo('map'),
                 onStickersPressed: _openStickersAlbum,
                 onParentalPressed: _openParentalGate,
@@ -293,6 +336,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         return MapScreen(
           onSelectGame: _navigateTo,
           onBonusStars: _addStars,
+          onOpenTrophies: _openTrophyShowcase,
         );
     }
   }
