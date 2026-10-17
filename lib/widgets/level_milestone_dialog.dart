@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/audio_service.dart';
 import 'vector_illustrations.dart';
+import 'interactive_fireworks.dart';
 
 class LevelMilestoneDialog extends StatefulWidget {
   final String gameTitle;
@@ -117,10 +118,13 @@ class _LevelMilestoneDialogState extends State<LevelMilestoneDialog>
         constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: dialogMaxHeight),
         child: SizedBox(
           width: dialogWidth,
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
+          child: InteractiveFireworksOverlay(
+            autoLaunch: true,
+            showTapHint: true,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
               // Fireworks & Confetti
               Positioned.fill(
                 child: AnimatedBuilder(
@@ -359,7 +363,8 @@ class _LevelMilestoneDialogState extends State<LevelMilestoneDialog>
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildTrophyHeader() {
