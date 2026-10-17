@@ -290,6 +290,112 @@ class AssetAudioPlayerWeb implements AssetAudioPlayer {
             osc.stop(noteTime + 0.46);
           }
           break;
+
+        case 'firework':
+          // Rising rocket whistle + booming burst + sparkling crackle
+          final whistleOsc = ctx.createOscillator();
+          final whistleGain = ctx.createGain();
+          whistleOsc.type = 'sine';
+          whistleOsc.frequency.setValueAtTime(450.0, t);
+          whistleOsc.frequency.exponentialRampToValueAtTime(1400.0, t + 0.14);
+          whistleGain.gain.setValueAtTime(0.2, t);
+          whistleGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+          whistleOsc.connect(whistleGain);
+          whistleGain.connect(ctx.destination);
+          whistleOsc.start(t);
+          whistleOsc.stop(t + 0.15);
+
+          // Deep explosion boom
+          final burstTime = t + 0.14;
+          final boomOsc = ctx.createOscillator();
+          final boomGain = ctx.createGain();
+          boomOsc.type = 'triangle';
+          boomOsc.frequency.setValueAtTime(150.0, burstTime);
+          boomOsc.frequency.exponentialRampToValueAtTime(35.0, burstTime + 0.35);
+          boomGain.gain.setValueAtTime(0.45, burstTime);
+          boomGain.gain.exponentialRampToValueAtTime(0.001, burstTime + 0.35);
+          boomOsc.connect(boomGain);
+          boomGain.connect(ctx.destination);
+          boomOsc.start(burstTime);
+          boomOsc.stop(burstTime + 0.36);
+
+          // Crackling sparkles
+          final sparkleFreqs = [1568.0, 1975.5, 2349.3, 1760.0];
+          for (var i = 0; i < sparkleFreqs.length; i++) {
+            final spTime = burstTime + 0.05 + i * 0.06;
+            final spOsc = ctx.createOscillator();
+            final spGain = ctx.createGain();
+            spOsc.type = 'sine';
+            spOsc.frequency.setValueAtTime(sparkleFreqs[i], spTime);
+            spGain.gain.setValueAtTime(0.18, spTime);
+            spGain.gain.exponentialRampToValueAtTime(0.001, spTime + 0.18);
+            spOsc.connect(spGain);
+            spGain.connect(ctx.destination);
+            spOsc.start(spTime);
+            spOsc.stop(spTime + 0.19);
+          }
+          break;
+
+        case 'magic_chime':
+          // Sweeping 7-note celestial harp glissando
+          final harpNotes = [523.25, 659.25, 783.99, 987.77, 1046.50, 1318.51, 1567.98];
+          for (var i = 0; i < harpNotes.length; i++) {
+            final noteTime = t + i * 0.06;
+            final osc = ctx.createOscillator();
+            final gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(harpNotes[i], noteTime);
+            gain.gain.setValueAtTime(0.22, noteTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.38);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(noteTime);
+            osc.stop(noteTime + 0.39);
+          }
+          break;
+
+        case 'cheer':
+          // Joyous multi-chord fanfare
+          final cheerChords = [
+            [523.25, 659.25, 783.99], // C major
+            [587.33, 698.46, 880.00], // F/D
+            [659.25, 783.99, 1046.5], // G/C
+            [783.99, 987.77, 1318.5], // Top triumph
+          ];
+          for (var c = 0; c < cheerChords.length; c++) {
+            final chordTime = t + c * 0.14;
+            for (final f in cheerChords[c]) {
+              final osc = ctx.createOscillator();
+              final gain = ctx.createGain();
+              osc.type = 'triangle';
+              osc.frequency.setValueAtTime(f, chordTime);
+              gain.gain.setValueAtTime(0.18, chordTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, chordTime + 0.40);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start(chordTime);
+              osc.stop(chordTime + 0.41);
+            }
+          }
+          break;
+
+        case 'sparkle':
+          // Fairy dust chime
+          final spk = [1760.0, 2093.0, 2637.0, 3136.0];
+          for (var i = 0; i < spk.length; i++) {
+            final noteTime = t + i * 0.05;
+            final osc = ctx.createOscillator();
+            final gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(spk[i], noteTime);
+            gain.gain.setValueAtTime(0.2, noteTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(noteTime);
+            osc.stop(noteTime + 0.26);
+          }
+          break;
       }
     } catch (_) {}
   }
