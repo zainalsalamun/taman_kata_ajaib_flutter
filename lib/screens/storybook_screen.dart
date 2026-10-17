@@ -28,6 +28,13 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
   StoryBook? _selectedBook;
   int _currentPageIndex = 0;
   Set<String> _completedStories = {};
+  String _selectedCategory = 'Semua';
+  static const List<String> _categories = [
+    'Semua',
+    'Kisah Sahabat',
+    'Petualangan Alam',
+    'Nilai Kebaikan',
+  ];
 
   // Karaoke narration state
   bool _isPlayingNarration = false;
@@ -421,6 +428,82 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
           ),
         ),
 
+        // Category Filter Chips
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _categories.map((cat) {
+                final isSelected = _selectedCategory == cat;
+                final count = cat == 'Semua'
+                    ? sampleStoryBooks.length
+                    : sampleStoryBooks.where((b) => b.category == cat).length;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _selectedCategory = cat;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF7E22CE) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF6B21A8) : const Color(0xFFE2E8F0),
+                          width: 1.8,
+                        ),
+                        boxShadow: [
+                          if (isSelected)
+                            const BoxShadow(
+                              color: Color(0x337E22CE),
+                              offset: Offset(0, 3),
+                              blurRadius: 6,
+                            ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            cat,
+                            style: GoogleFonts.fredoka(
+                              fontSize: 12,
+                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                              color: isSelected ? Colors.white : const Color(0xFF475569),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.white.withOpacity(0.25) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$count',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: isSelected ? Colors.white : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+
         // Book Cards Grid / Row
         Expanded(
           child: LayoutBuilder(
@@ -428,15 +511,19 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
               final shelfHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
                   ? constraints.maxHeight
                   : 320.0;
+              final displayedBooks = _selectedCategory == 'Semua'
+                  ? sampleStoryBooks
+                  : sampleStoryBooks.where((b) => b.category == _selectedCategory).toList();
+
               return Center(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                   child: SizedBox(
-                    height: shelfHeight - 24,
+                    height: shelfHeight - 20,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: sampleStoryBooks.map((book) {
+                      children: displayedBooks.map((book) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           child: _buildBookCoverCard(book),
@@ -486,17 +573,33 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    book.ageRange,
+                    book.category,
                     style: GoogleFonts.fredoka(
-                      fontSize: 10,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.w900,
                       color: book.coverColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.25),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    book.ageRange,
+                    style: GoogleFonts.fredoka(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -828,12 +931,12 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
         borderRadius: BorderRadius.circular(21),
         child: Stack(
           children: [
-            // Background subtle decorations
+            // Thematic Vector Scene Backdrop
             Positioned.fill(
-              child: Opacity(
-                opacity: 0.12,
-                child: CustomPaint(
-                  painter: _GardenBackgroundPatternPainter(),
+              child: CustomPaint(
+                painter: _StoryScenePainter(
+                  sceneKey: page.illustrationKey,
+                  bgColor: page.backgroundColor,
                 ),
               ),
             ),
@@ -1171,6 +1274,30 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF08A),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFFACC15)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('⭐', style: TextStyle(fontSize: 11)),
+                              const SizedBox(width: 4),
+                              Text(
+                                '+$_earnedBonusStars',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF854D0E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1302,78 +1429,113 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                                     ),
                                   ],
                                 ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                                child: Stack(
                                   children: [
-                                    Expanded(
-                                      child: Center(
-                                        child: ObjectIllustrationWidget(
-                                          illustrationKey: opt.illustrationKey,
-                                          size: 85,
+                                    // Mini sound listen button on card
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          _audio.speak(opt.text);
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+                                            boxShadow: const [
+                                              BoxShadow(
+                                                color: Color(0x14000000),
+                                                offset: Offset(0, 1),
+                                                blurRadius: 3,
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.volume_up_rounded,
+                                            size: 16,
+                                            color: Color(0xFF64748B),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      opt.text,
-                                      textAlign: TextAlign.center,
-                                      style: GoogleFonts.fredoka(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        color: isSelected && isCorrect
-                                            ? const Color(0xFF047857)
-                                            : const Color(0xFF1E293B),
-                                      ),
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Center(
+                                            child: ObjectIllustrationWidget(
+                                              illustrationKey: opt.illustrationKey,
+                                              size: 85,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          opt.text,
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color: isSelected && isCorrect
+                                                ? const Color(0xFF047857)
+                                                : const Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        if (isSelected && isCorrect)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF10B981),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              'BENAR! ⭐',
+                                              style: GoogleFonts.fredoka(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          )
+                                        else if (isSelected && !isCorrect)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEF4444),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              'Coba Lagi Ya! 😊',
+                                              style: GoogleFonts.fredoka(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          )
+                                        else
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              'Sentuh Pilihan 👆',
+                                              style: GoogleFonts.fredoka(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: const Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 6),
-                                    if (isSelected && isCorrect)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF10B981),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          'BENAR! ⭐',
-                                          style: GoogleFonts.fredoka(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      )
-                                    else if (isSelected && !isCorrect)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFEF4444),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          'Coba Lagi Ya! 😊',
-                                          style: GoogleFonts.fredoka(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          'Sentuh Pilihan 👆',
-                                          style: GoogleFonts.fredoka(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFF64748B),
-                                          ),
-                                        ),
-                                      ),
                                   ],
                                 ),
                               ),
@@ -1446,18 +1608,354 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
   }
 }
 
-class _GardenBackgroundPatternPainter extends CustomPainter {
+class _StoryScenePainter extends CustomPainter {
+  final String sceneKey;
+  final Color bgColor;
+
+  _StoryScenePainter({
+    required this.sceneKey,
+    required this.bgColor,
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = const Color(0xFF16A34A);
-    // Draw subtle playful dots & leaf shapes
-    for (double x = 20; x < size.width; x += 60) {
-      for (double y = 20; y < size.height; y += 60) {
-        canvas.drawCircle(Offset(x, y), 3, p);
-      }
+    final w = size.width;
+    final h = size.height;
+    if (w <= 0 || h <= 0) return;
+
+    final key = sceneKey.toLowerCase();
+
+    // 1. Sky backdrop, soft glow & clouds
+    _drawSkyAndClouds(canvas, size, key);
+
+    // 2. Rolling hills & ground base
+    _drawHillsAndGround(canvas, size, key);
+
+    // 3. Thematic Scenery
+    if (key.contains('kereta')) {
+      _drawRailwayScenery(canvas, size);
+    } else if (key.contains('danau') || key.contains('ikan')) {
+      _drawLakeScenery(canvas, size);
+    } else if (key.contains('dino') || key.contains('pelangi')) {
+      _drawDinoRainbowScenery(canvas, size);
+    } else if (key.contains('hutan') || key.contains('burung') || key.contains('semak') || key.contains('panjat')) {
+      _drawForestScenery(canvas, size);
+    } else if (key.contains('kebun') || key.contains('buah') || key.contains('jus') || key.contains('pesta')) {
+      _drawFruitOrchardScenery(canvas, size);
+    } else {
+      _drawAppleOrchardScenery(canvas, size);
     }
   }
 
+  void _drawSkyAndClouds(Canvas canvas, Size size, String key) {
+    final w = size.width;
+    final h = size.height;
+
+    // Sun in top corner
+    final sunCenter = Offset(w * 0.85, h * 0.15);
+    final sunGlow = Paint()..color = const Color(0x33FDE047);
+    canvas.drawCircle(sunCenter, 32, sunGlow);
+    final sunPaint = Paint()..color = const Color(0xFFFACC15);
+    canvas.drawCircle(sunCenter, 18, sunPaint);
+
+    // Clouds
+    _drawCloud(canvas, Offset(w * 0.2, h * 0.14), 22);
+    _drawCloud(canvas, Offset(w * 0.58, h * 0.20), 18);
+  }
+
+  void _drawCloud(Canvas canvas, Offset center, double radius) {
+    final p = Paint()..color = Colors.white.withAlpha(200);
+    canvas.drawCircle(center, radius, p);
+    canvas.drawCircle(Offset(center.dx - radius * 0.7, center.dy + radius * 0.2), radius * 0.7, p);
+    canvas.drawCircle(Offset(center.dx + radius * 0.7, center.dy + radius * 0.2), radius * 0.7, p);
+  }
+
+  void _drawHillsAndGround(Canvas canvas, Size size, String key) {
+    final w = size.width;
+    final h = size.height;
+
+    Color backHillColor = const Color(0xFF86EFAC);
+    Color frontHillColor = const Color(0xFF4ADE80);
+
+    if (key.contains('danau')) {
+      backHillColor = const Color(0xFF99F6E4);
+      frontHillColor = const Color(0xFF5EEAD4);
+    } else if (key.contains('dino')) {
+      backHillColor = const Color(0xFFFDE68A);
+      frontHillColor = const Color(0xFF86EFAC);
+    } else if (key.contains('hutan')) {
+      backHillColor = const Color(0xFFBBF7D0);
+      frontHillColor = const Color(0xFF22C55E);
+    }
+
+    final backHill = Path()
+      ..moveTo(0, h * 0.65)
+      ..cubicTo(w * 0.35, h * 0.52, w * 0.7, h * 0.72, w, h * 0.62)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(backHill, Paint()..color = backHillColor.withAlpha(160));
+
+    final frontHill = Path()
+      ..moveTo(0, h * 0.78)
+      ..cubicTo(w * 0.45, h * 0.72, w * 0.75, h * 0.85, w, h * 0.76)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(frontHill, Paint()..color = frontHillColor.withAlpha(180));
+
+    // Foreground grassy tufts
+    final grassPaint = Paint()
+      ..color = const Color(0xFF16A34A).withAlpha(120)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    for (double gx = 15; gx < w; gx += 45) {
+      canvas.drawLine(Offset(gx, h - 8), Offset(gx - 4, h - 18), grassPaint);
+      canvas.drawLine(Offset(gx, h - 8), Offset(gx + 4, h - 17), grassPaint);
+    }
+  }
+
+  // 1. Apple Orchard Scenery
+  void _drawAppleOrchardScenery(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Large friendly Apple Tree on Left
+    final trunk = Path()
+      ..moveTo(w * 0.08, h * 0.88)
+      ..cubicTo(w * 0.12, h * 0.65, w * 0.10, h * 0.48, w * 0.14, h * 0.38)
+      ..lineTo(w * 0.22, h * 0.38)
+      ..cubicTo(w * 0.20, h * 0.52, w * 0.24, h * 0.68, w * 0.26, h * 0.90)
+      ..close();
+    canvas.drawPath(trunk, Paint()..color = const Color(0xFF854D0E));
+
+    // Foliage canopy
+    final canopyPaint = Paint()..color = const Color(0xFF16A34A);
+    canvas.drawCircle(Offset(w * 0.18, h * 0.32), 48, canopyPaint);
+    canvas.drawCircle(Offset(w * 0.11, h * 0.36), 36, canopyPaint);
+    canvas.drawCircle(Offset(w * 0.26, h * 0.34), 40, canopyPaint);
+    canvas.drawCircle(Offset(w * 0.18, h * 0.22), 38, Paint()..color = const Color(0xFF22C55E));
+
+    // Hanging apples
+    final appleP = Paint()..color = const Color(0xFFDC2626);
+    canvas.drawCircle(Offset(w * 0.13, h * 0.28), 6, appleP);
+    canvas.drawCircle(Offset(w * 0.22, h * 0.25), 6.5, appleP);
+    canvas.drawCircle(Offset(w * 0.17, h * 0.38), 6, appleP);
+    canvas.drawCircle(Offset(w * 0.27, h * 0.35), 6, appleP);
+
+    // Wooden garden fence along right
+    final fenceP = Paint()
+      ..color = const Color(0xFFFDE68A)
+      ..strokeWidth = 3.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(Offset(w * 0.65, h * 0.82), Offset(w * 0.98, h * 0.82), fenceP);
+    for (double fx = w * 0.68; fx <= w * 0.96; fx += 18) {
+      canvas.drawLine(Offset(fx, h * 0.88), Offset(fx, h * 0.74), fenceP);
+      canvas.drawCircle(Offset(fx, h * 0.74), 2.5, Paint()..color = const Color(0xFFD97706));
+    }
+  }
+
+  // 2. Railway Scenery
+  void _drawRailwayScenery(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Distant mountain
+    final mtn = Path()
+      ..moveTo(w * 0.45, h * 0.65)
+      ..lineTo(w * 0.68, h * 0.35)
+      ..lineTo(w * 0.92, h * 0.68)
+      ..close();
+    canvas.drawPath(mtn, Paint()..color = const Color(0xFFCBD5E1).withAlpha(140));
+
+    // Sleepers / Railroad ties
+    final sleeperPaint = Paint()
+      ..color = const Color(0xFF78350F)
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+
+    for (double t = 0.05; t <= 0.95; t += 0.07) {
+      final tx = w * t;
+      final ty = h * (0.86 - 0.06 * (1 - (2 * (t - 0.5)).abs()) + (t > 0.5 ? 0.04 : 0));
+      canvas.drawLine(Offset(tx - 3, ty - 8), Offset(tx + 3, ty + 8), sleeperPaint);
+    }
+
+    // Steel rails
+    final railP = Paint()
+      ..color = const Color(0xFF64748B)
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke;
+    final rail1 = Path()
+      ..moveTo(w * 0.02, h * 0.83)
+      ..cubicTo(w * 0.35, h * 0.75, w * 0.65, h * 0.79, w * 0.98, h * 0.85);
+    final rail2 = Path()
+      ..moveTo(w * 0.02, h * 0.89)
+      ..cubicTo(w * 0.35, h * 0.81, w * 0.65, h * 0.85, w * 0.98, h * 0.91);
+    canvas.drawPath(rail1, railP);
+    canvas.drawPath(rail2, railP);
+  }
+
+  // 3. Lake Scenery
+  void _drawLakeScenery(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Sparkling Blue Pond
+    final lake = Path()
+      ..moveTo(w * 0.22, h * 0.78)
+      ..cubicTo(w * 0.45, h * 0.68, w * 0.85, h * 0.72, w * 0.96, h * 0.84)
+      ..cubicTo(w * 0.88, h * 0.96, w * 0.42, h * 0.98, w * 0.22, h * 0.78)
+      ..close();
+    canvas.drawPath(lake, Paint()..color = const Color(0xFF38BDF8).withAlpha(170));
+
+    // Water ripple arcs
+    final rippleP = Paint()
+      ..color = Colors.white.withAlpha(190)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(Rect.fromCenter(center: Offset(w * 0.52, h * 0.80), width: 36, height: 10), 0, 3.14, false, rippleP);
+    canvas.drawArc(Rect.fromCenter(center: Offset(w * 0.72, h * 0.84), width: 44, height: 12), 0, 3.14, false, rippleP);
+
+    // Water Lily Pad
+    final lilyP = Paint()..color = const Color(0xFF15803D);
+    canvas.drawCircle(Offset(w * 0.38, h * 0.84), 10, lilyP);
+    canvas.drawCircle(Offset(w * 0.38, h * 0.83), 4, Paint()..color = const Color(0xFFF472B6)); // Lotus
+
+    // Cattail Reeds
+    final reedP = Paint()
+      ..color = const Color(0xFF166534)
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(Offset(w * 0.18, h * 0.92), Offset(w * 0.16, h * 0.68), reedP);
+    canvas.drawLine(Offset(w * 0.20, h * 0.92), Offset(w * 0.22, h * 0.66), reedP);
+    final brownP = Paint()..color = const Color(0xFF78350F)..strokeWidth = 4.5..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(w * 0.16, h * 0.74), Offset(w * 0.16, h * 0.69), brownP);
+    canvas.drawLine(Offset(w * 0.22, h * 0.72), Offset(w * 0.22, h * 0.67), brownP);
+  }
+
+  // 4. Dino & Rainbow Scenery
+  void _drawDinoRainbowScenery(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Rainbow 5-color arc in sky
+    final colors = [
+      const Color(0xFFFB7185), // Red/Pink
+      const Color(0xFFFBBF24), // Orange/Yellow
+      const Color(0xFF34D399), // Green
+      const Color(0xFF38BDF8), // Blue
+      const Color(0xFFA78BFA), // Violet
+    ];
+
+    final arcCenter = Offset(w * 0.5, h * 0.85);
+    for (int i = 0; i < colors.length; i++) {
+      final r = (w * 0.42) - (i * 7);
+      final p = Paint()
+        ..color = colors[i].withAlpha(160)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 7;
+      canvas.drawArc(
+        Rect.fromCircle(center: arcCenter, radius: r),
+        3.14,
+        3.14,
+        false,
+        p,
+      );
+    }
+  }
+
+  // 5. Magic Forest Scenery
+  void _drawForestScenery(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Tall tree trunk on right
+    final rightTrunk = Path()
+      ..moveTo(w * 0.78, h)
+      ..lineTo(w * 0.82, h * 0.25)
+      ..lineTo(w * 0.94, h * 0.25)
+      ..lineTo(w * 0.96, h)
+      ..close();
+    canvas.drawPath(rightTrunk, Paint()..color = const Color(0xFF713F12));
+
+    // Arching branch to left
+    final branch = Path()
+      ..moveTo(w * 0.82, h * 0.42)
+      ..cubicTo(w * 0.65, h * 0.38, w * 0.48, h * 0.45, w * 0.38, h * 0.48)
+      ..lineTo(w * 0.39, h * 0.54)
+      ..cubicTo(w * 0.50, h * 0.50, w * 0.68, h * 0.46, w * 0.82, h * 0.48)
+      ..close();
+    canvas.drawPath(branch, Paint()..color = const Color(0xFF854D0E));
+
+    // Bird nest resting on branch
+    final nestRect = Rect.fromCenter(center: Offset(w * 0.52, h * 0.43), width: 34, height: 18);
+    canvas.drawArc(nestRect, 0, 3.14, true, Paint()..color = const Color(0xFFD97706));
+    // Eggs in nest
+    canvas.drawOval(Rect.fromLTWH(w * 0.52 - 7, h * 0.43 - 8, 7, 10), Paint()..color = const Color(0xFFFEF9C3));
+    canvas.drawOval(Rect.fromLTWH(w * 0.52 + 1, h * 0.43 - 8, 7, 10), Paint()..color = const Color(0xFFE0F2FE));
+
+    // Forest canopy leaves
+    final leafP = Paint()..color = const Color(0xFF15803D).withAlpha(190);
+    canvas.drawCircle(Offset(w * 0.85, h * 0.22), 48, leafP);
+    canvas.drawCircle(Offset(w * 0.72, h * 0.28), 38, leafP);
+    canvas.drawCircle(Offset(w * 0.45, h * 0.32), 32, leafP);
+  }
+
+  // 6. Fruit Orchard & Juice Party Scenery
+  void _drawFruitOrchardScenery(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Party Bunting Pennant Flags across sky
+    final flagColors = [
+      const Color(0xFFEF4444),
+      const Color(0xFFF59E0B),
+      const Color(0xFF10B981),
+      const Color(0xFF3B82F6),
+      const Color(0xFF8B5CF6),
+      const Color(0xFFEC4899),
+    ];
+
+    // String line
+    final stringP = Paint()
+      ..color = const Color(0xFF64748B)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    canvas.drawArc(
+      Rect.fromLTWH(w * 0.05, -h * 0.1, w * 0.9, h * 0.36),
+      0.1,
+      2.94,
+      false,
+      stringP,
+    );
+
+    // Flags
+    for (int i = 0; i < 6; i++) {
+      final fx = w * (0.16 + i * 0.13);
+      final fy = h * (0.14 + 0.04 * (1 - (2 * (i / 5.0 - 0.5)).abs()));
+      final flag = Path()
+        ..moveTo(fx - 10, fy)
+        ..lineTo(fx + 10, fy)
+        ..lineTo(fx, fy + 18)
+        ..close();
+      canvas.drawPath(flag, Paint()..color = flagColors[i % flagColors.length]);
+    }
+
+    // Palm fronds on left corner
+    final palmP = Paint()
+      ..color = const Color(0xFF059669)
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(const Offset(0, 0), Offset(w * 0.18, h * 0.18), palmP);
+    canvas.drawLine(const Offset(0, 0), Offset(w * 0.24, h * 0.10), palmP);
+  }
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _StoryScenePainter oldDelegate) {
+    return oldDelegate.sceneKey != sceneKey || oldDelegate.bgColor != bgColor;
+  }
 }
