@@ -9,6 +9,9 @@ class UiHeader extends StatefulWidget {
   final VoidCallback onHomePressed;
   final VoidCallback onStickersPressed;
   final VoidCallback onParentalPressed;
+  final VoidCallback? onDailyRewardPressed;
+  final VoidCallback? onTrophyPressed;
+  final bool hasDailyReward;
 
   const UiHeader({
     super.key,
@@ -17,6 +20,9 @@ class UiHeader extends StatefulWidget {
     required this.onHomePressed,
     required this.onStickersPressed,
     required this.onParentalPressed,
+    this.onDailyRewardPressed,
+    this.onTrophyPressed,
+    this.hasDailyReward = false,
   });
 
   @override
@@ -100,32 +106,85 @@ class _UiHeaderState extends State<UiHeader> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Stars
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFEF08A), Color(0xFFFDE047)],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFFACC15), width: 2),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0xFFD97706), offset: Offset(0, 2)),
-                    ],
-                  ),
-                  child: Row(
+                // Daily Spin Gift Button
+                if (widget.onDailyRewardPressed != null) ...[
+                  Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      const VectorIconWidget(icon: 'star', size: 20),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${widget.stars}',
-                        style: GoogleFonts.nunito(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFFB45309),
+                      _buildRoundButton(
+                        onTap: widget.onDailyRewardPressed!,
+                        bgColor: const Color(0xFFFEF3C7),
+                        child: const VectorIconWidget(
+                          icon: 'gift',
+                          size: 20,
+                          color: Color(0xFFD97706),
                         ),
                       ),
+                      if (widget.hasDailyReward)
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x40EF4444),
+                                  blurRadius: 4,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // Trophy Room Button
+                if (widget.onTrophyPressed != null) ...[
+                  _buildRoundButton(
+                    onTap: widget.onTrophyPressed!,
+                    bgColor: const Color(0xFFFEF08A),
+                    child: const Text('🏆', style: TextStyle(fontSize: 18)),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+
+                // Stars Badge (Tappable to also open Trophy Room!)
+                GestureDetector(
+                  onTap: widget.onTrophyPressed,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFEF08A), Color(0xFFFDE047)],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFFACC15), width: 2),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0xFFD97706), offset: Offset(0, 2)),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const VectorIconWidget(icon: 'star', size: 20),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${widget.stars}',
+                          style: GoogleFonts.nunito(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFFB45309),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
