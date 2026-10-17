@@ -4,8 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
 import '../widgets/victory_dialog.dart';
-import '../services/audio_service.dart';
 import '../widgets/level_milestone_dialog.dart';
+import '../widgets/island_mastery_dialog.dart';
+import '../widgets/level_selector_ribbon.dart';
+import '../services/audio_service.dart';
 import '../services/storage_service.dart';
 
 enum BrushType { solid, rainbow, glitter }
@@ -111,8 +113,10 @@ class TracingScreen extends StatefulWidget {
 }
 
 class _TracingScreenState extends State<TracingScreen> with SingleTickerProviderStateMixin {
-  final List<LetterTracingData> _letters = GameRepository.letters;
+  int _currentLevel = 1;
+  int _unlockedLevel = 1;
   int _currentIndex = 0;
+  List<LetterTracingData> _currentItems = GameRepository.getTracingItems(1);
   final List<Offset> _userStrokes = [];
   bool _isCompleted = false;
   bool _isFreehandMode = false; // Mode Panduan Titik vs Mode Menulis Mandiri
@@ -122,7 +126,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
   late AnimationController _guideAnimController;
 
   BrushItem get _selectedBrush => _kBrushes[_selectedBrushIndex];
-  LetterTracingData get _current => _letters[_currentIndex];
+  LetterTracingData get _current => _currentIndex < _currentItems.length ? _currentItems[_currentIndex] : _currentItems[0];
 
   @override
   void initState() {
@@ -132,18 +136,48 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
-    _loadStoredTracing();
+    _loadLevelData();
   }
 
-  void _loadStoredTracing() async {
-    final idx = await StorageService.getTracingIndex();
+  void _loadLevelData() async {
+    final lvl = await StorageService.getGameLevel('tracing');
+    final unl = await StorageService.getUnlockedGameLevel('tracing');
+    final idx = await StorageService.getGameLevelIndex('tracing', lvl);
+    final items = GameRepository.getTracingItems(lvl);
+
     if (mounted) {
       setState(() {
-        _currentIndex = (idx < _letters.length) ? idx : 0;
+        _currentLevel = lvl;
+        _unlockedLevel = unl;
+        _currentItems = items;
+        _currentIndex = (idx < items.length) ? idx : 0;
       });
       _startLetter();
       _scrollToCurrentLetter();
     }
+  }
+
+  void _switchLevel(int newLevel) async {
+    if (newLevel < 1 || newLevel > 3) return;
+    if (newLevel > _unlockedLevel) {
+      HapticFeedback.lightImpact();
+      _audio.speak('Tingkat $newLevel masih terkunci! Selesaikan tingkat sebelumnya ya!');
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
+    final items = GameRepository.getTracingItems(newLevel);
+    final idx = await StorageService.getGameLevelIndex('tracing', newLevel);
+
+    setState(() {
+      _currentLevel = newLevel;
+      _currentItems = items;
+      _currentIndex = (idx < items.length) ? idx : 0;
+    });
+
+    await StorageService.saveGameLevel('tracing', newLevel);
+    _startLetter();
+    _scrollToCurrentLetter();
   }
 
   @override
@@ -160,14 +194,23 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     });
     _guideAnimController.reset();
     _guideAnimController.repeat(reverse: true);
-    _audio.speak('Huruf ${_current.letter}! ${_current.word}');
+    if (_currentLevel == 1) {
+      _audio.speak('Huruf ${_current.letter}! ${_current.word}');
+    } else if (_currentLevel == 2) {
+      _audio.speak('Angka ${_current.letter}! ${_current.word}!');
+    } else {
+      _audio.speak('Bentuk ${_current.word}!');
+    }
   }
 
   void _selectLetter(int index) {
     setState(() {
       _currentIndex = index;
     });
-    StorageService.saveTracingIndex(index);
+    StorageService.saveGameLevelIndex('tracing', _currentLevel, index);
+    if (_currentLevel == 1) {
+      StorageService.saveTracingIndex(index);
+    }
     _startLetter();
     _scrollToCurrentLetter();
   }
@@ -212,38 +255,43 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
       // Determine Star Rating: 1 to 3 stars
       int awardedStars = 3;
       String starTitle = '⭐⭐⭐ Sempurna!';
-      String praiseMessage = 'Luar biasa! Tulisan huruf ${_current.letter} sangat rapi!';
+      String itemType = _currentLevel == 1 ? "Huruf" : (_currentLevel == 2 ? "Angka" : "Bentuk");
+      String praiseMessage = _currentLevel == 1
+          ? 'Luar biasa! Tulisan huruf ${_current.letter} sangat rapi!'
+          : (_currentLevel == 2
+              ? 'Pintar sekali! Angka ${_current.letter} berhasil kamu tulis!'
+              : 'Wah indah! Bentuk ${_current.word} terlukis dengan sempurna!');
 
       if (rate >= 0.90 && _userStrokes.length >= 26) {
         awardedStars = 5;
         starTitle = '⭐⭐⭐ Sempurna!';
-        praiseMessage = 'Sempurna! Tulisan huruf ${_current.letter} sangat indah!';
       } else if (rate >= 0.80) {
         awardedStars = 4;
         starTitle = '⭐⭐ Bagus Sekali!';
-        praiseMessage = 'Bagus sekali! Huruf ${_current.letter} terselesaikan dengan rapi!';
       } else {
         awardedStars = 3;
         starTitle = '⭐ Hebat!';
-        praiseMessage = 'Hebat! Kamu berhasil menulis huruf ${_current.letter}!';
       }
 
       _audio.playSfx('star');
       _audio.speak(praiseMessage);
 
-      final hasMore = _currentIndex + 1 < _letters.length;
+      final hasMore = _currentIndex + 1 < _currentItems.length;
       final nextIndex = _currentIndex + 1;
 
       if (hasMore) {
         widget.onVictory(awardedStars);
-        StorageService.saveTracingIndex(nextIndex);
+        StorageService.saveGameLevelIndex('tracing', _currentLevel, nextIndex);
+        if (_currentLevel == 1) {
+          StorageService.saveTracingIndex(nextIndex);
+        }
 
         if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (_) => VictoryDialog(
-            title: '$starTitle Huruf ${_current.letter}!',
+            title: '$starTitle $itemType ${_current.letter}!',
             subtitle:
                 '$praiseMessage\nKamu dapat +$awardedStars Bintang Juara!',
             onNext: () {
@@ -251,22 +299,54 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
             },
           ),
         );
+      } else if (_currentLevel >= 3) {
+        // Entire island completed (Level 3 Master)
+        widget.onVictory(30);
+        await StorageService.addTrophy('tracing_l3');
+        await StorageService.addTrophy('tracing_master');
+        await StorageService.saveGameLevelIndex('tracing', _currentLevel, 0);
+
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => IslandMasteryDialog(
+            islandTitle: 'Dermaga Jejak Huruf',
+            islandRoute: 'tracing',
+            bonusStars: 30,
+            onReplay: () {
+              _selectLetter(0);
+            },
+            onBackToMap: widget.onBack,
+          ),
+        );
       } else {
-        // Entire alphabet completed
-        widget.onVictory(25);
-        StorageService.saveTracingIndex(0);
-        StorageService.addTrophy('tracing_alphabet_master');
+        // Level Graduation (Level 1 or 2 completed)
+        widget.onVictory(15);
+        final nextLvl = _currentLevel + 1;
+        if (nextLvl <= 3) {
+          await StorageService.saveUnlockedGameLevel('tracing', nextLvl);
+          if (nextLvl > _unlockedLevel) {
+            setState(() {
+              _unlockedLevel = nextLvl;
+            });
+          }
+        }
+        await StorageService.addTrophy('tracing_l$_currentLevel');
+        if (_currentLevel == 1) {
+          await StorageService.addTrophy('tracing_alphabet_master');
+        }
+        await StorageService.saveGameLevelIndex('tracing', _currentLevel, 0);
 
         if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (_) => LevelMilestoneDialog(
-            gameTitle: 'Jejak Huruf',
-            completedLevel: 1,
-            totalLevels: 1,
+            gameTitle: 'Dermaga Jejak Huruf',
+            completedLevel: _currentLevel,
             onNextLevel: () {
-              _selectLetter(0);
+              _switchLevel(_currentLevel + 1);
             },
             onReplay: () {
               _selectLetter(0);
@@ -284,102 +364,28 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
         children: [
-          // Top Bar: Alphabet Ribbon, Freehand Mode Toggle, and Clear Button
+          // 1. Top Control Bar: Level Selector Ribbon + Mode Switcher + Clear Button
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Scrollable Alphabet Ribbon
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(230),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-                    ),
-                    child: Row(
-                      children: List.generate(_letters.length, (idx) {
-                        final isSel = idx == _currentIndex;
-                        return GestureDetector(
-                          onTap: () => _selectLetter(idx),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: isSel ? const Color(0xFFF97316) : Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSel ? const Color(0xFFEA580C) : const Color(0xFFCBD5E1),
-                                width: 2,
-                              ),
-                              boxShadow: isSel
-                                  ? [
-                                      const BoxShadow(
-                                        color: Color(0x33F97316),
-                                        blurRadius: 6,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Center(
-                              child: Text(
-                                _letters[idx].letter,
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSel ? Colors.white : const Color(0xFF1E293B),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ),
-                  ),
+              Flexible(
+                flex: 4,
+                child: LevelSelectorRibbon(
+                  currentLevel: _currentLevel,
+                  unlockedLevel: _unlockedLevel,
+                  onSelectLevel: _switchLevel,
                 ),
               ),
-              const SizedBox(width: 10),
-
-              // Mode Switcher: Panduan vs Mandiri
+              const SizedBox(width: 8),
               _buildModeSwitcher(),
-
-              const SizedBox(width: 10),
-
-              // Clear Canvas Button
-              ElevatedButton.icon(
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  setState(() {
-                    _userStrokes.clear();
-                    _isCompleted = false;
-                  });
-                  _audio.playSfx('whoosh');
-                },
-                icon: const VectorIconWidget(icon: 'reload', size: 16, color: Color(0xFFEA580C)),
-                label: Text(
-                  'Hapus',
-                  style: GoogleFonts.fredoka(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFFEA580C),
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFFF97316), width: 1.8),
-                  ),
-                  elevation: 2,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-              ),
+              const SizedBox(width: 8),
+              _buildClearButton(),
             ],
           ),
+          const SizedBox(height: 6),
+
+          // 2. Scrollable Item Ribbon (A-Z, 1-10, Shapes)
+          _buildItemRibbon(),
           const SizedBox(height: 10),
 
           // Main Tracing Layout (Left Guide Card, Center Canvas, Right Brush Rack)
@@ -483,7 +489,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                                 constraints: const BoxConstraints(),
                               ),
                               Text(
-                                '${_currentIndex + 1} / ${_letters.length}',
+                                '${_currentIndex + 1} / ${_currentItems.length}',
                                 style: GoogleFonts.nunito(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w900,
@@ -492,8 +498,8 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                               ),
                               IconButton(
                                 icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                                color: _currentIndex < _letters.length - 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
-                                onPressed: _currentIndex < _letters.length - 1 ? () => _selectLetter(_currentIndex + 1) : null,
+                                color: _currentIndex < _currentItems.length - 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                                onPressed: _currentIndex < _currentItems.length - 1 ? () => _selectLetter(_currentIndex + 1) : null,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                               ),
@@ -656,6 +662,96 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     );
   }
 
+  // Clear Canvas Button
+  Widget _buildClearButton() {
+    return ElevatedButton.icon(
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        setState(() {
+          _userStrokes.clear();
+          _isCompleted = false;
+        });
+        _audio.playSfx('whoosh');
+      },
+      icon: const VectorIconWidget(icon: 'reload', size: 16, color: Color(0xFFEA580C)),
+      label: Text(
+        'Hapus',
+        style: GoogleFonts.fredoka(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFFEA580C),
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFF97316), width: 1.8),
+        ),
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+    );
+  }
+
+  // Horizontal Items Ribbon (A-Z, 1-10, Shapes)
+  Widget _buildItemRibbon() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(230),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+      ),
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(_currentItems.length, (idx) {
+            final isSel = idx == _currentIndex;
+            final item = _currentItems[idx];
+            return GestureDetector(
+              onTap: () => _selectLetter(idx),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                height: 32,
+                constraints: const BoxConstraints(minWidth: 32),
+                decoration: BoxDecoration(
+                  color: isSel ? const Color(0xFFF97316) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSel ? const Color(0xFFEA580C) : const Color(0xFFCBD5E1),
+                    width: 2,
+                  ),
+                  boxShadow: isSel
+                      ? const [
+                          BoxShadow(
+                            color: Color(0x33F97316),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: Text(
+                    item.letter,
+                    style: GoogleFonts.fredoka(
+                      fontSize: item.letter.length > 2 ? 11 : 14,
+                      fontWeight: FontWeight.bold,
+                      color: isSel ? Colors.white : const Color(0xFF1E293B),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
   // Top Mode Switcher Pill (Panduan vs Mandiri)
   Widget _buildModeSwitcher() {
     return Container(
@@ -789,11 +885,12 @@ class _CanvasTracingPainter extends CustomPainter {
     }
 
     // 1. Base Stencil Letter (Solid in Guided Mode, Faint dashed watermark in Freehand Mode)
+    final baseFontSize = letter.length > 1 ? 150.0 : 210.0;
     final textPainter = TextPainter(
       text: TextSpan(
         text: letter,
         style: TextStyle(
-          fontSize: 220,
+          fontSize: baseFontSize,
           fontWeight: FontWeight.bold,
           foreground: Paint()
             ..color = isFreehandMode ? const Color(0xFFF1F5F9).withAlpha(140) : const Color(0xFFF1F5F9)
@@ -808,7 +905,7 @@ class _CanvasTracingPainter extends CustomPainter {
 
     final textOffset = Offset(
       (size.width - textPainter.width) / 2,
-      (size.height - textPainter.height) / 2 - 10,
+      (size.height - textPainter.height) / 2 - (letter.length > 1 ? 4 : 10),
     );
     textPainter.paint(canvas, textOffset);
 
@@ -818,7 +915,7 @@ class _CanvasTracingPainter extends CustomPainter {
         text: TextSpan(
           text: letter,
           style: TextStyle(
-            fontSize: 220,
+            fontSize: baseFontSize,
             fontWeight: FontWeight.bold,
             foreground: Paint()
               ..color = const Color(0xFF38BDF8).withAlpha(140)
