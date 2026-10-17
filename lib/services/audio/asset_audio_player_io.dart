@@ -28,7 +28,13 @@ class AssetAudioPlayerIo implements AssetAudioPlayer {
     try {
       _channel.invokeMethod('playSfx', {'type': sfxType}).catchError((_) {
         // Fallback to platform clicks
-        if (sfxType == 'ding' || sfxType == 'star' || sfxType == 'fanfare') {
+        if (sfxType == 'ding' ||
+            sfxType == 'star' ||
+            sfxType == 'fanfare' ||
+            sfxType == 'firework' ||
+            sfxType == 'magic_chime' ||
+            sfxType == 'cheer' ||
+            sfxType == 'sparkle') {
           SystemSound.play(SystemSoundType.alert);
         } else {
           SystemSound.play(SystemSoundType.click);
