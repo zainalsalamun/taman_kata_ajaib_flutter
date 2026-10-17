@@ -19,6 +19,8 @@ class StorageService {
   static const String _keyLastVisitedIsland = 'taman_kata_last_visited_island';
   static const String _keyOpenedChests = 'taman_kata_opened_chests';
   static const String _keyChildName = 'taman_kata_child_name';
+  static const String _keyLastDailySpinDate = 'taman_kata_last_daily_spin_date';
+  static const String _keyDailyStreak = 'taman_kata_daily_streak';
 
   static Future<String> getChildName() async {
     final prefs = await SharedPreferences.getInstance();
@@ -86,6 +88,79 @@ class StorageService {
   static Future<void> saveUnlockedStickers(List<String> stickers) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyStickers, jsonEncode(stickers));
+  }
+
+  // --- HADIAH HARIAN & RODA KEBERUNTUNGAN ---
+  static String _getTodayDateString() {
+    final now = DateTime.now();
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    return '${now.year}-$m-$d';
+  }
+
+  static Future<bool> canClaimDailyReward() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastDate = prefs.getString(_keyLastDailySpinDate);
+    if (lastDate == null) return true;
+    return lastDate != _getTodayDateString();
+  }
+
+  static Future<int> getDailyStreak() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyDailyStreak) ?? 1;
+  }
+
+  static Future<String?> getLastDailySpinDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyLastDailySpinDate);
+  }
+
+  static Future<Map<String, dynamic>> claimDailyReward({
+    required int rewardStars,
+    String? rewardSticker,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayStr = _getTodayDateString();
+    final lastDate = prefs.getString(_keyLastDailySpinDate);
+
+    int currentStreak = prefs.getInt(_keyDailyStreak) ?? 1;
+    if (lastDate != null) {
+      try {
+        final lastDt = DateTime.parse(lastDate);
+        final todayDt = DateTime.parse(todayStr);
+        final diffDays = todayDt.difference(lastDt).inDays;
+        if (diffDays == 1) {
+          // Consecutive streak (1 day difference)
+          currentStreak = (currentStreak % 7) + 1;
+        } else if (diffDays > 1) {
+          // Streak broken (missed day)
+          currentStreak = 1;
+        }
+      } catch (_) {
+        currentStreak = 1;
+      }
+    }
+
+    await prefs.setString(_keyLastDailySpinDate, todayStr);
+    await prefs.setInt(_keyDailyStreak, currentStreak);
+
+    // Add stars
+    final currentStars = await getStars();
+    final newStars = currentStars + rewardStars;
+    await saveStars(newStars);
+
+    // Unlock sticker if awarded and not yet owned
+    final unlockedStickers = await getUnlockedStickers();
+    if (rewardSticker != null && !unlockedStickers.contains(rewardSticker)) {
+      unlockedStickers.add(rewardSticker);
+      await saveUnlockedStickers(unlockedStickers);
+    }
+
+    return {
+      'newStars': newStars,
+      'streak': currentStreak,
+      'unlockedStickers': unlockedStickers,
+    };
   }
 
   static Future<List<PlacedSticker>> getPlacedStickers() async {
