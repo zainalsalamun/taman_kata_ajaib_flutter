@@ -6,6 +6,7 @@ import '../models/game_models.dart';
 import '../widgets/vector_illustrations.dart';
 import '../widgets/victory_dialog.dart';
 import '../widgets/level_milestone_dialog.dart';
+import '../widgets/island_mastery_dialog.dart';
 import '../widgets/level_selector_ribbon.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
@@ -146,6 +147,29 @@ class _QuizScreenState extends State<QuizScreen>
                     'quiz', _currentLevel, _currentIndex);
                 _startQuestion();
               },
+            ),
+          );
+        } else if (_currentLevel >= 3) {
+          // ISLAND CONQUERED! FULL MASTERY CELEBRATION!
+          widget.onVictory(30);
+          await StorageService.addTrophy('quiz_l3');
+          await StorageService.addTrophy('quiz_master');
+          await StorageService.saveGameLevelIndex('quiz', _currentLevel, 0);
+
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => IslandMasteryDialog(
+              islandTitle: 'Kuil Sentuh Pintar',
+              islandRoute: 'quiz',
+              bonusStars: 30,
+              onReplay: () {
+                setState(() {
+                  _currentIndex = 0;
+                });
+                _startQuestion();
+              },
+              onBackToMap: widget.onBack,
             ),
           );
         } else {
