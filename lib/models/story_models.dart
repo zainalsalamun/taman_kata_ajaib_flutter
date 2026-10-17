@@ -73,6 +73,7 @@ class StoryBook {
   final String title;
   final String subtitle;
   final String ageRange;
+  final String category;
   final String coverIllustration;
   final Color coverColor;
   final Color accentColor;
@@ -84,6 +85,7 @@ class StoryBook {
     required this.title,
     required this.subtitle,
     required this.ageRange,
+    this.category = 'Kisah Sahabat',
     required this.coverIllustration,
     required this.coverColor,
     required this.accentColor,
@@ -100,6 +102,7 @@ final List<StoryBook> sampleStoryBooks = [
     title: 'Miko & Pohon Apel Ajaib',
     subtitle: 'Kisah Miko memetik apel merah manis dan berbagi bersama sahabat.',
     ageRange: 'Usia 3–6 Thn',
+    category: 'Kisah Sahabat',
     coverIllustration: 'apel',
     coverColor: const Color(0xFFEF4444),
     accentColor: const Color(0xFFFCA5A5),
@@ -259,6 +262,7 @@ final List<StoryBook> sampleStoryBooks = [
     title: 'Kereta Kelinci Keliling Pulau',
     subtitle: 'Petualangan masinis cilik menaiki kereta uap melintasi pulau pelangi.',
     ageRange: 'Usia 4–7 Thn',
+    category: 'Petualangan Alam',
     coverIllustration: 'kereta',
     coverColor: const Color(0xFF0284C7),
     accentColor: const Color(0xFF7DD3FC),
@@ -402,6 +406,7 @@ final List<StoryBook> sampleStoryBooks = [
     title: 'Kancil & Ikan di Danau Bintang',
     subtitle: 'Cerita persahabatan hangat di tepi danau berair jernih.',
     ageRange: 'Usia 5–8 Thn',
+    category: 'Nilai Kebaikan',
     coverIllustration: 'ikan',
     coverColor: const Color(0xFF10B981),
     accentColor: const Color(0xFF6EE7B7),
@@ -523,6 +528,7 @@ final List<StoryBook> sampleStoryBooks = [
     title: 'Dino Cilik & Balon Pelangi',
     subtitle: 'Kisah Dodi si dino ramah membagi balon warna-warni di lembah pelangi.',
     ageRange: 'Usia 4–7 Thn',
+    category: 'Kisah Sahabat',
     coverIllustration: 'balon',
     coverColor: const Color(0xFFF97316),
     accentColor: const Color(0xFFFED7AA),
@@ -662,6 +668,350 @@ final List<StoryBook> sampleStoryBooks = [
             illustrationKey: 'harimau',
             isCorrect: false,
             feedbackText: 'Dodi membagikan balon kepada para sahabat yang ramah!',
+          ),
+        ],
+      ),
+    ],
+  ),
+
+  // Buku 5: Penyelamatan Burung Kecil di Hutan Ajaib
+  StoryBook(
+    id: 'story_burung',
+    title: 'Penyelamatan Burung Kecil',
+    subtitle: 'Kisah Miko menolong anak burung pipit yang tersesat kembali ke sarang.',
+    ageRange: 'Usia 4–7 Thn',
+    category: 'Nilai Kebaikan',
+    coverIllustration: 'burung',
+    coverColor: const Color(0xFF8B5CF6),
+    accentColor: const Color(0xFFDDD6FE),
+    pages: [
+      StoryPage(
+        pageNumber: 1,
+        sentence: 'Saat berjalan di jalan setapak hutan ajaib, Miko mendengar suara cicit pelan di balik semak bunga.',
+        illustrationKey: 'hutan_semak',
+        backgroundColor: const Color(0xFFF5F3FF),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_bush_bird',
+            name: 'Anak Burung',
+            soundText: 'Cicit cicit! Sayapku belum kuat terbang tinggi!',
+            illustrationKey: 'burung',
+            alignment: Alignment(0.3, 0.4),
+            size: 75,
+          ),
+          StoryInteractiveItem(
+            id: 'item_flower_bush',
+            name: 'Bunga Hutan',
+            soundText: 'Bunga hutan mekar wangi berwarna ungu cerah!',
+            illustrationKey: 'bunga',
+            alignment: Alignment(-0.6, 0.5),
+            size: 65,
+          ),
+          StoryInteractiveItem(
+            id: 'item_miko_search',
+            name: 'Miko Siaga',
+            soundText: 'Jangan takut burung kecil, Miko ada di sini untuk membantumu!',
+            illustrationKey: 'kucing',
+            alignment: Alignment(-0.2, 0.1),
+            size: 90,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 2,
+        sentence: 'Ternyata ada seekor anak burung berbulu kuning jatuh dari sarangnya di atas dahan pohon beringin.',
+        illustrationKey: 'hutan_pohon',
+        backgroundColor: const Color(0xFFECFDF5),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_tall_tree',
+            name: 'Pohon Beringin',
+            soundText: 'Pohon beringin rindang menjulang tinggi sampai ke awan!',
+            illustrationKey: 'pohon',
+            alignment: Alignment(-0.5, -0.2),
+            size: 95,
+          ),
+          StoryInteractiveItem(
+            id: 'item_sun_ray',
+            name: 'Sinar Mentari',
+            soundText: 'Sinar mentari menerobos hangat di sela dedaunan hijau!',
+            illustrationKey: 'matahari',
+            alignment: Alignment(0.7, -0.7),
+            size: 70,
+          ),
+          StoryInteractiveItem(
+            id: 'item_nest',
+            name: 'Sarang Burung',
+            soundText: 'Sarang jerami hangat tempat keluarga burung beristirahat!',
+            illustrationKey: 'rumah',
+            alignment: Alignment(0.4, -0.3),
+            size: 75,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 3,
+        sentence: 'Miko dengan hati-hati memanjat dahan kayu dan mengembalikan anak burung ke dalam sarang yang hangat.',
+        illustrationKey: 'hutan_panjat',
+        backgroundColor: const Color(0xFFFEF3C7),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_butterfly_cheer',
+            name: 'Kupu-kupu Hutan',
+            soundText: 'Kupu-kupu bertepuk sayap menyemangati keberanian Miko!',
+            illustrationKey: 'kupu',
+            alignment: Alignment(-0.6, -0.5),
+            size: 60,
+          ),
+          StoryInteractiveItem(
+            id: 'item_miko_climb',
+            name: 'Miko Memanjat',
+            soundText: 'Hati-hati melangkah... Miko berhasil sampai di sarang burung!',
+            illustrationKey: 'kucing',
+            alignment: Alignment(0.1, 0.1),
+            size: 95,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 4,
+        sentence: 'Induk burung berkicau merdu berterima kasih. Membantu sesama ciptaan membuat hati berbunga-bunga!',
+        illustrationKey: 'hutan_gembira',
+        backgroundColor: const Color(0xFFFDF4FF),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_mama_bird',
+            name: 'Induk Burung',
+            soundText: 'Cuit cuit terimakasih sahabat baik, anakku telah kembali pulang!',
+            illustrationKey: 'burung',
+            alignment: Alignment(-0.3, -0.2),
+            size: 85,
+          ),
+          StoryInteractiveItem(
+            id: 'item_star_melody',
+            name: 'Nada Bahagia',
+            soundText: 'Tring tring! Musik alam bernyanyi merayakan kebaikan!',
+            illustrationKey: 'bintang',
+            alignment: Alignment(0.6, -0.5),
+            size: 75,
+          ),
+          StoryInteractiveItem(
+            id: 'item_heart_kindness',
+            name: 'Kasih Sayang',
+            soundText: 'Kebaikan kecil membawa kebahagiaan besar bagi dunia!',
+            illustrationKey: 'hati',
+            alignment: Alignment(0.0, 0.4),
+            size: 70,
+          ),
+        ],
+      ),
+    ],
+    quizQuestions: [
+      StoryQuizQuestion(
+        questionText: 'Hewan kecil apa yang ditemukan Miko tersesat di semak bunga?',
+        options: [
+          StoryQuizOption(
+            text: 'Burung Pipit Kecil',
+            illustrationKey: 'burung',
+            isCorrect: true,
+            feedbackText: 'Luar biasa! Miko menemukan anak burung kecil yang belum bisa terbang!',
+          ),
+          StoryQuizOption(
+            text: 'Anak Harimau',
+            illustrationKey: 'harimau',
+            isCorrect: false,
+            feedbackText: 'Bukan harimau, hewan yang ditemukan Miko adalah anak burung kecil!',
+          ),
+          StoryQuizOption(
+            text: 'Domba Berbulu',
+            illustrationKey: 'domba',
+            isCorrect: false,
+            feedbackText: 'Yang bersuara cicit pelan adalah anak burung kecil!',
+          ),
+        ],
+      ),
+      StoryQuizQuestion(
+        questionText: 'Di mana tempat Miko mengembalikan anak burung tersebut?',
+        options: [
+          StoryQuizOption(
+            text: 'Ke sarang di pohon',
+            illustrationKey: 'pohon',
+            isCorrect: true,
+            feedbackText: 'Pintar sekali! Miko mengembalikannya ke sarang hangat bersama induknya!',
+          ),
+          StoryQuizOption(
+            text: 'Ke dalam mobil balap',
+            illustrationKey: 'mobil',
+            isCorrect: false,
+            feedbackText: 'Sarang burung berada di atas pohon beringin yang rindang!',
+          ),
+        ],
+      ),
+    ],
+  ),
+
+  // Buku 6: Pesta Buah Tropis di Pulau Pelangi
+  StoryBook(
+    id: 'story_buah',
+    title: 'Pesta Buah Tropis',
+    subtitle: 'Petualangan seru memanen aneka buah segar dan membuat jus pelangi bersama sahabat.',
+    ageRange: 'Usia 3–6 Thn',
+    category: 'Petualangan Alam',
+    coverIllustration: 'jeruk',
+    coverColor: const Color(0xFF0D9488),
+    accentColor: const Color(0xFF99F6E4),
+    pages: [
+      StoryPage(
+        pageNumber: 1,
+        sentence: 'Matahari bersinar cerah di kebun buah pelangi. Pohon-pohon penuh dengan buah ranum siap dipetik.',
+        illustrationKey: 'kebun_buah',
+        backgroundColor: const Color(0xFFECFDF5),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_sun_tropical',
+            name: 'Mentari Tropis',
+            soundText: 'Mentari tropis mematangkan buah-buahan menjadi manis dan segar!',
+            illustrationKey: 'matahari',
+            alignment: Alignment(-0.7, -0.7),
+            size: 70,
+          ),
+          StoryInteractiveItem(
+            id: 'item_banana_tree',
+            name: 'Pisang Emas',
+            soundText: 'Pisang kuning manis kaya energi dan serat sehat!',
+            illustrationKey: 'pisang',
+            alignment: Alignment(0.4, -0.2),
+            size: 85,
+          ),
+          StoryInteractiveItem(
+            id: 'item_orange_tree',
+            name: 'Jeruk Manis',
+            soundText: 'Jeruk segar penuh vitamin C yang menyehatkan tubuh!',
+            illustrationKey: 'jeruk',
+            alignment: Alignment(-0.3, 0.3),
+            size: 75,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 2,
+        sentence: 'Dodi si dino dan Kiki membawa keranjang besar untuk mengumpulkan nanas, apel, dan ceri manis.',
+        illustrationKey: 'kebun_panen',
+        backgroundColor: const Color(0xFFFFFBEB),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_pineapple',
+            name: 'Nanas Madu',
+            soundText: 'Nanas madu memiliki mahkota hijau dan rasa manis menyegarkan!',
+            illustrationKey: 'nanas',
+            alignment: Alignment(0.5, 0.25),
+            size: 80,
+          ),
+          StoryInteractiveItem(
+            id: 'item_cherry_cluster',
+            name: 'Ceri Merah',
+            soundText: 'Ceri merah mungil dan manis berkilauan di tangkai!',
+            illustrationKey: 'ceri',
+            alignment: Alignment(-0.5, -0.3),
+            size: 75,
+          ),
+          StoryInteractiveItem(
+            id: 'item_apple_harvest',
+            name: 'Apel Segar',
+            soundText: 'Apel merah renyah dipetik langsung dari kebun!',
+            illustrationKey: 'apel',
+            alignment: Alignment(0.0, -0.5),
+            size: 75,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 3,
+        sentence: 'Semua buah dicuci bersih lalu dicampur menjadi segelas jus pelangi yang harum dan menyehatkan.',
+        illustrationKey: 'kebun_jus',
+        backgroundColor: const Color(0xFFFEF3C7),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_rainbow_juice',
+            name: 'Jus Pelangi',
+            soundText: 'Glek glek! Jus buah segar penuh vitamin membuat tubuh kuat dan cerdas!',
+            illustrationKey: 'jus',
+            alignment: Alignment(0.0, 0.1),
+            size: 85,
+          ),
+          StoryInteractiveItem(
+            id: 'item_rainbow_sky',
+            name: 'Pelangi Kebun',
+            soundText: 'Warna-warni jus mirip pelangi yang melengkung di langit!',
+            illustrationKey: 'pelangi',
+            alignment: Alignment(0.6, -0.65),
+            size: 85,
+          ),
+        ],
+      ),
+      StoryPage(
+        pageNumber: 4,
+        sentence: 'Semua sahabat bersulang gelas dengan ceria. Makan buah setiap hari membuat badan kuat dan sehat!',
+        illustrationKey: 'kebun_pesta',
+        backgroundColor: const Color(0xFFFDF2F8),
+        interactiveItems: [
+          StoryInteractiveItem(
+            id: 'item_party_star',
+            name: 'Bintang Pesta',
+            soundText: 'Hore! Pesta buah pelangi sukses dan penuh tawa!',
+            illustrationKey: 'bintang',
+            alignment: Alignment(-0.6, -0.5),
+            size: 80,
+          ),
+          StoryInteractiveItem(
+            id: 'item_cheer_heart',
+            name: 'Badan Sehat',
+            soundText: 'Aku anak sehat dan cerdas karena rajin makan buah!',
+            illustrationKey: 'hati',
+            alignment: Alignment(0.5, 0.3),
+            size: 75,
+          ),
+        ],
+      ),
+    ],
+    quizQuestions: [
+      StoryQuizQuestion(
+        questionText: 'Minuman sehat apa yang dibuat dari campuran aneka buah segar?',
+        options: [
+          StoryQuizOption(
+            text: 'Segelas Jus Pelangi',
+            illustrationKey: 'jeruk',
+            isCorrect: true,
+            feedbackText: 'Luar biasa! Jus pelangi manis dan kaya vitamin membuat tubuh sehat!',
+          ),
+          StoryQuizOption(
+            text: 'Kopi Panas',
+            illustrationKey: 'buku',
+            isCorrect: false,
+            feedbackText: 'Bukan kopi, anak-anak membuat jus buah segar pelangi!',
+          ),
+          StoryQuizOption(
+            text: 'Air Keruh',
+            illustrationKey: 'ikan',
+            isCorrect: false,
+            feedbackText: 'Buah dicuci bersih untuk membuat jus pelangi yang segar!',
+          ),
+        ],
+      ),
+      StoryQuizQuestion(
+        questionText: 'Mengapa kita harus rajin makan buah-buahan segar?',
+        options: [
+          StoryQuizOption(
+            text: 'Agar badan kuat dan sehat',
+            illustrationKey: 'hati',
+            isCorrect: true,
+            feedbackText: 'Pintar sekali! Buah kaya vitamin yang membuat tubuh bugar dan pintar!',
+          ),
+          StoryQuizOption(
+            text: 'Supaya cepat mengantuk',
+            illustrationKey: 'mata',
+            isCorrect: false,
+            feedbackText: 'Buah memberi energi agar kita bisa bermain dan belajar dengan giat!',
           ),
         ],
       ),
