@@ -11,6 +11,7 @@ class UiHeader extends StatefulWidget {
   final VoidCallback onParentalPressed;
   final VoidCallback? onDailyRewardPressed;
   final VoidCallback? onTrophyPressed;
+  final VoidCallback? onDictionaryPressed;
   final bool hasDailyReward;
 
   const UiHeader({
@@ -22,6 +23,7 @@ class UiHeader extends StatefulWidget {
     required this.onParentalPressed,
     this.onDailyRewardPressed,
     this.onTrophyPressed,
+    this.onDictionaryPressed,
     this.hasDailyReward = false,
   });
 
@@ -34,9 +36,18 @@ class _UiHeaderState extends State<UiHeader> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final isNarrow = screenWidth < 480;
+
+    final headerHeight = isNarrow ? 56.0 : (isMobile ? 60.0 : 64.0);
+    final buttonSize = isNarrow ? 32.0 : (isMobile ? 36.0 : 40.0);
+    final iconSize = isNarrow ? 16.0 : (isMobile ? 18.0 : 20.0);
+    final buttonSpacing = isNarrow ? 4.0 : (isMobile ? 6.0 : 8.0);
+
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: headerHeight,
+      padding: EdgeInsets.symmetric(horizontal: isNarrow ? 8 : 14),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(235),
         boxShadow: const [
@@ -58,46 +69,69 @@ class _UiHeaderState extends State<UiHeader> {
                 _buildRoundButton(
                   onTap: widget.onHomePressed,
                   bgColor: const Color(0xFFFEF08A),
-                  child: const VectorIconWidget(icon: 'home', size: 20, color: Color(0xFFB45309)),
+                  size: buttonSize,
+                  child: VectorIconWidget(icon: 'home', size: iconSize, color: const Color(0xFFB45309)),
                 ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: GestureDetector(
+                SizedBox(width: buttonSpacing),
+                if (isNarrow)
+                  // Compact Mascot Icon on Narrow Screens
+                  GestureDetector(
                     onTap: () => _audio.speak(widget.mascotText),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      width: buttonSize,
+                      height: buttonSize,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
+                        shape: BoxShape.circle,
                         border: Border.all(color: const Color(0xFFFDE68A), width: 2),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const MascotWidget(size: 34),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              widget.mascotText,
-                              style: GoogleFonts.fredoka(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFFD97706),
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x10000000), offset: Offset(0, 2)),
                         ],
+                      ),
+                      child: Center(
+                        child: MascotWidget(size: buttonSize - 6),
+                      ),
+                    ),
+                  )
+                else
+                  // Mascot Speech Bubble on Tablet / Web / Wide Mobile
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () => _audio.speak(widget.mascotText),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFFDE68A), width: 2),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            MascotWidget(size: isMobile ? 28 : 34),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                widget.mascotText,
+                                style: GoogleFonts.fredoka(
+                                  fontSize: isMobile ? 12 : 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFD97706),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
 
-          const SizedBox(width: 8),
+          SizedBox(width: buttonSpacing),
 
           // Right: Stars + Sound + Stickers + Parental Gate
           FittedBox(
@@ -114,10 +148,11 @@ class _UiHeaderState extends State<UiHeader> {
                       _buildRoundButton(
                         onTap: widget.onDailyRewardPressed!,
                         bgColor: const Color(0xFFFEF3C7),
-                        child: const VectorIconWidget(
+                        size: buttonSize,
+                        child: VectorIconWidget(
                           icon: 'gift',
-                          size: 20,
-                          color: Color(0xFFD97706),
+                          size: iconSize,
+                          color: const Color(0xFFD97706),
                         ),
                       ),
                       if (widget.hasDailyReward)
@@ -125,25 +160,18 @@ class _UiHeaderState extends State<UiHeader> {
                           top: -2,
                           right: -2,
                           child: Container(
-                            width: 12,
-                            height: 12,
+                            width: 10,
+                            height: 10,
                             decoration: BoxDecoration(
                               color: const Color(0xFFEF4444),
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 2),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x40EF4444),
-                                  blurRadius: 4,
-                                  offset: Offset(0, 1),
-                                ),
-                              ],
                             ),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: buttonSpacing),
                 ],
 
                 // Trophy Room Button
@@ -151,16 +179,20 @@ class _UiHeaderState extends State<UiHeader> {
                   _buildRoundButton(
                     onTap: widget.onTrophyPressed!,
                     bgColor: const Color(0xFFFEF08A),
-                    child: const Text('🏆', style: TextStyle(fontSize: 18)),
+                    size: buttonSize,
+                    child: Text('🏆', style: TextStyle(fontSize: iconSize - 2)),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: buttonSpacing),
                 ],
 
                 // Stars Badge (Tappable to also open Trophy Room!)
                 GestureDetector(
                   onTap: widget.onTrophyPressed,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isNarrow ? 8 : (isMobile ? 10 : 12),
+                      vertical: isNarrow ? 4 : 6,
+                    ),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFFFEF08A), Color(0xFFFDE047)],
@@ -173,12 +205,12 @@ class _UiHeaderState extends State<UiHeader> {
                     ),
                     child: Row(
                       children: [
-                        const VectorIconWidget(icon: 'star', size: 20),
-                        const SizedBox(width: 6),
+                        VectorIconWidget(icon: 'star', size: iconSize),
+                        const SizedBox(width: 4),
                         Text(
                           '${widget.stars}',
                           style: GoogleFonts.nunito(
-                            fontSize: 16,
+                            fontSize: isMobile ? 14 : 16,
                             fontWeight: FontWeight.w900,
                             color: const Color(0xFFB45309),
                           ),
@@ -187,7 +219,8 @@ class _UiHeaderState extends State<UiHeader> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: buttonSpacing),
+
                 // Sound
                 _buildRoundButton(
                   onTap: () {
@@ -196,13 +229,15 @@ class _UiHeaderState extends State<UiHeader> {
                     });
                   },
                   bgColor: const Color(0xFFDCFCE7),
+                  size: buttonSize,
                   child: VectorIconWidget(
                     icon: _audio.isMuted ? 'soundOff' : 'soundOn',
-                    size: 20,
+                    size: iconSize,
                     color: const Color(0xFF15803D),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: buttonSpacing),
+
                 // Music (BGM)
                 _buildRoundButton(
                   onTap: () {
@@ -211,25 +246,41 @@ class _UiHeaderState extends State<UiHeader> {
                     });
                   },
                   bgColor: const Color(0xFFE0E7FF),
+                  size: buttonSize,
                   child: VectorIconWidget(
                     icon: (_audio.isBgmMuted || _audio.isMuted) ? 'musicOff' : 'musicOn',
-                    size: 20,
+                    size: iconSize,
                     color: const Color(0xFF4338CA),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: buttonSpacing),
+
                 // Stickers
                 _buildRoundButton(
                   onTap: widget.onStickersPressed,
                   bgColor: const Color(0xFFFCE7F3),
-                  child: const VectorIconWidget(icon: 'stickers', size: 20, color: Color(0xFFBE185D)),
+                  size: buttonSize,
+                  child: VectorIconWidget(icon: 'stickers', size: iconSize, color: const Color(0xFFBE185D)),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: buttonSpacing),
+
+                // Dictionary
+                if (widget.onDictionaryPressed != null) ...[
+                  _buildRoundButton(
+                    onTap: widget.onDictionaryPressed!,
+                    bgColor: const Color(0xFFE0F2FE),
+                    size: buttonSize,
+                    child: Text('📚', style: TextStyle(fontSize: iconSize - 2)),
+                  ),
+                  SizedBox(width: buttonSpacing),
+                ],
+
                 // Parental Gate
                 _buildRoundButton(
                   onTap: widget.onParentalPressed,
                   bgColor: const Color(0xFFEDE9FE),
-                  child: const VectorIconWidget(icon: 'parental', size: 20, color: Color(0xFF6D28D9)),
+                  size: buttonSize,
+                  child: VectorIconWidget(icon: 'parental', size: iconSize, color: const Color(0xFF6D28D9)),
                 ),
               ],
             ),
@@ -243,12 +294,13 @@ class _UiHeaderState extends State<UiHeader> {
     required VoidCallback onTap,
     required Color bgColor,
     required Widget child,
+    double size = 40,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: bgColor,
           shape: BoxShape.circle,
