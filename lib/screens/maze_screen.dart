@@ -403,31 +403,161 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
           }
         }
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            child: Column(
+              children: [
+                // TOP BAR: Level Selector Ribbon + Word Banner + Hint Button
+                _buildTopBar(isPortrait: isPortrait),
+                const SizedBox(height: 8),
+
+                // MAIN GAME AREA: Maze Board + D-Pad Controls
+                Expanded(
+                  child: isPortrait
+                      ? Column(
+                          children: [
+                            // Top: Interactive Maze Board takes majority of vertical height
+                            Expanded(
+                              flex: 6,
+                              child: _buildMazeBoard(),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Bottom: Tactile D-Pad & Control Card
+                            SizedBox(
+                              height: 165,
+                              width: double.infinity,
+                              child: _buildControlPanel(),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            // Left / Center: Interactive Maze Board
+                            Expanded(
+                              flex: 7,
+                              child: _buildMazeBoard(),
+                            ),
+                            const SizedBox(width: 14),
+
+                            // Right: Tactile Directional D-Pad & Control Card
+                            Expanded(
+                              flex: 3,
+                              child: _buildControlPanel(),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // --- WIDGET BUILDERS ---
+
+  Widget _buildTargetWordTray() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF59E0B), width: 2.5),
+        boxShadow: const [
+          BoxShadow(color: Color(0x18000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // TOP BAR: Level Selector Ribbon + Word Banner + Hint Button
-            _buildTopBar(),
-            const SizedBox(height: 8),
+            // Illustration
+            ObjectIllustrationWidget(
+              illustrationKey: _current.illustrationKey,
+              size: 38,
+            ),
+            const SizedBox(width: 8),
 
-            // MAIN GAME AREA: Maze Board (Left/Center) + D-Pad Controls (Right)
-            Expanded(
-              child: Row(
-                children: [
-                  // Left / Center: Interactive Maze Board
-                  Expanded(
-                    flex: 7,
-                    child: _buildMazeBoard(),
-                  ),
-                  const SizedBox(width: 14),
+            // Sequence Token Chips
+            ...List.generate(_current.sequence.length, (idx) {
+              final token = _current.sequence[idx];
+              final isCollected = _collectedIndices.contains(idx);
+              final isNext = idx == _collectedIndices.length;
 
-                  // Right: Tactile Directional D-Pad & Control Card
-                  Expanded(
-                    flex: 3,
-                    child: _buildControlPanel(),
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isCollected
+                      ? const Color(0xFF22C55E)
+                      : (isNext ? const Color(0xFFFDE047) : const Color(0xFFF1F5F9)),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isCollected
+                        ? const Color(0xFF15803D)
+                        : (isNext ? const Color(0xFFD97706) : const Color(0xFFCBD5E1)),
+                    width: isNext ? 2.5 : 1.5,
                   ),
-                ],
+                  boxShadow: isNext
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFFF59E0B).withAlpha(120),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          )
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isCollected) ...[
+                      const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                      const SizedBox(width: 3),
+                    ],
+                    Text(
+                      token,
+                      style: GoogleFonts.fredoka(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: isCollected
+                            ? Colors.white
+                            : (isNext ? const Color(0xFF92400E) : const Color(0xFF94A3B8)),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            const SizedBox(width: 8),
+
+            // Audio Word Speaker
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _audio.speak('Kata ${_current.word}!');
+              },
+              child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0E7FF),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF818CF8)),
+                ),
+                child: const Icon(Icons.volume_up_rounded, size: 18, color: Color(0xFF4338CA)),
               ),
             ),
           ],
@@ -436,9 +566,55 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // --- WIDGET BUILDERS ---
+  Widget _buildHintButton() {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerRight,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFEF08A),
+          foregroundColor: const Color(0xFF854D0E),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFEAB308), width: 2),
+          ),
+        ),
+        onPressed: _triggerHint,
+        icon: const Icon(Icons.lightbulb_rounded, size: 18, color: Color(0xFFCA8A04)),
+        label: Text(
+          'Petunjuk',
+          style: GoogleFonts.fredoka(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar({required bool isPortrait}) {
+    if (isPortrait) {
+      return Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: LevelSelectorRibbon(
+                  currentLevel: _currentLevel,
+                  unlockedLevel: _unlockedLevel,
+                  onSelectLevel: _switchLevel,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildHintButton(),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _buildTargetWordTray(),
+        ],
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -455,132 +631,11 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
         // Target Word Tray Banner
         Expanded(
           flex: 6,
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFF59E0B), width: 2.5),
-              boxShadow: const [
-                BoxShadow(color: Color(0x18000000), blurRadius: 6, offset: Offset(0, 2)),
-              ],
-            ),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Illustration
-                  ObjectIllustrationWidget(
-                    illustrationKey: _current.illustrationKey,
-                    size: 38,
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Sequence Token Chips
-                  ...List.generate(_current.sequence.length, (idx) {
-                    final token = _current.sequence[idx];
-                    final isCollected = _collectedIndices.contains(idx);
-                    final isNext = idx == _collectedIndices.length;
-
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isCollected
-                            ? const Color(0xFF22C55E)
-                            : (isNext ? const Color(0xFFFDE047) : const Color(0xFFF1F5F9)),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isCollected
-                              ? const Color(0xFF15803D)
-                              : (isNext ? const Color(0xFFD97706) : const Color(0xFFCBD5E1)),
-                          width: isNext ? 2.5 : 1.5,
-                        ),
-                        boxShadow: isNext
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFFF59E0B).withAlpha(120),
-                                  blurRadius: 6,
-                                  spreadRadius: 1,
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isCollected) ...[
-                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
-                            const SizedBox(width: 3),
-                          ],
-                          Text(
-                            token,
-                            style: GoogleFonts.fredoka(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: isCollected
-                                  ? Colors.white
-                                  : (isNext ? const Color(0xFF92400E) : const Color(0xFF94A3B8)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-
-                  const SizedBox(width: 8),
-
-                  // Audio Word Speaker
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      _audio.speak('Kata ${_current.word}!');
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0E7FF),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF818CF8)),
-                      ),
-                      child: const Icon(Icons.volume_up_rounded, size: 18, color: Color(0xFF4338CA)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          child: _buildTargetWordTray(),
         ),
 
         // Hint Button
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerRight,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFEF08A),
-              foregroundColor: const Color(0xFF854D0E),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFFEAB308), width: 2),
-              ),
-            ),
-            onPressed: _triggerHint,
-            icon: const Icon(Icons.lightbulb_rounded, size: 18, color: Color(0xFFCA8A04)),
-            label: Text(
-              'Petunjuk',
-              style: GoogleFonts.fredoka(fontSize: 12, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
+        _buildHintButton(),
       ],
     );
   }
