@@ -21,6 +21,7 @@ class StorageService {
   static const String _keyChildName = 'taman_kata_child_name';
   static const String _keyLastDailySpinDate = 'taman_kata_last_daily_spin_date';
   static const String _keyDailyStreak = 'taman_kata_daily_streak';
+  static const String _keyLearnedWords = 'taman_kata_learned_words';
 
   static Future<String> getChildName() async {
     final prefs = await SharedPreferences.getInstance();
@@ -377,6 +378,31 @@ class StorageService {
     }
   }
 
+  // --- KAMUS BERGAMBAR & SUARA MIKO ---
+  static Future<List<String>> getLearnedWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_keyLearnedWords);
+    if (jsonStr == null) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => e.toString().toLowerCase()).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<bool> markWordLearned(String word) async {
+    final words = await getLearnedWords();
+    final normalized = word.trim().toLowerCase();
+    if (!words.contains(normalized)) {
+      words.add(normalized);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyLearnedWords, jsonEncode(words));
+      return true; // newly learned
+    }
+    return false; // already learned
+  }
+
   // --- RESET OPSI 1: ULANGI DARI TINGKAT 1 (TROFI & BINTANG AMAN) ---
   static Future<void> resetToLevelOneKeepTrophies() async {
     final prefs = await SharedPreferences.getInstance();
@@ -400,6 +426,7 @@ class StorageService {
     await prefs.setString(_keyTrophies, jsonEncode([]));
     await prefs.setInt(_keyStars, 20);
     await prefs.setString(_keyStickers, jsonEncode(['stk_apel']));
+    await prefs.setString(_keyLearnedWords, jsonEncode([]));
   }
 
   // --- RESET SEMUA PROGRES BELAJAR ---
@@ -413,6 +440,7 @@ class StorageService {
     await prefs.setString(_keyCompletedStories, jsonEncode([]));
     await prefs.setString(_keyOpenedChests, jsonEncode([]));
     await prefs.setString(_keyLastVisitedIsland, 'tracing');
+    await prefs.setString(_keyLearnedWords, jsonEncode([]));
 
     for (final game in ['train', 'balloon', 'quiz', 'tracing']) {
       await prefs.setInt('taman_kata_${game}_current_level', 1);
