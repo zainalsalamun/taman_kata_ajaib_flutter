@@ -390,14 +390,19 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
 
         // 2. Top Header Navigation & Controls (Theme Switcher, Title, Album)
         Positioned(
-          top: 10,
-          left: 16,
-          right: 16,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Back Button
-              FittedBox(
+          top: 8,
+          left: 12,
+          right: 12,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: math.max(MediaQuery.of(context).size.width - 24, 620),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Back Button
+                  FittedBox(
                 fit: BoxFit.scaleDown,
                 child: ElevatedButton.icon(
                   onPressed: widget.onBack,
@@ -538,6 +543,8 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
             ],
           ),
         ),
+      ),
+    ),
 
         // 3. Bottom Sticker Drawer / Tray
         Positioned(
