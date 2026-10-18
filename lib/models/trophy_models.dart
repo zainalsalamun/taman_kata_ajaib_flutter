@@ -284,5 +284,27 @@ class TrophyRepository {
       voicePraise: 'Karya seni yang indah! Imajinasimu mewarnai Taman Kata Ajaib dengan ceria!',
       sfx: 'sparkle',
     ),
+    TrophyItem(
+      id: 'dictionary_explorer',
+      title: 'Penjelajah Kamus Cilik',
+      subtitle: 'Pelajari 10 Kata di Kamus',
+      category: TrophyCategory.special,
+      iconEmoji: '📚',
+      badgeText: '10 KOSAKATA',
+      howToUnlock: 'Buka dan dengarkan 10 kosakata bergambar di Kamus Ajaib!',
+      voicePraise: 'Hebat! Kamu telah menjelajahi sepuluh kosakata bergambar di Kamus Ajaib bersama Miko!',
+      sfx: 'sparkle',
+    ),
+    TrophyItem(
+      id: 'dictionary_master',
+      title: 'Ahli Bahasa Ajaib',
+      subtitle: 'Kuasai 25+ Kosakata Kamus',
+      category: TrophyCategory.master,
+      iconEmoji: '👑',
+      badgeText: 'MASTER KAMUS 📚',
+      howToUnlock: 'Pelajari dan bunyikan 25 kosakata lengkap dengan pemecah suku kata di Kamus Ajaib!',
+      voicePraise: 'Luar biasa! Kamu adalah Ahli Bahasa Ajaib yang menguasai puluhan kosakata bergambar!',
+      sfx: 'fanfare',
+    ),
   ];
 }
