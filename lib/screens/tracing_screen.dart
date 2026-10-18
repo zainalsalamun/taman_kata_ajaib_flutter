@@ -237,7 +237,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     _checkProgress();
   }
 
-  void _checkProgress() {
+  void _checkProgress() async {
     if (_userStrokes.length < 18) return;
 
     int hits = 0;
@@ -360,6 +360,58 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
+    if (isPortrait) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Column(
+          children: [
+            // 1. Top Control Bar: Level Selector Ribbon + Mode Switcher + Clear Button
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: LevelSelectorRibbon(
+                    currentLevel: _currentLevel,
+                    unlockedLevel: _unlockedLevel,
+                    onSelectLevel: _switchLevel,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _buildModeSwitcher(),
+                const SizedBox(width: 6),
+                _buildClearButton(),
+              ],
+            ),
+            const SizedBox(height: 6),
+
+            // 2. Scrollable Item Ribbon (A-Z, 1-10, Shapes)
+            _buildItemRibbon(),
+            const SizedBox(height: 6),
+
+            // 3. Compact Guide Card
+            _buildCompactGuideCard(),
+            const SizedBox(height: 8),
+
+            // 4. Center Drawing Canvas (Expanded & Touch-Spacious)
+            Expanded(
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: 1.0,
+                  child: _buildDrawingCanvas(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // 5. Bottom Horizontal Brush Rack
+            _buildHorizontalBrushRack(),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
@@ -406,257 +458,448 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                         width: 205,
                         height: 320,
                         padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFBAE6FD), width: 3),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x10000000),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Speaker Audio Pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0F2FE),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFBAE6FD)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.volume_up_rounded, size: 14, color: Color(0xFF0284C7)),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Dengar Suara',
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF0369A1),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ObjectIllustrationWidget(
-                          illustrationKey: _current.illustrationKey,
-                          size: 60,
-                        ),
-                        Column(
-                          children: [
-                            Text(
-                              '${_current.letter} - ${_current.word}',
-                              style: GoogleFonts.fredoka(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFF0284C7),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _current.hint,
-                              style: GoogleFonts.fredoka(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF64748B),
-                              ),
-                              textAlign: TextAlign.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFBAE6FD), width: 3),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x10000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
                             ),
                           ],
                         ),
-                        // Prev / Next Navigation Arrows
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0F9FF),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.arrow_back_ios_rounded, size: 16),
-                                color: _currentIndex > 0 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
-                                onPressed: _currentIndex > 0 ? () => _selectLetter(_currentIndex - 1) : null,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Speaker Audio Pill
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE0F2FE),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFBAE6FD)),
                               ),
-                              Text(
-                                '${_currentIndex + 1} / ${_currentItems.length}',
-                                style: GoogleFonts.nunito(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900,
-                                  color: const Color(0xFF0369A1),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                                color: _currentIndex < _currentItems.length - 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
-                                onPressed: _currentIndex < _currentItems.length - 1 ? () => _selectLetter(_currentIndex + 1) : null,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Center Drawing Canvas (Guided vs Freehand 3-Line Mode)
-                Container(
-                  width: 320,
-                  height: 320,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: _selectedBrush.type == BrushType.rainbow
-                          ? const Color(0xFF38BDF8)
-                          : _selectedBrush.glowColor,
-                      width: 4,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _selectedBrush.innerColor.withAlpha(40),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return GestureDetector(
-                          onPanUpdate: (d) => _onPanUpdate(d, context.findRenderObject() as RenderBox),
-                          child: AnimatedBuilder(
-                            animation: _guideAnimController,
-                            builder: (context, _) {
-                              return CustomPaint(
-                                size: Size(constraints.maxWidth, constraints.maxHeight),
-                                painter: _CanvasTracingPainter(
-                                  letter: _current.letter,
-                                  strokes: _userStrokes,
-                                  startPoint: _current.guidePoints.isNotEmpty ? _current.guidePoints[0] : null,
-                                  guidePoints: _current.guidePoints,
-                                  brush: _selectedBrush,
-                                  guideProgress: _guideAnimController.value,
-                                  showGuideHand: _userStrokes.isEmpty && !_isFreehandMode,
-                                  isFreehandMode: _isFreehandMode,
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Right Brush Rack (7 Brushes: 5 Crayons + Rainbow + Glitter)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: const Color(0xFFE2E8F0), width: 3),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x10000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Kuas Ajaib',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      ...List.generate(_kBrushes.length, (idx) {
-                        final brush = _kBrushes[idx];
-                        final isSel = idx == _selectedBrushIndex;
-                        return GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            setState(() {
-                              _selectedBrushIndex = idx;
-                            });
-                            if (brush.type == BrushType.rainbow || brush.type == BrushType.glitter) {
-                              _audio.playSfx('star');
-                            } else {
-                              _audio.playSfx('ding');
-                            }
-                            _audio.speak(brush.voiceQuote);
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.symmetric(vertical: 3),
-                            width: isSel ? 38 : 32,
-                            height: isSel ? 38 : 32,
-                            decoration: BoxDecoration(
-                              gradient: brush.type == BrushType.rainbow
-                                  ? const LinearGradient(
-                                      colors: [
-                                        Color(0xFFEF4444),
-                                        Color(0xFFF59E0B),
-                                        Color(0xFF10B981),
-                                        Color(0xFF06B6D4),
-                                        Color(0xFF8B5CF6),
-                                      ],
-                                    )
-                                  : null,
-                              color: brush.type != BrushType.rainbow ? brush.innerColor : null,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSel ? Colors.white : brush.glowColor,
-                                width: isSel ? 3.0 : 1.8,
-                              ),
-                              boxShadow: isSel
-                                  ? [
-                                      BoxShadow(
-                                        color: brush.innerColor.withAlpha(160),
-                                        blurRadius: 8,
-                                        spreadRadius: 2,
-                                      )
-                                    ]
-                                  : null,
-                            ),
-                            child: Center(
-                              child: Text(
-                                brush.emoji,
-                                style: TextStyle(fontSize: isSel ? 16 : 13),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.volume_up_rounded, size: 14, color: Color(0xFF0284C7)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Dengar Suara',
+                                    style: GoogleFonts.fredoka(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF0369A1),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
+                            ObjectIllustrationWidget(
+                              illustrationKey: _current.illustrationKey,
+                              size: 60,
+                            ),
+                            Column(
+                              children: [
+                                Text(
+                                  '${_current.letter} - ${_current.word}',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF0284C7),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _current.hint,
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                            // Prev / Next Navigation Arrows
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F9FF),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_back_ios_rounded, size: 16),
+                                    color: _currentIndex > 0 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                                    onPressed: _currentIndex > 0 ? () => _selectLetter(_currentIndex - 1) : null,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                  Text(
+                                    '${_currentIndex + 1} / ${_currentItems.length}',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF0369A1),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                                    color: _currentIndex < _currentItems.length - 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                                    onPressed: _currentIndex < _currentItems.length - 1 ? () => _selectLetter(_currentIndex + 1) : null,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Center Drawing Canvas
+                    SizedBox(
+                      width: 320,
+                      height: 320,
+                      child: _buildDrawingCanvas(),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Right Brush Rack (Vertical)
+                    _buildVerticalBrushRack(),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawingCanvas() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: _selectedBrush.type == BrushType.rainbow
+              ? const Color(0xFF38BDF8)
+              : _selectedBrush.glowColor,
+          width: 4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _selectedBrush.innerColor.withAlpha(40),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return GestureDetector(
+              onPanUpdate: (d) => _onPanUpdate(d, context.findRenderObject() as RenderBox),
+              child: AnimatedBuilder(
+                animation: _guideAnimController,
+                builder: (context, _) {
+                  return CustomPaint(
+                    size: Size(constraints.maxWidth, constraints.maxHeight),
+                    painter: _CanvasTracingPainter(
+                      letter: _current.letter,
+                      strokes: _userStrokes,
+                      startPoint: _current.guidePoints.isNotEmpty ? _current.guidePoints[0] : null,
+                      guidePoints: _current.guidePoints,
+                      brush: _selectedBrush,
+                      guideProgress: _guideAnimController.value,
+                      showGuideHand: _userStrokes.isEmpty && !_isFreehandMode,
+                      isFreehandMode: _isFreehandMode,
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildCompactGuideCard() {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        _audio.speak('${_current.letter}! ${_current.word}!');
+      },
+      child: Container(
+        height: 60,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFBAE6FD), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x10000000),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ObjectIllustrationWidget(
+              illustrationKey: _current.illustrationKey,
+              size: 42,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${_current.letter} - ${_current.word}',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0284C7),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    _current.hint,
+                    style: GoogleFonts.fredoka(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF64748B),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.volume_up_rounded, color: Color(0xFF0284C7), size: 20),
+              onPressed: () {
+                _audio.speak('${_current.letter}! ${_current.word}!');
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios_rounded, size: 16),
+              color: _currentIndex > 0 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+              onPressed: _currentIndex > 0 ? () => _selectLetter(_currentIndex - 1) : null,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+              color: _currentIndex < _currentItems.length - 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+              onPressed: _currentIndex < _currentItems.length - 1 ? () => _selectLetter(_currentIndex + 1) : null,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerticalBrushRack() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 3),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Kuas Ajaib',
+            style: GoogleFonts.fredoka(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(height: 6),
+          ...List.generate(_kBrushes.length, (idx) {
+            final brush = _kBrushes[idx];
+            final isSel = idx == _selectedBrushIndex;
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                setState(() {
+                  _selectedBrushIndex = idx;
+                });
+                if (brush.type == BrushType.rainbow || brush.type == BrushType.glitter) {
+                  _audio.playSfx('star');
+                } else {
+                  _audio.playSfx('ding');
+                }
+                _audio.speak(brush.voiceQuote);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(vertical: 3),
+                width: isSel ? 38 : 32,
+                height: isSel ? 38 : 32,
+                decoration: BoxDecoration(
+                  gradient: brush.type == BrushType.rainbow
+                      ? const LinearGradient(
+                          colors: [
+                            Color(0xFFEF4444),
+                            Color(0xFFF59E0B),
+                            Color(0xFF10B981),
+                            Color(0xFF06B6D4),
+                            Color(0xFF8B5CF6),
+                          ],
+                        )
+                      : null,
+                  color: brush.type != BrushType.rainbow ? brush.innerColor : null,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSel ? Colors.white : brush.glowColor,
+                    width: isSel ? 3.0 : 1.8,
+                  ),
+                  boxShadow: isSel
+                      ? [
+                          BoxShadow(
+                            color: brush.innerColor.withAlpha(160),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          )
+                        ]
+                      : null,
+                ),
+                child: Center(
+                  child: Text(
+                    brush.emoji,
+                    style: TextStyle(fontSize: isSel ? 16 : 13),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHorizontalBrushRack() {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Kuas:',
+            style: GoogleFonts.fredoka(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _kBrushes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              itemBuilder: (context, idx) {
+                final brush = _kBrushes[idx];
+                final isSel = idx == _selectedBrushIndex;
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      _selectedBrushIndex = idx;
+                    });
+                    if (brush.type == BrushType.rainbow || brush.type == BrushType.glitter) {
+                      _audio.playSfx('star');
+                    } else {
+                      _audio.playSfx('ding');
+                    }
+                    _audio.speak(brush.voiceQuote);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: isSel ? 38 : 32,
+                    height: isSel ? 38 : 32,
+                    decoration: BoxDecoration(
+                      gradient: brush.type == BrushType.rainbow
+                          ? const LinearGradient(
+                              colors: [
+                                Color(0xFFEF4444),
+                                Color(0xFFF59E0B),
+                                Color(0xFF10B981),
+                                Color(0xFF06B6D4),
+                                Color(0xFF8B5CF6),
+                              ],
+                            )
+                          : null,
+                      color: brush.type != BrushType.rainbow ? brush.innerColor : null,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSel ? Colors.white : brush.glowColor,
+                        width: isSel ? 3.0 : 1.8,
+                      ),
+                      boxShadow: isSel
+                          ? [
+                              BoxShadow(
+                                color: brush.innerColor.withAlpha(160),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              )
+                            ]
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        brush.emoji,
+                        style: TextStyle(fontSize: isSel ? 16 : 13),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
