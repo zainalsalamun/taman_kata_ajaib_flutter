@@ -222,8 +222,338 @@ class _TrainScreenState extends State<TrainScreen>
     }
   }
 
+  Widget _buildTargetBanner() {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFF86EFAC), width: 3),
+          boxShadow: const [
+            BoxShadow(color: Color(0xFF4ADE80), offset: Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ObjectIllustrationWidget(
+              illustrationKey: _current.illustrationKey,
+              size: 42,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              _current.word,
+              style: GoogleFonts.nunito(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF166534),
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _audio.speak('Susun kata ${_current.word}!');
+              },
+              child: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFDE047),
+                  shape: BoxShape.circle,
+                ),
+                child: const VectorIconWidget(
+                    icon: 'speaker',
+                    size: 16,
+                    color: Color(0xFF854D0E)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrainAssembly() {
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        // Railroad Track Line
+        Positioned(
+          bottom: 12,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 10,
+            decoration: const BoxDecoration(
+              color: Color(0xFF78350F),
+              border: Border(top: BorderSide(color: Color(0xFF451A03), width: 3)),
+            ),
+          ),
+        ),
+
+        // Animated Train
+        AnimatedBuilder(
+          animation: _trainSlideAnimation,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(_trainSlideAnimation.value, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Locomotive
+                  Container(
+                    width: 100,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(28),
+                        bottomLeft: Radius.circular(8),
+                        bottomRight: Radius.circular(8),
+                      ),
+                      border: Border.all(color: const Color(0xFFB91C1C), width: 3),
+                    ),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Smokestack
+                        Positioned(
+                          top: -12,
+                          left: 18,
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                        // Animated Smoke Puffs
+                        if (_trainAnimController.value > 0.02) ...[
+                          Positioned(
+                            top: -24 - (20 * _trainAnimController.value),
+                            left: 20 - (8 * _trainAnimController.value),
+                            child: Opacity(
+                              opacity: (1.0 - _trainAnimController.value).clamp(0.0, 1.0),
+                              child: Container(
+                                width: 14 + (10 * _trainAnimController.value),
+                                height: 14 + (10 * _trainAnimController.value),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(220),
+                                  shape: BoxShape.circle,
+                                  boxShadow: const [
+                                    BoxShadow(color: Color(0x20000000), blurRadius: 4),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: -38 - (32 * _trainAnimController.value),
+                            left: 14 - (16 * _trainAnimController.value),
+                            child: Opacity(
+                              opacity: (0.85 - _trainAnimController.value).clamp(0.0, 1.0),
+                              child: Container(
+                                width: 20 + (16 * _trainAnimController.value),
+                                height: 20 + (16 * _trainAnimController.value),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(190),
+                                  shape: BoxShape.circle,
+                                  boxShadow: const [
+                                    BoxShadow(color: Color(0x20000000), blurRadius: 4),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                        Center(
+                          child: Container(
+                            width: 22,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF08A),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFB91C1C), width: 2),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Wagon Slots
+                  Row(
+                    children: List.generate(_current.syllables.length, (idx) {
+                      final isFilled = idx < _filledSlots.length;
+                      final sylText = isFilled ? _filledSlots[idx] : '?';
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 80,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          gradient: isFilled
+                              ? const LinearGradient(colors: [Color(0xFF38BDF8), Color(0xFF0284C7)])
+                              : null,
+                          color: isFilled ? null : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isFilled ? const Color(0xFF0369A1) : const Color(0xFF94A3B8),
+                            width: 3,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0x15000000), offset: Offset(0, 4)),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            sylText,
+                            style: GoogleFonts.nunito(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: isFilled ? Colors.white : const Color(0xFF0284C7),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSyllableChoiceButton(String syl) {
+    final isHidden = _hiddenChoices.contains(syl);
+
+    return Visibility(
+      visible: !isHidden,
+      maintainSize: true,
+      maintainAnimation: true,
+      maintainState: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+        child: GestureDetector(
+          onTap: () => _onSyllableTapped(syl),
+          child: Container(
+            width: 82,
+            height: 62,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFDE047), Color(0xFFFACC15)],
+              ),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFEAB308), width: 3),
+              boxShadow: const [
+                BoxShadow(color: Color(0xFFCA8A04), offset: Offset(0, 5)),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                syl,
+                style: GoogleFonts.nunito(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF713F12),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
+    if (isPortrait) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Column(
+          children: [
+            // Top Bar: Ribbon + Target Banner
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: LevelSelectorRibbon(
+                    currentLevel: _currentLevel,
+                    unlockedLevel: _unlockedLevel,
+                    onSelectLevel: _switchLevel,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _buildTargetBanner(),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Train on track (scaled to phone width)
+            SizedBox(
+              height: 140,
+              width: double.infinity,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(
+                  width: 500,
+                  height: 135,
+                  child: _buildTrainAssembly(),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Instruction prompt
+            Text(
+              'Pilih gerbong suku kata untuk melengkapi kereta:',
+              style: GoogleFonts.fredoka(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF64748B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 8),
+
+            // Syllable choices in Wrap (comfortable touch targets for mobile)
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: _current.choices
+                        .map((syl) => _buildSyllableChoiceButton(syl))
+                        .toList(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -243,64 +573,12 @@ class _TrainScreenState extends State<TrainScreen>
               const SizedBox(width: 8),
               Flexible(
                 flex: 6,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFF86EFAC), width: 3),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0xFF4ADE80), offset: Offset(0, 4)),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ObjectIllustrationWidget(
-                          illustrationKey: _current.illustrationKey,
-                          size: 42,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _current.word,
-                          style: GoogleFonts.nunito(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF166534),
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            _audio.speak('Susun kata ${_current.word}!');
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFDE047),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const VectorIconWidget(
-                                icon: 'speaker',
-                                size: 16,
-                                color: Color(0xFF854D0E)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                child: _buildTargetBanner(),
               ),
             ],
           ),
 
-          // Main Responsive Game Area (Track + Choices)
+          // Main Responsive Game Area (Track + Choices) for Landscape
           Expanded(
             child: Center(
               child: FittedBox(
@@ -314,215 +592,19 @@ class _TrainScreenState extends State<TrainScreen>
                       // Train Track & Train Assembly
                       SizedBox(
                         height: 135,
-                        child: Stack(
-              alignment: Alignment.bottomCenter,
-              children: [
-                // Railroad Track Line
-                Positioned(
-                  bottom: 12,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF78350F),
-                      border: Border(top: BorderSide(color: Color(0xFF451A03), width: 3)),
-                    ),
-                  ),
-                ),
-
-                // Animated Train
-                AnimatedBuilder(
-                  animation: _trainSlideAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(_trainSlideAnimation.value, 0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          // Locomotive
-                          Container(
-                            width: 100,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
-                              ),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(16),
-                                topRight: Radius.circular(28),
-                                bottomLeft: Radius.circular(8),
-                                bottomRight: Radius.circular(8),
-                              ),
-                              border: Border.all(color: const Color(0xFFB91C1C), width: 3),
-                            ),
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                // Smokestack
-                                Positioned(
-                                  top: -12,
-                                  left: 18,
-                                  child: Container(
-                                    width: 16,
-                                    height: 16,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1E293B),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                ),
-                                // Animated Smoke Puffs
-                                if (_trainAnimController.value > 0.02) ...[
-                                  Positioned(
-                                    top: -24 - (20 * _trainAnimController.value),
-                                    left: 20 - (8 * _trainAnimController.value),
-                                    child: Opacity(
-                                      opacity: (1.0 - _trainAnimController.value).clamp(0.0, 1.0),
-                                      child: Container(
-                                        width: 14 + (10 * _trainAnimController.value),
-                                        height: 14 + (10 * _trainAnimController.value),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withAlpha(220),
-                                          shape: BoxShape.circle,
-                                          boxShadow: const [
-                                            BoxShadow(color: Color(0x20000000), blurRadius: 4),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: -38 - (32 * _trainAnimController.value),
-                                    left: 14 - (16 * _trainAnimController.value),
-                                    child: Opacity(
-                                      opacity: (0.85 - _trainAnimController.value).clamp(0.0, 1.0),
-                                      child: Container(
-                                        width: 20 + (16 * _trainAnimController.value),
-                                        height: 20 + (16 * _trainAnimController.value),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withAlpha(190),
-                                          shape: BoxShape.circle,
-                                          boxShadow: const [
-                                            BoxShadow(color: Color(0x20000000), blurRadius: 4),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                                Center(
-                                  child: Container(
-                                    width: 22,
-                                    height: 16,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFEF08A),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: const Color(0xFFB91C1C), width: 2),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          // Wagon Slots
-                          Row(
-                            children: List.generate(_current.syllables.length, (idx) {
-                              final isFilled = idx < _filledSlots.length;
-                              final sylText = isFilled ? _filledSlots[idx] : '?';
-
-                              return Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                width: 80,
-                                height: 72,
-                                decoration: BoxDecoration(
-                                  gradient: isFilled
-                                      ? const LinearGradient(colors: [Color(0xFF38BDF8), Color(0xFF0284C7)])
-                                      : null,
-                                  color: isFilled ? null : Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: isFilled ? const Color(0xFF0369A1) : const Color(0xFF94A3B8),
-                                    width: 3,
-                                  ),
-                                  boxShadow: const [
-                                    BoxShadow(color: Color(0x15000000), offset: Offset(0, 4)),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    sylText,
-                                    style: GoogleFonts.nunito(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                      color: isFilled ? Colors.white : const Color(0xFF0284C7),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
-                          ),
-                        ],
+                        child: _buildTrainAssembly(),
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
 
-          // Syllable Choices Palette
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: _current.choices.map((syl) {
-                final isHidden = _hiddenChoices.contains(syl);
-
-                return Visibility(
-                  visible: !isHidden,
-                  maintainSize: true,
-                  maintainAnimation: true,
-                  maintainState: true,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: GestureDetector(
-                      onTap: () => _onSyllableTapped(syl),
-                      child: Container(
-                        width: 80,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFDE047), Color(0xFFFACC15)],
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          border:
-                              Border.all(color: const Color(0xFFEAB308), width: 3),
-                          boxShadow: const [
-                            BoxShadow(
-                                color: Color(0xFFCA8A04), offset: Offset(0, 5)),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            syl,
-                            style: GoogleFonts.nunito(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF713F12),
-                            ),
-                          ),
+                      // Syllable Choices Palette
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: _current.choices
+                              .map((syl) => _buildSyllableChoiceButton(syl))
+                              .toList(),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
                     ],
                   ),
                 ),
