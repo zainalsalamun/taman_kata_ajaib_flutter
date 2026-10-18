@@ -18,12 +18,15 @@ import 'screens/quiz_screen.dart';
 import 'screens/sticker_playground_screen.dart';
 import 'screens/storybook_screen.dart';
 import 'screens/maze_screen.dart';
+import 'screens/dictionary_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock orientation to Landscape for Tablet / iPad experience
+  // Support both Portrait and Landscape for Mobile Phones, Tablets, and Web
   await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
@@ -186,6 +189,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         _mascotText = 'Buka bukunya dan dengarkan dongeng ajaib bersama Miko!';
       } else if (route == 'maze') {
         _mascotText = 'Pandu Miko di labirin untuk menjemput huruf rahasia!';
+      } else if (route == 'dictionary') {
+        _mascotText = 'Buka kamus bergambar dan dengarkan bunyinya bersama Miko!';
       }
     });
   }
@@ -277,6 +282,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
                 hasDailyReward: _hasDailyReward,
                 onDailyRewardPressed: _openDailyRewardDialog,
                 onTrophyPressed: _openTrophyShowcase,
+                onDictionaryPressed: () => _navigateTo('dictionary'),
                 onHomePressed: () => _navigateTo('map'),
                 onStickersPressed: _openStickersAlbum,
                 onParentalPressed: _openParentalGate,
@@ -328,6 +334,11 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         );
       case 'maze':
         return MazeScreen(
+          onVictory: _addStars,
+          onBack: () => _navigateTo('map'),
+        );
+      case 'dictionary':
+        return DictionaryScreen(
           onVictory: _addStars,
           onBack: () => _navigateTo('map'),
         );
