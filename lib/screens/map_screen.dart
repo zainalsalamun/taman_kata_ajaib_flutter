@@ -166,6 +166,19 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       mapPosition: Offset(1550, 160),
       speechQuote: 'Kastil Dongeng Ajaib! Buka lembaran dongeng bersama sahabat Miko!',
     ),
+    const IslandData(
+      route: 'dictionary',
+      title: 'Perpustakaan Kamus Ajaib',
+      shortName: 'Kamus Ajaib',
+      ageRecommendation: '50+ Kosakata',
+      description: 'Eksplorasi kata bergambar, bunyikan suku kata & fonik suara!',
+      illustrationKey: 'buku',
+      primaryColor: Color(0xFFE0F2FE),
+      secondaryColor: Color(0xFFBAE6FD),
+      accentColor: Color(0xFF0284C7),
+      mapPosition: Offset(1790, 80),
+      speechQuote: 'Perpustakaan Kamus Ajaib! Sentuh kata bergambar dan pecah suku katanya bersama Miko!',
+    ),
   ];
 
   @override
@@ -323,6 +336,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         return _mazeLevel >= 3 ? '👑 Master ⭐' : 'Tingkat $_mazeLevel ${_mazeLevel > 1 ? "⭐" : ""}';
       case 'storybook':
         return '📖 4 Cerita';
+      case 'dictionary':
+        return '📚 52 Kata';
       default:
         return 'Tingkat 1';
     }
@@ -343,16 +358,21 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
         // 2. Top Header Toolbar (Title Badge & View Switcher)
         Positioned(
-          top: 10,
-          left: 16,
-          right: 16,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Adventure Title Badge
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
+          top: 8,
+          left: 12,
+          right: 12,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: math.max(MediaQuery.of(context).size.width - 24, 580),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Adventure Title Badge
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
@@ -453,9 +473,47 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ],
+              const SizedBox(width: 8),
+              // Kamus Shortcut Button
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.mediumImpact();
+                  widget.onSelectGame('dictionary');
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('📚', style: TextStyle(fontSize: 14)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Kamus',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF0369A1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    ),
 
         // 3. Floating Bonus Toast Notification
         if (_bonusToastMessage != null)
@@ -543,7 +601,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // 1. ADVENTURE MAP VIEW (LIVING ARCHIPELAGO)
   // ==========================================
   Widget _buildAdventureMapView() {
-    const mapCanvasWidth = 1780.0;
+    const mapCanvasWidth = 2050.0;
     const mapCanvasHeight = 360.0;
 
     final currentIsland = _islands.firstWhere(
@@ -631,8 +689,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 top: 18,
                 child: _buildSkyCloud(size: 38),
               ),
+              Positioned(
+                left: 1760,
+                top: 14,
+                child: _buildSkyCloud(size: 36),
+              ),
 
-              // 7 Living Islands
+              // 8 Living Islands
               ..._islands.map((island) {
                 final isSelected = island.route == _selectedIslandRoute;
                 final levelBadge = _getIslandLevelBadge(island.route);
