@@ -723,6 +723,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
     final book = _selectedBook!;
     final page = book.pages[_currentPageIndex];
     final isLastPage = _currentPageIndex == book.pages.length - 1;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Column(
       children: [
@@ -815,99 +816,121 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            child: Row(
-              children: [
-                // Panel Kiri: Ilustrasi Interaktif
-                Expanded(
-                  flex: 5,
-                  child: _buildInteractiveIllustrationCanvas(page),
-                ),
-                const SizedBox(width: 12),
+            child: isPortrait
+                ? Column(
+                    children: [
+                      // Panel Atas: Ilustrasi Interaktif
+                      Expanded(
+                        flex: 5,
+                        child: _buildInteractiveIllustrationCanvas(page),
+                      ),
+                      const SizedBox(height: 8),
 
-                // Panel Kanan: Kotak Teks Cerita (Karaoke & Touch-to-Speak)
-                Expanded(
-                  flex: 5,
-                  child: _buildKaraokeTextPanel(page, book),
-                ),
-              ],
-            ),
+                      // Panel Bawah: Kotak Teks Cerita (Karaoke & Touch-to-Speak)
+                      Expanded(
+                        flex: 5,
+                        child: _buildKaraokeTextPanel(page, book),
+                      ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      // Panel Kiri: Ilustrasi Interaktif
+                      Expanded(
+                        flex: 5,
+                        child: _buildInteractiveIllustrationCanvas(page),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Panel Kanan: Kotak Teks Cerita (Karaoke & Touch-to-Speak)
+                      Expanded(
+                        flex: 5,
+                        child: _buildKaraokeTextPanel(page, book),
+                      ),
+                    ],
+                  ),
           ),
         ),
 
-        // Bottom Page Navigator Bar
+        // Bottom Page Navigator Bar (Fitted for mobile screens)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Tombol Sebelumnya
-              ElevatedButton.icon(
-                onPressed: _currentPageIndex > 0 ? () => _goToPage(_currentPageIndex - 1) : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF475569),
-                  elevation: 2,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Tombol Sebelumnya
+                ElevatedButton.icon(
+                  onPressed: _currentPageIndex > 0 ? () => _goToPage(_currentPageIndex - 1) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF475569),
+                    elevation: 2,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  ),
+                  icon: const Icon(Icons.arrow_back_ios_rounded, size: 14),
+                  label: Text(
+                    'Sebelumnya',
+                    style: GoogleFonts.fredoka(fontSize: 13, fontWeight: FontWeight.w800),
+                  ),
                 ),
-                icon: const Icon(Icons.arrow_back_ios_rounded, size: 14),
-                label: Text(
-                  'Sebelumnya',
-                  style: GoogleFonts.fredoka(fontSize: 13, fontWeight: FontWeight.w800),
+                const SizedBox(width: 16),
+
+                // Page Dots Indicator
+                Row(
+                  children: List.generate(book.pages.length, (idx) {
+                    final isActive = idx == _currentPageIndex;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: isActive ? 24 : 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: isActive ? book.coverColor : const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    );
+                  }),
                 ),
-              ),
+                const SizedBox(width: 16),
 
-              // Page Dots Indicator
-              Row(
-                children: List.generate(book.pages.length, (idx) {
-                  final isActive = idx == _currentPageIndex;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: isActive ? 24 : 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: isActive ? book.coverColor : const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  );
-                }),
-              ),
-
-              // Tombol Selanjutnya / Tamat
-              isLastPage
-                  ? ElevatedButton.icon(
-                      onPressed: () => _startComprehensionQuiz(book),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF59E0B),
-                        foregroundColor: Colors.white,
-                        elevation: 4,
-                        shadowColor: const Color(0xFFD97706),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                // Tombol Selanjutnya / Tamat
+                isLastPage
+                    ? ElevatedButton.icon(
+                        onPressed: () => _startComprehensionQuiz(book),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF59E0B),
+                          foregroundColor: Colors.white,
+                          elevation: 4,
+                          shadowColor: const Color(0xFFD97706),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                        icon: const Text('❓', style: TextStyle(fontSize: 16)),
+                        label: Text(
+                          'Jawab Kuis Dongeng ⭐',
+                          style: GoogleFonts.fredoka(fontSize: 14, fontWeight: FontWeight.w900),
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: () => _goToPage(_currentPageIndex + 1),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: book.coverColor,
+                          foregroundColor: Colors.white,
+                          elevation: 3,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        ),
+                        label: Text(
+                          'Selanjutnya',
+                          style: GoogleFonts.fredoka(fontSize: 13, fontWeight: FontWeight.w800),
+                        ),
+                        icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                       ),
-                      icon: const Text('❓', style: TextStyle(fontSize: 16)),
-                      label: Text(
-                        'Jawab Kuis Dongeng ⭐',
-                        style: GoogleFonts.fredoka(fontSize: 14, fontWeight: FontWeight.w900),
-                      ),
-                    )
-                  : ElevatedButton.icon(
-                      onPressed: () => _goToPage(_currentPageIndex + 1),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: book.coverColor,
-                        foregroundColor: Colors.white,
-                        elevation: 3,
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                      ),
-                      label: Text(
-                        'Selanjutnya',
-                        style: GoogleFonts.fredoka(fontSize: 13, fontWeight: FontWeight.w800),
-                      ),
-                      icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                    ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -1215,6 +1238,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
 
     final question = book.quizQuestions[_currentQuizQuestionIndex];
     final totalQuestions = book.quizQuestions.length;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return Column(
       children: [
@@ -1382,169 +1406,19 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
 
                 // Choice Options
                 Expanded(
-                  child: Row(
-                    children: List.generate(question.options.length, (optIdx) {
-                      final opt = question.options[optIdx];
-                      final isSelected = _selectedQuizOptionIndex == optIdx;
-                      final isCorrect = _isCurrentAnswerCorrect == true;
-
-                      Color cardBg = Colors.white;
-                      Color borderColor = const Color(0xFFE2E8F0);
-                      double borderWidth = 2.5;
-
-                      if (isSelected) {
-                        if (isCorrect) {
-                          cardBg = const Color(0xFFECFDF5);
-                          borderColor = const Color(0xFF10B981);
-                          borderWidth = 3.5;
-                        } else {
-                          cardBg = const Color(0xFFFEF2F2);
-                          borderColor = const Color(0xFFEF4444);
-                          borderWidth = 3.5;
-                        }
-                      }
-
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: GestureDetector(
-                            onTap: () => _onQuizOptionSelected(optIdx),
-                            child: AnimatedScale(
-                              scale: isSelected ? 1.04 : 1.0,
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOutBack,
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: cardBg,
-                                  borderRadius: BorderRadius.circular(22),
-                                  border: Border.all(color: borderColor, width: borderWidth),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: isSelected && isCorrect
-                                          ? const Color(0x3310B981)
-                                          : const Color(0x12000000),
-                                      offset: const Offset(0, 6),
-                                      blurRadius: 10,
-                                    ),
-                                  ],
-                                ),
-                                child: Stack(
-                                  children: [
-                                    // Mini sound listen button on card
-                                    Positioned(
-                                      top: 0,
-                                      right: 0,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          HapticFeedback.lightImpact();
-                                          _audio.speak(opt.text);
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(5),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
-                                            boxShadow: const [
-                                              BoxShadow(
-                                                color: Color(0x14000000),
-                                                offset: Offset(0, 1),
-                                                blurRadius: 3,
-                                              ),
-                                            ],
-                                          ),
-                                          child: const Icon(
-                                            Icons.volume_up_rounded,
-                                            size: 16,
-                                            color: Color(0xFF64748B),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: Center(
-                                            child: ObjectIllustrationWidget(
-                                              illustrationKey: opt.illustrationKey,
-                                              size: 85,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          opt.text,
-                                          textAlign: TextAlign.center,
-                                          style: GoogleFonts.fredoka(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w800,
-                                            color: isSelected && isCorrect
-                                                ? const Color(0xFF047857)
-                                                : const Color(0xFF1E293B),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        if (isSelected && isCorrect)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF10B981),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              'BENAR! ⭐',
-                                              style: GoogleFonts.fredoka(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w900,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          )
-                                        else if (isSelected && !isCorrect)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFEF4444),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              'Coba Lagi Ya! 😊',
-                                              style: GoogleFonts.fredoka(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w900,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          )
-                                        else
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFF1F5F9),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              'Sentuh Pilihan 👆',
-                                              style: GoogleFonts.fredoka(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF64748B),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                  child: isPortrait
+                      ? SingleChildScrollView(
+                          child: Column(
+                            children: List.generate(question.options.length, (optIdx) {
+                              return _buildQuizOptionCard(question, optIdx, isHorizontal: true);
+                            }),
                           ),
+                        )
+                      : Row(
+                          children: List.generate(question.options.length, (optIdx) {
+                            return _buildQuizOptionCard(question, optIdx, isHorizontal: false);
+                          }),
                         ),
-                      );
-                    }),
-                  ),
                 ),
 
                 const SizedBox(height: 10),
@@ -1578,6 +1452,265 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildQuizOptionCard(StoryQuizQuestion question, int optIdx, {required bool isHorizontal}) {
+    final opt = question.options[optIdx];
+    final isSelected = _selectedQuizOptionIndex == optIdx;
+    final isCorrect = _isCurrentAnswerCorrect == true;
+
+    Color cardBg = Colors.white;
+    Color borderColor = const Color(0xFFE2E8F0);
+    double borderWidth = 2.5;
+
+    if (isSelected) {
+      if (isCorrect) {
+        cardBg = const Color(0xFFECFDF5);
+        borderColor = const Color(0xFF10B981);
+        borderWidth = 3.5;
+      } else {
+        cardBg = const Color(0xFFFEF2F2);
+        borderColor = const Color(0xFFEF4444);
+        borderWidth = 3.5;
+      }
+    }
+
+    if (isHorizontal) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        child: GestureDetector(
+          onTap: () => _onQuizOptionSelected(optIdx),
+          child: AnimatedScale(
+            scale: isSelected ? 1.02 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: borderColor, width: borderWidth),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected && isCorrect
+                        ? const Color(0x3310B981)
+                        : const Color(0x12000000),
+                    offset: const Offset(0, 4),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF1F5F9)),
+                    ),
+                    child: ObjectIllustrationWidget(
+                      illustrationKey: opt.illustrationKey,
+                      size: 46,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          opt.text,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        if (isSelected && isCorrect)
+                          Text(
+                            'BENAR! ⭐',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF10B981),
+                            ),
+                          )
+                        else if (isSelected && !isCorrect)
+                          Text(
+                            'Coba Lagi Ya! 😊',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFFEF4444),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _audio.speak(opt.text);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.volume_up_rounded,
+                        size: 16,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: GestureDetector(
+          onTap: () => _onQuizOptionSelected(optIdx),
+          child: AnimatedScale(
+            scale: isSelected ? 1.04 : 1.0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutBack,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: borderColor, width: borderWidth),
+                boxShadow: [
+                  BoxShadow(
+                    color: isSelected && isCorrect
+                        ? const Color(0x3310B981)
+                        : const Color(0x12000000),
+                    offset: const Offset(0, 6),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _audio.speak(opt.text);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x14000000),
+                              offset: Offset(0, 1),
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.volume_up_rounded,
+                          size: 16,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: ObjectIllustrationWidget(
+                            illustrationKey: opt.illustrationKey,
+                            size: 85,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        opt.text,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.fredoka(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: isSelected && isCorrect
+                              ? const Color(0xFF047857)
+                              : const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      if (isSelected && isCorrect)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'BENAR! ⭐',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      else if (isSelected && !isCorrect)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Coba Lagi Ya! 😊',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Sentuh Pilihan 👆',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
