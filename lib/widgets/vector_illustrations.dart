@@ -636,6 +636,51 @@ class _ObjectPainter extends CustomPainter {
       bg1 = const Color(0xFFE0F2FE);
       bg2 = const Color(0xFFBAE6FD);
       border = const Color(0xFF0284C7);
+    } else if (keyLower.contains('bintang')) {
+      symbol = '⭐';
+      bg1 = const Color(0xFFFEF9C3);
+      bg2 = const Color(0xFFFDE047);
+      border = const Color(0xFFEAB308);
+    } else if (keyLower.contains('bulan')) {
+      symbol = '🌙';
+      bg1 = const Color(0xFFFEF3C7);
+      bg2 = const Color(0xFFFDE68A);
+      border = const Color(0xFFD97706);
+    } else if (keyLower.contains('bus')) {
+      symbol = '🚌';
+      bg1 = const Color(0xFFFEF08A);
+      bg2 = const Color(0xFFFDE047);
+      border = const Color(0xFFCA8A04);
+    } else if (keyLower.contains('gunung')) {
+      symbol = '⛰️';
+      bg1 = const Color(0xFFCCFBF1);
+      bg2 = const Color(0xFF99F6E4);
+      border = const Color(0xFF0D9488);
+    } else if (keyLower.contains('helikopter')) {
+      symbol = '🚁';
+      bg1 = const Color(0xFFE0F2FE);
+      bg2 = const Color(0xFFBAE6FD);
+      border = const Color(0xFF0284C7);
+    } else if (keyLower.contains('jagung')) {
+      symbol = '🌽';
+      bg1 = const Color(0xFFFEF3C7);
+      bg2 = const Color(0xFFFDE68A);
+      border = const Color(0xFFD97706);
+    } else if (keyLower.contains('kapal')) {
+      symbol = '🚢';
+      bg1 = const Color(0xFFE0F2FE);
+      bg2 = const Color(0xFFBAE6FD);
+      border = const Color(0xFF0284C7);
+    } else if (keyLower.contains('mangga')) {
+      symbol = '🥭';
+      bg1 = const Color(0xFFFFEDD5);
+      bg2 = const Color(0xFFFED7AA);
+      border = const Color(0xFFEA580C);
+    } else if (keyLower.contains('semangka')) {
+      symbol = '🍉';
+      bg1 = const Color(0xFFFFE4E6);
+      bg2 = const Color(0xFFFECDD3);
+      border = const Color(0xFFEF4444);
     } else if (keyLower.contains('buku')) {
       symbol = '📖';
       bg1 = const Color(0xFFFEF3C7);
