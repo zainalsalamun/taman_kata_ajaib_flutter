@@ -74,7 +74,7 @@ class _IslandMasteryDialogState extends State<IslandMasteryDialog>
           child: InteractiveFireworksOverlay(
             autoLaunch: true,
             tapEnabled: true,
-            showTapHint: true,
+            showTapHint: false,
             child: Center(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
