@@ -53,13 +53,15 @@ class InteractiveFireworksOverlay extends StatefulWidget {
   final bool autoLaunch;
   final bool tapEnabled;
   final bool showTapHint;
+  final Alignment hintAlignment;
 
   const InteractiveFireworksOverlay({
     super.key,
     required this.child,
     this.autoLaunch = true,
     this.tapEnabled = true,
-    this.showTapHint = true,
+    this.showTapHint = false,
+    this.hintAlignment = Alignment.topCenter,
   });
 
   @override
@@ -207,20 +209,24 @@ class _InteractiveFireworksOverlayState extends State<InteractiveFireworksOverla
             ),
           ),
 
-          // Gentle child-friendly tap hint at bottom if enabled
+          // Gentle child-friendly tap hint if enabled
           if (widget.showTapHint && widget.tapEnabled)
             Positioned(
-              bottom: 8,
+              top: widget.hintAlignment == Alignment.topCenter ? 10 : null,
+              bottom: widget.hintAlignment == Alignment.bottomCenter ? 10 : null,
               left: 0,
               right: 0,
               child: Center(
                 child: IgnorePointer(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.black.withAlpha(90),
+                      color: Colors.black.withAlpha(140),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withAlpha(120), width: 1),
+                      border: Border.all(color: Colors.white.withAlpha(140), width: 1.2),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x25000000), blurRadius: 4, offset: Offset(0, 2)),
+                      ],
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
