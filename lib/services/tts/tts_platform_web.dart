@@ -39,6 +39,7 @@ extension type SpeechSynthesisVoice._(JSObject _) implements JSObject {
 
 class TtsPlatformWeb implements TtsPlatform {
   SpeechSynthesisVoice? _indonesianVoice;
+  String _voiceGender = 'female';
 
   SpeechSynthesis? _getSynth() {
     try {
@@ -61,6 +62,12 @@ class TtsPlatformWeb implements TtsPlatform {
     } catch (_) {}
   }
 
+  @override
+  Future<void> setVoiceGender(String gender) async {
+    _voiceGender = gender == 'male' ? 'male' : 'female';
+    _loadVoices();
+  }
+
   void _loadVoices() {
     try {
       final synth = _getSynth();
@@ -69,6 +76,7 @@ class TtsPlatformWeb implements TtsPlatform {
 
       SpeechSynthesisVoice? bestVoice;
       int bestScore = -1;
+      final isMale = _voiceGender == 'male';
 
       for (final v in voices) {
         final lang = v.lang.toLowerCase();
@@ -82,6 +90,35 @@ class TtsPlatformWeb implements TtsPlatform {
         if (!isIndonesian) continue;
 
         int score = 10;
+
+        // Gender-specific matching
+        if (isMale) {
+          if (name.contains('male') ||
+              name.contains('ardi') ||
+              name.contains('pria') ||
+              name.contains('laki')) {
+            score += 90;
+          } else if (name.contains('female') ||
+              name.contains('gadis') ||
+              name.contains('damayanti') ||
+              name.contains('wanita') ||
+              name.contains('perempuan')) {
+            score -= 80;
+          }
+        } else {
+          if (name.contains('female') ||
+              name.contains('gadis') ||
+              name.contains('damayanti') ||
+              name.contains('wanita') ||
+              name.contains('perempuan')) {
+            score += 90;
+          } else if (name.contains('male') ||
+              name.contains('ardi') ||
+              name.contains('pria') ||
+              name.contains('laki')) {
+            score -= 80;
+          }
+        }
 
         // Microsoft Natural / Neural voices
         if (name.contains('natural') || name.contains('neural')) {
@@ -146,8 +183,8 @@ class TtsPlatformWeb implements TtsPlatform {
       utterance.text = cleaned;
       // Natural human conversational pace: articulate, cheerful, and smooth
       utterance.rate = 0.90;
-      // Warm, child-friendly human vocal intonation (natural human frequency)
-      utterance.pitch = 1.08;
+      // Vocal pitch intonation based on selected gender
+      utterance.pitch = _voiceGender == 'male' ? 0.88 : 1.12;
       utterance.volume = 1.0;
 
       if (_indonesianVoice != null) {
@@ -181,14 +218,73 @@ class TtsPlatformWeb implements TtsPlatform {
 
   @override
   String getEngineStatus() {
+    final genderStr = _voiceGender == 'male' ? 'Laki-laki (Cowok)' : 'Perempuan (Cewek)';
     if (_indonesianVoice != null) {
-      return 'Suara Alami: ${_indonesianVoice!.name}';
+      return 'Suara $genderStr: ${_indonesianVoice!.name}';
     }
-    return 'Web Speech Alami (id-ID)';
+    return 'Suara $genderStr: Web Speech Alami (id-ID)';
   }
 
+  static final Map<String, String> _phonicsMap = {
+    'A': 'Aa',
+    'B': 'Beh',
+    'C': 'Ceh',
+    'D': 'Deh',
+    'E': 'Eh',
+    'F': 'Ef',
+    'G': 'Geh',
+    'H': 'Hah',
+    'I': 'Ii',
+    'J': 'Jeh',
+    'K': 'Kah',
+    'L': 'El',
+    'M': 'Em',
+    'N': 'En',
+    'O': 'O',
+    'P': 'Peh',
+    'Q': 'Ki',
+    'R': 'Er',
+    'S': 'Es',
+    'T': 'Teh',
+    'U': 'Uu',
+    'V': 'Feh',
+    'W': 'Weh',
+    'X': 'Eks',
+    'Y': 'Ye',
+    'Z': 'Zet',
+  };
+
   String _sanitizeText(String input) {
-    return input
+    if (input.isEmpty) return '';
+
+    // 1. Soften ALL-CAPS words (length >= 2) so TTS does not spell them out letter-by-letter
+    var text = input.replaceAllMapped(RegExp(r'\b([A-Z]{2,})\b'), (match) {
+      final word = match.group(1)!;
+      return word[0] + word.substring(1).toLowerCase();
+    });
+
+    // 2. Convert "Huruf X" or "huruf X" to authentic Indonesian phonics
+    text = text.replaceAllMapped(RegExp(r'\b([Hh]uruf)\s+([A-Za-z])\b'), (match) {
+      final prefix = match.group(1)!;
+      final letter = match.group(2)!.toUpperCase();
+      return '$prefix ${_phonicsMap[letter] ?? letter}';
+    });
+
+    // 3. Convert single standalone letters with punctuation/boundaries to authentic Indonesian phonics
+    text = text.replaceAllMapped(
+      RegExp(r'(^|[\s.,!?:;("])([A-Za-z])(?=[\s.,!?:;)"]|$)'),
+      (match) {
+        final prefix = match.group(1)!;
+        final letter = match.group(2)!.toUpperCase();
+        if (_phonicsMap.containsKey(letter)) {
+          return '$prefix${_phonicsMap[letter]}';
+        }
+        return match.group(0)!;
+      },
+    );
+
+    // 4. Clean emojis and unwanted symbols while preserving sentence punctuation
+    return text
         .replaceAll(RegExp(r'[\u{1F300}-\u{1FAFF}]', unicode: true), '')
         .replaceAll(RegExp(r'[\u{2600}-\u{27BF}]', unicode: true), '')
         .replaceAll(RegExp(r'[^\w\s.,!?-]', unicode: true), '')
