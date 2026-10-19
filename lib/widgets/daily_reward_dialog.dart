@@ -215,7 +215,7 @@ class _DailyRewardDialogState extends State<DailyRewardDialog> with TickerProvid
     _audio.playSfx('fanfare');
 
     if (slice.isJackpot) {
-      _audio.speak('LUAR BIASA! KAMU MENDAPATKAN JACKPOT TIGA PULUH BINTANG!');
+      _audio.speak('Luar biasa! Kamu mendapatkan jackpot tiga puluh bintang!');
     } else if (wonSticker != null) {
       _audio.speak('Horeee! Kamu mendapatkan stiker baru: $stickerName!');
     } else {
