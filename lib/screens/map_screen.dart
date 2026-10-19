@@ -38,12 +38,14 @@ class MapScreen extends StatefulWidget {
   final Function(String route) onSelectGame;
   final Function(int bonusStars)? onBonusStars;
   final VoidCallback? onOpenTrophies;
+  final VoidCallback? onOpenSettings;
 
   const MapScreen({
     super.key,
     required this.onSelectGame,
     this.onBonusStars,
     this.onOpenTrophies,
+    this.onOpenSettings,
   });
 
   @override
@@ -509,6 +511,44 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
+              // Settings Shortcut Button
+              if (widget.onOpenSettings != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    widget.onOpenSettings!();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFF3E8FF), Color(0xFFDDD6FE)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF7C3AED), width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('⚙️', style: TextStyle(fontSize: 14)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Pengaturan',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF6D28D9),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
