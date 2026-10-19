@@ -4,4 +4,5 @@ abstract class TtsPlatform {
   Future<void> stop();
   void dispose();
   String getEngineStatus();
+  Future<void> setVoiceGender(String gender);
 }
