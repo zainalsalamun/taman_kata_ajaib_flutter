@@ -120,7 +120,7 @@ class _LevelMilestoneDialogState extends State<LevelMilestoneDialog>
           width: dialogWidth,
           child: InteractiveFireworksOverlay(
             autoLaunch: true,
-            showTapHint: true,
+            showTapHint: false,
             child: Stack(
               alignment: Alignment.center,
               clipBehavior: Clip.none,
