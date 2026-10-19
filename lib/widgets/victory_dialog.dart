@@ -97,7 +97,7 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
           child: InteractiveFireworksOverlay(
             autoLaunch: false,
             tapEnabled: true,
-            showTapHint: true,
+            showTapHint: false,
             child: Stack(
               alignment: Alignment.center,
               clipBehavior: Clip.none,
@@ -204,12 +204,38 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
 
-                        // "Lanjut Main" Action Button
+                        // Fireworks hint placed cleanly inside card flow - NO OVERLAP!
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF9C3),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFFDE047), width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🎆', style: TextStyle(fontSize: 12)),
+                              const SizedBox(width: 5),
+                              Text(
+                                'Ketuk kartu untuk nyalakan kembang api!',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF92400E),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // "Lanjut Main" Action Button (Clean, spacious, completely unobstructed)
                         SizedBox(
                           width: double.infinity,
-                          height: 46,
+                          height: 48,
                           child: ElevatedButton(
                             onPressed: () {
                               HapticFeedback.mediumImpact();
@@ -221,7 +247,7 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                               elevation: 4,
                               shadowColor: const Color(0xFF15803D),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(22),
                               ),
                             ),
                             child: Row(
