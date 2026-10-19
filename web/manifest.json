@@ -1,11 +1,11 @@
 {
-    "name": "taman_kata_ajaib_flutter",
-    "short_name": "taman_kata_ajaib_flutter",
+    "name": "Taman Kata Ajaib",
+    "short_name": "Taman Kata",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#E0F2FE",
+    "theme_color": "#7E22CE",
+    "description": "Petualangan Belajar Membaca & Literasi Dini Anak",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

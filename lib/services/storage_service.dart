@@ -19,9 +19,20 @@ class StorageService {
   static const String _keyLastVisitedIsland = 'taman_kata_last_visited_island';
   static const String _keyOpenedChests = 'taman_kata_opened_chests';
   static const String _keyChildName = 'taman_kata_child_name';
+  static const String _keyVoiceGender = 'taman_kata_voice_gender';
   static const String _keyLastDailySpinDate = 'taman_kata_last_daily_spin_date';
   static const String _keyDailyStreak = 'taman_kata_daily_streak';
   static const String _keyLearnedWords = 'taman_kata_learned_words';
+
+  static Future<String> getVoiceGender() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyVoiceGender) ?? 'female';
+  }
+
+  static Future<void> saveVoiceGender(String gender) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyVoiceGender, gender == 'male' ? 'male' : 'female');
+  }
 
   static Future<String> getChildName() async {
     final prefs = await SharedPreferences.getInstance();
