@@ -10,6 +10,7 @@ import 'widgets/parental_gate_dialog.dart';
 import 'widgets/rest_time_dialog.dart';
 import 'widgets/daily_reward_dialog.dart';
 import 'widgets/trophy_showcase_dialog.dart';
+import 'widgets/settings_dialog.dart';
 import 'screens/map_screen.dart';
 import 'screens/tracing_screen.dart';
 import 'screens/train_screen.dart';
@@ -19,6 +20,7 @@ import 'screens/sticker_playground_screen.dart';
 import 'screens/storybook_screen.dart';
 import 'screens/maze_screen.dart';
 import 'screens/dictionary_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,8 +39,15 @@ void main() async {
   runApp(const TamanKataAjaibApp());
 }
 
-class TamanKataAjaibApp extends StatelessWidget {
+class TamanKataAjaibApp extends StatefulWidget {
   const TamanKataAjaibApp({super.key});
+
+  @override
+  State<TamanKataAjaibApp> createState() => _TamanKataAjaibAppState();
+}
+
+class _TamanKataAjaibAppState extends State<TamanKataAjaibApp> {
+  bool _showSplash = true;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +61,19 @@ class TamanKataAjaibApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0369A1),
         primarySwatch: Colors.amber,
       ),
-      home: const MainTabletScreen(),
+      home: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 600),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: _showSplash
+            ? SplashScreen(
+                key: const ValueKey('splash_screen'),
+                onFinish: () {
+                  setState(() => _showSplash = false);
+                },
+              )
+            : const MainTabletScreen(key: ValueKey('main_tablet_screen')),
+      ),
     );
   }
 }
@@ -241,6 +262,15 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
     );
   }
 
+  void _openSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => SettingsDialog(
+        onOpenParentalGate: _openParentalGate,
+      ),
+    );
+  }
+
   void _openParentalGate() {
     showDialog(
       context: context,
@@ -283,6 +313,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
                 onDailyRewardPressed: _openDailyRewardDialog,
                 onTrophyPressed: _openTrophyShowcase,
                 onDictionaryPressed: () => _navigateTo('dictionary'),
+                onSettingsPressed: _openSettingsDialog,
                 onHomePressed: () => _navigateTo('map'),
                 onStickersPressed: _openStickersAlbum,
                 onParentalPressed: _openParentalGate,
@@ -348,6 +379,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           onSelectGame: _navigateTo,
           onBonusStars: _addStars,
           onOpenTrophies: _openTrophyShowcase,
+          onOpenSettings: _openSettingsDialog,
         );
     }
   }
