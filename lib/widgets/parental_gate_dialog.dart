@@ -523,20 +523,20 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
       children: [
         // Header Bar with Title and Close Button
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
+            Expanded(
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const MascotWidget(size: 32),
-                    const SizedBox(width: 10),
+                    const MascotWidget(size: 30),
+                    const SizedBox(width: 8),
                     Text(
                       'Zona Orang Tua',
                       style: GoogleFonts.fredoka(
-                        fontSize: 18,
+                        fontSize: 17,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFF6B21A8),
                       ),
@@ -546,42 +546,40 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
               ),
             ),
             const SizedBox(width: 8),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _openCertificateDialog,
-                  icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFB45309), size: 16),
-                  label: Text(
-                    '📜 Sertifikat Juara',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFFB45309),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFEF3C7),
-                    elevation: 1,
-                    side: const BorderSide(color: Color(0xFFFDE047), width: 1.5),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
+            ElevatedButton.icon(
+              onPressed: _openCertificateDialog,
+              icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFB45309), size: 15),
+              label: Text(
+                '📜 Sertifikat',
+                style: GoogleFonts.fredoka(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFB45309),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFF64748B)),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFEF3C7),
+                elevation: 1,
+                side: const BorderSide(color: Color(0xFFFDE047), width: 1.5),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ],
         ),
         const SizedBox(height: 8),
 
         // Tabs Selector (Trofi, Rapor, Pengaturan)
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -590,13 +588,13 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                 icon: '🏆',
                 label: 'Lemari Trofi (${_trophies.length}/${_allTrophies.length})',
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _buildTabButton(
                 index: 1,
                 icon: '📊',
                 label: 'Rapor Belajar',
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _buildTabButton(
                 index: 2,
                 icon: '⚙️',
@@ -621,41 +619,40 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
     required String label,
   }) {
     final isSelected = _activeTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          setState(() {
-            _activeTab = index;
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF7E22CE) : const Color(0xFFF3E8FF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF6B21A8)
-                  : const Color(0xFFDDD6FE),
-              width: 1.5,
-            ),
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _activeTab = index;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF7E22CE) : const Color(0xFFF3E8FF),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF6B21A8)
+                : const Color(0xFFDDD6FE),
+            width: 1.5,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 14)),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: GoogleFonts.fredoka(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : const Color(0xFF6B21A8),
-                ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 13)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.fredoka(
+                fontSize: 11.5,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : const Color(0xFF6B21A8),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -688,11 +685,11 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
       children: [
         // Filter Chips Row
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Flexible(
+            Expanded(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
                 child: Row(
                   children: [
                     _buildTrophyFilterChip(0, 'Semua (${_allTrophies.length})'),
@@ -704,19 +701,13 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'Sentuh piala untuk mendengar ucapan!',
-                  style: GoogleFonts.fredoka(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFFD97706),
-                  ),
-                ),
+            const SizedBox(width: 6),
+            Text(
+              'Ketuk piala!',
+              style: GoogleFonts.fredoka(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFFD97706),
               ),
             ),
           ],
@@ -758,7 +749,8 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                     final isNarrow = constraints.maxWidth < 450;
                     final crossAxisCount = isNarrow ? 1 : 2;
                     final cardWidth = (constraints.maxWidth - 20 - (crossAxisCount - 1) * 10) / crossAxisCount;
-                    final cardAspectRatio = (cardWidth / 70.0).clamp(1.5, 3.8);
+                    final targetHeight = isNarrow ? 92.0 : 86.0;
+                    final cardAspectRatio = (cardWidth / targetHeight).clamp(0.5, 4.5);
 
                     return GridView.builder(
                       padding: const EdgeInsets.all(10),
@@ -856,6 +848,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Row(
                                       children: [
@@ -985,7 +978,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
               ),
               child: Container(
                 width: certMaxWidth,
-                padding: const EdgeInsets.all(18),
+                padding: EdgeInsets.all(screenSize.width < 500 ? 10 : 18),
               decoration: BoxDecoration(
                 // Antique Parchment Ivory
                 gradient: const LinearGradient(
@@ -1037,48 +1030,60 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                   // Certificate Content
                   SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenSize.width < 500 ? 10 : 22,
+                        vertical: 12,
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Top Royal Emblems
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('⭐', style: TextStyle(fontSize: 16)),
-                              const SizedBox(width: 6),
-                              Text(
-                                'TAMAN KATA AJAIB • PROGRAM LITERASI ANAK',
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFB45309),
-                                  letterSpacing: 1.2,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text('⭐', style: TextStyle(fontSize: 16)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'TAMAN KATA AJAIB • PROGRAM LITERASI ANAK',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFFB45309),
+                                    letterSpacing: 1.2,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Text('⭐', style: TextStyle(fontSize: 16)),
-                            ],
+                                const SizedBox(width: 6),
+                                const Text('⭐', style: TextStyle(fontSize: 16)),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 4),
 
                           // Certificate Title
-                          Text(
-                            'SERTIFIKAT KELULUSAN JUARA',
-                            style: GoogleFonts.fredoka(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFF854D0E),
-                              letterSpacing: 0.8,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'SERTIFIKAT KELULUSAN JUARA',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFF854D0E),
+                                letterSpacing: 0.8,
+                              ),
                             ),
                           ),
-                          Text(
-                            'Penghargaan Prestasi Membaca & Literasi Dini',
-                            style: GoogleFonts.nunito(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF78350F),
-                              fontStyle: FontStyle.italic,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Penghargaan Prestasi Membaca & Literasi Dini',
+                              style: GoogleFonts.nunito(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF78350F),
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -1107,45 +1112,48 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                           const SizedBox(height: 6),
 
                           // Recipient Child Name with Edit Pen Button
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _childName,
-                                style: GoogleFonts.fredoka(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w900,
-                                  color: const Color(0xFF7E22CE),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => _editChildNameDialog(setDialogState),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF3E8FF),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: const Color(0xFFDDD6FE), width: 1.2),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _childName,
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF7E22CE),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.edit_rounded, size: 12, color: Color(0xFF7E22CE)),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        'Ubah Nama',
-                                        style: GoogleFonts.fredoka(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF7E22CE),
+                                ),
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () => _editChildNameDialog(setDialogState),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3E8FF),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFFDDD6FE), width: 1.2),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.edit_rounded, size: 12, color: Color(0xFF7E22CE)),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          'Ubah Nama',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF7E22CE),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 8),
 
@@ -1449,33 +1457,42 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Text('⭐', style: TextStyle(fontSize: 24)),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${widget.totalStars} Bintang Juara Terkumpul!',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF854D0E),
-                          ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Text('⭐', style: TextStyle(fontSize: 24)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${widget.totalStars} Bintang Juara Terkumpul!',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFF854D0E),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Prestasi luar biasa dalam membaca & eksplorasi kata.',
+                              style: GoogleFonts.nunito(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF713F12),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Prestasi luar biasa dalam membaca & eksplorasi kata.',
-                          style: GoogleFonts.nunito(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF713F12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1867,6 +1884,100 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 10),
+                const Divider(color: Color(0xFFBBF7D0), height: 1),
+                const SizedBox(height: 10),
+
+                // Voice Character Gender Selector
+                Text(
+                  '🗣️ Karakter Suara Maskot Miko (TTS)',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF14532D),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    // Option: Cewek (Perempuan)
+                    Expanded(
+                      child: _buildVoiceGenderOption(
+                        gender: 'female',
+                        icon: '👧',
+                        title: 'Kakak Cewek',
+                        subtitle: 'Ceria & Lembut',
+                        isSelected: AudioService().voiceGender == 'female',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Option: Cowok (Laki-laki)
+                    Expanded(
+                      child: _buildVoiceGenderOption(
+                        gender: 'male',
+                        icon: '👦',
+                        title: 'Kakak Cowok',
+                        subtitle: 'Hangat & Semangat',
+                        isSelected: AudioService().voiceGender == 'male',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Test Speech button & Engine info
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        AudioService().engineStatus,
+                        style: GoogleFonts.nunito(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF15803D),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        if (AudioService().voiceGender == 'male') {
+                          AudioService().speak('Halo! Aku Miko, suara laki-laki siap menemani belajar!');
+                        } else {
+                          AudioService().speak('Halo! Aku Miko, suara perempuan siap menemani belajar!');
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF16A34A),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: const [
+                            BoxShadow(color: Color(0x20000000), blurRadius: 2, offset: Offset(0, 1)),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.volume_up, size: 14, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Tes Suara',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1994,6 +2105,97 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVoiceGenderOption({
+    required String gender,
+    required String icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.mediumImpact();
+        await AudioService().setVoiceGender(gender);
+        setState(() {});
+        if (gender == 'male') {
+          AudioService().speak('Halo! Aku Miko, suara laki-laki siap menemani belajar!');
+        } else {
+          AudioService().speak('Halo! Aku Miko, suara perempuan siap menemani belajar!');
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFDCFCE7) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF16A34A) : const Color(0xFFD1D5DB),
+            width: isSelected ? 2.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF16A34A).withAlpha(40),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? const Color(0xFF14532D)
+                                : const Color(0xFF334155),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF16A34A),
+                          size: 14,
+                        ),
+                      ],
+                    ],
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.nunito(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
