@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/vector_illustrations.dart';
+import '../widgets/child_avatar_widget.dart';
+import '../widgets/daily_missions_dialog.dart';
+import '../models/daily_mission_models.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
 
@@ -39,6 +42,9 @@ class MapScreen extends StatefulWidget {
   final Function(int bonusStars)? onBonusStars;
   final VoidCallback? onOpenTrophies;
   final VoidCallback? onOpenSettings;
+  final String avatarId;
+  final String childName;
+  final VoidCallback? onOpenAvatarDialog;
 
   const MapScreen({
     super.key,
@@ -46,6 +52,9 @@ class MapScreen extends StatefulWidget {
     this.onBonusStars,
     this.onOpenTrophies,
     this.onOpenSettings,
+    this.avatarId = 'miko',
+    this.childName = 'Petualang Hebat',
+    this.onOpenAvatarDialog,
   });
 
   @override
@@ -66,6 +75,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   List<String> _openedChests = [];
   bool _isMapView = true; // Toggle between Adventure Map and Quick Cards
   bool _isLoading = true;
+  int _dailyMissionsCompleted = 0;
+  int _dailyStreakDays = 1;
 
   // Animation Controllers
   late AnimationController _shipRockController;
@@ -215,6 +226,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final mz = await StorageService.getUnlockedGameLevel('maze');
     final lastIsland = await StorageService.getLastVisitedIsland();
     final chests = await StorageService.getOpenedChests();
+    final missionState = await StorageService.getDailyMissionsState();
 
     if (mounted) {
       setState(() {
@@ -225,6 +237,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         _mazeLevel = mz;
         _selectedIslandRoute = lastIsland;
         _openedChests = chests;
+        _dailyMissionsCompleted = missionState.completedCount;
+        _dailyStreakDays = missionState.streakDays;
         _isLoading = false;
       });
 
@@ -235,15 +249,35 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _openDailyMissionsDialog() {
+    HapticFeedback.mediumImpact();
+    _audio.playSfx('pop');
+    showDialog(
+      context: context,
+      builder: (ctx) => DailyMissionsDialog(
+        childName: widget.childName,
+        avatarId: widget.avatarId,
+        onNavigateToIsland: (route) {
+          widget.onSelectGame(route);
+        },
+        onBonusStars: (b) {
+          widget.onBonusStars?.call(b);
+          _loadState();
+        },
+      ),
+    ).then((_) {
+      _loadState();
+    });
+  }
+
   void _scrollToCurrentIsland({bool immediate = false}) {
-    final targetIsland = _islands.firstWhere(
-      (i) => i.route == _selectedIslandRoute,
-      orElse: () => _islands.first,
-    );
+    final targetIndex = _islands.indexWhere((i) => i.route == _selectedIslandRoute);
+    final index = targetIndex >= 0 ? targetIndex : 0;
+    final targetY = (80.0 + index * 225.0 - 150.0).clamp(0.0, double.infinity);
 
     if (!_scrollController.hasClients) return;
     final maxScroll = _scrollController.position.maxScrollExtent;
-    final targetScroll = (targetIsland.mapPosition.dx - 220).clamp(0.0, maxScroll);
+    final targetScroll = targetY.clamp(0.0, maxScroll);
 
     if (immediate) {
       _scrollController.jumpTo(targetScroll);
@@ -437,6 +471,48 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 ),
               ),
 
+              // Daily Missions Shortcut Button
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: _openDailyMissionsDialog,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('📅', style: TextStyle(fontSize: 14)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Misi $_dailyMissionsCompleted/3',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFFB45309),
+                        ),
+                      ),
+                      if (_dailyStreakDays > 1) ...[
+                        const SizedBox(width: 4),
+                        Text('🔥$_dailyStreakDays',
+                            style: GoogleFonts.fredoka(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFFEA580C))),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
               // Trophy Showcase Shortcut Button
               if (widget.onOpenTrophies != null) ...[
                 const SizedBox(width: 8),
@@ -549,6 +625,49 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ],
+              // Child Avatar Profile Pill
+              if (widget.onOpenAvatarDialog != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    widget.onOpenAvatarDialog!();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFAF5FF), Color(0xFFF3E8FF)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFA855F7), width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ChildAvatarWidget(avatarId: widget.avatarId, size: 22, showGlow: false),
+                        const SizedBox(width: 6),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 80),
+                          child: Text(
+                            widget.childName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.fredoka(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF6B21A8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -594,6 +713,68 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
+
+        // 4. Floating Daily Mission Badge on Ocean Map
+        Positioned(
+          bottom: 16,
+          left: 16,
+          child: GestureDetector(
+            onTap: _openDailyMissionsDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFFBEB), Color(0xFFFEF08A)],
+                ),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFFF59E0B), width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x25000000),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('📅', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Misi Hari Ini',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF92400E),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text('🔥$_dailyStreakDays',
+                              style: const TextStyle(fontSize: 11)),
+                        ],
+                      ),
+                      Text(
+                        '$_dailyMissionsCompleted/3 Selesai (+Bintang)',
+                        style: GoogleFonts.nunito(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFFB45309),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -641,17 +822,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // 1. ADVENTURE MAP VIEW (LIVING ARCHIPELAGO)
   // ==========================================
   Widget _buildAdventureMapView() {
-    const mapCanvasWidth = 2050.0;
-    const mapCanvasHeight = 360.0;
-
-    final currentIsland = _islands.firstWhere(
-      (i) => i.route == _selectedIslandRoute,
-      orElse: () => _islands.first,
-    );
-
-    // Ship position is smoothly anchored near the selected island's dock
-    final shipTargetX = currentIsland.mapPosition.dx - 30;
-    final shipTargetY = currentIsland.mapPosition.dy + 75;
+    const mapCanvasHeight = 1960.0;
 
     return Container(
       decoration: const BoxDecoration(
@@ -668,102 +839,88 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final canvasHeight = constraints.maxHeight.isFinite && constraints.maxHeight > 0
-              ? constraints.maxHeight
-              : mapCanvasHeight;
+          final canvasWidth = math.max(constraints.maxWidth, 360.0);
+          final centerX = canvasWidth / 2;
+
+          // Compute vertical positions for the 8 islands
+          final List<Offset> islandPositions = [];
+          for (int i = 0; i < _islands.length; i++) {
+            final isLeft = i % 2 == 0;
+            // Alternating left and right along vertical ocean path
+            final islandX = isLeft ? (centerX - 150.0) : (centerX - 10.0);
+            final islandY = 80.0 + i * 225.0;
+            islandPositions.add(Offset(islandX, islandY));
+          }
+
+          final activeIndex = _islands.indexWhere((i) => i.route == _selectedIslandRoute);
+          final safeIndex = activeIndex >= 0 ? activeIndex : 0;
+          final currentPos = islandPositions[safeIndex];
+          final isLeft = safeIndex % 2 == 0;
+          final shipTargetX = isLeft ? currentPos.dx + 115 : currentPos.dx - 45;
+          final shipTargetY = currentPos.dy + 65;
+
           return SingleChildScrollView(
             controller: _scrollController,
-            scrollDirection: Axis.horizontal,
+            scrollDirection: Axis.vertical,
             physics: const BouncingScrollPhysics(),
             child: SizedBox(
-              height: canvasHeight,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: SizedBox(
-                  width: mapCanvasWidth,
-                  height: mapCanvasHeight,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-              // Custom Maritime Wave & Stepping Path Painter
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _MaritimePathPainter(
-                    islands: _islands,
-                    wavePhase: _waveController.value,
+              width: canvasWidth,
+              height: mapCanvasHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Maritime Path & Buoys
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _MaritimePathPainter(
+                        islandPositions: islandPositions,
+                        wavePhase: _waveController.value,
+                      ),
+                    ),
                   ),
-                ),
-              ),
 
-              // Interactive Living Ocean Elements: Jumping Dolphin & Whale
-              Positioned(
-                left: 480,
-                top: 70,
-                child: _buildInteractiveDolphin(),
-              ),
-              Positioned(
-                left: 960,
-                top: 75,
-                child: _buildInteractiveWhale(),
-              ),
+                  // Clouds Floating in the Sky
+                  Positioned(left: centerX - 160, top: 25, child: _buildSkyCloud(size: 34)),
+                  Positioned(left: centerX + 110, top: 250, child: _buildSkyCloud(size: 40)),
+                  Positioned(left: centerX - 170, top: 700, child: _buildSkyCloud(size: 36)),
+                  Positioned(left: centerX + 120, top: 1150, child: _buildSkyCloud(size: 38)),
+                  Positioned(left: centerX - 150, top: 1600, child: _buildSkyCloud(size: 36)),
 
-              // Clouds Floating in the Sky
-              Positioned(
-                left: 180,
-                top: 15,
-                child: _buildSkyCloud(size: 34),
-              ),
-              Positioned(
-                left: 700,
-                top: 20,
-                child: _buildSkyCloud(size: 40),
-              ),
-              Positioned(
-                left: 1200,
-                top: 12,
-                child: _buildSkyCloud(size: 36),
-              ),
-              Positioned(
-                left: 1480,
-                top: 18,
-                child: _buildSkyCloud(size: 38),
-              ),
-              Positioned(
-                left: 1760,
-                top: 14,
-                child: _buildSkyCloud(size: 36),
-              ),
-
-              // 8 Living Islands
-              ..._islands.map((island) {
-                final isSelected = island.route == _selectedIslandRoute;
-                final levelBadge = _getIslandLevelBadge(island.route);
-                final isChestOpened = _openedChests.contains(island.route);
-
-                return Positioned(
-                  left: island.mapPosition.dx,
-                  top: island.mapPosition.dy,
-                  child: _buildIsland3DWidget(
-                    island: island,
-                    isSelected: isSelected,
-                    levelBadge: levelBadge,
-                    isChestOpened: isChestOpened,
+                  // Interactive Living Ocean Elements: Jumping Dolphin & Whale
+                  Positioned(
+                    left: centerX + 75,
+                    top: 470,
+                    child: _buildInteractiveDolphin(),
                   ),
-                );
-              }),
-
-              // Captain Miko's Animated Sailing Ship
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 900),
-                curve: Curves.easeInOutCubic,
-                left: shipTargetX,
-                top: shipTargetY,
-                child: _buildSailingShipWidget(),
-              ),
-                    ],
+                  Positioned(
+                    left: centerX - 175,
+                    top: 1070,
+                    child: _buildInteractiveWhale(),
                   ),
-                ),
+
+                  // 8 Living Islands (Vertically placed)
+                  for (int i = 0; i < _islands.length; i++) ...[
+                    Positioned(
+                      left: islandPositions[i].dx,
+                      top: islandPositions[i].dy,
+                      child: _buildIsland3DWidget(
+                        island: _islands[i],
+                        isSelected: _islands[i].route == _selectedIslandRoute,
+                        levelBadge: _getIslandLevelBadge(_islands[i].route),
+                        isChestOpened: _openedChests.contains(_islands[i].route),
+                      ),
+                    ),
+                  ],
+
+                  // Captain Miko's Animated Sailing Ship
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeInOutCubic,
+                    left: shipTargetX,
+                    top: shipTargetY,
+                    child: _buildSailingShipWidget(),
+                  ),
+                ],
               ),
             ),
           );
@@ -1250,7 +1407,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }
 
   // ==========================================
-  // 2. QUICK CARDS VIEW (CLEAN RESPONSIVE GRID)
+  // 2. QUICK CARDS VIEW (RESPONSIVE VERTICAL GRID)
   // ==========================================
   Widget _buildQuickCardsView() {
     return Container(
@@ -1267,19 +1424,32 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          return Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(top: 58, left: 16, right: 16, bottom: 16),
-              scrollDirection: Axis.horizontal,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+          final isPhone = constraints.maxWidth < 480;
+          final cardWidth = isPhone
+              ? math.max(150.0, (constraints.maxWidth - 44) / 2)
+              : 215.0;
+          final cardHeight = isPhone ? 250.0 : 275.0;
+
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(top: 68, left: 16, right: 16, bottom: 32),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1060),
+                child: Wrap(
+                  spacing: 16,
+                  runSpacing: 20,
+                  alignment: WrapAlignment.center,
                   children: _islands.map((island) {
                     final levelBadge = _getIslandLevelBadge(island.route);
-                    return Container(
-                      margin: const EdgeInsets.only(right: 14),
-                      child: _buildIslandQuickCard(island, levelBadge),
+                    return SizedBox(
+                      width: cardWidth,
+                      height: cardHeight,
+                      child: _buildIslandQuickCard(
+                        island,
+                        levelBadge,
+                        isCompact: isPhone,
+                      ),
                     );
                   }).toList(),
                 ),
@@ -1291,10 +1461,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildIslandQuickCard(IslandData island, String levelBadge) {
+  Widget _buildIslandQuickCard(IslandData island, String levelBadge, {bool isCompact = false}) {
     return Container(
-      width: 210,
-      height: 270,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -1313,9 +1481,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           // Left Level Badge
           Positioned(
             top: -10,
-            left: 12,
+            left: 10,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
                 gradient: _isIslandMastered(island.route)
                     ? const LinearGradient(colors: [Color(0xFFFEF08A), Color(0xFFFBBF24)])
@@ -1341,7 +1509,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               child: Text(
                 levelBadge,
                 style: GoogleFonts.fredoka(
-                  fontSize: 10,
+                  fontSize: isCompact ? 9 : 10,
                   fontWeight: FontWeight.w900,
                   color: const Color(0xFF854D0E),
                 ),
@@ -1352,9 +1520,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           // Right Age Badge
           Positioned(
             top: -10,
-            right: 12,
+            right: 10,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: island.accentColor,
                 borderRadius: BorderRadius.circular(12),
@@ -1365,7 +1533,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               child: Text(
                 island.ageRecommendation,
                 style: GoogleFonts.nunito(
-                  fontSize: 11,
+                  fontSize: isCompact ? 9.5 : 11,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
                 ),
@@ -1374,39 +1542,47 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ),
 
           Padding(
-            padding: const EdgeInsets.all(14.0),
+            padding: EdgeInsets.all(isCompact ? 10.0 : 14.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const SizedBox(height: 6),
-                ObjectIllustrationWidget(illustrationKey: island.illustrationKey, size: 58),
+                SizedBox(height: isCompact ? 4 : 6),
+                ObjectIllustrationWidget(
+                  illustrationKey: island.illustrationKey,
+                  size: isCompact ? 46 : 58,
+                ),
                 Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       island.title,
                       style: GoogleFonts.fredoka(
-                        fontSize: 15,
+                        fontSize: isCompact ? 13 : 15,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xFF1E293B),
                       ),
                       textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       island.description,
                       style: GoogleFonts.fredoka(
-                        fontSize: 11,
+                        fontSize: isCompact ? 10 : 11,
                         fontWeight: FontWeight.w600,
                         color: const Color(0xFF64748B),
-                        height: 1.3,
+                        height: 1.25,
                       ),
                       textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
                 SizedBox(
                   width: double.infinity,
-                  height: 38,
+                  height: isCompact ? 34 : 38,
                   child: ElevatedButton(
                     onPressed: () {
                       _audio.playSfx('whoosh');
@@ -1420,11 +1596,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                       ),
+                      padding: EdgeInsets.zero,
                     ),
                     child: Text(
                       'Mulai Main',
                       style: GoogleFonts.fredoka(
-                        fontSize: 13,
+                        fontSize: isCompact ? 11.5 : 13,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
@@ -1442,31 +1619,31 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
 // Custom Painter for Maritime Dotted Paths, Waves, and Stepping Stones
 class _MaritimePathPainter extends CustomPainter {
-  final List<IslandData> islands;
+  final List<Offset> islandPositions;
   final double wavePhase;
 
-  _MaritimePathPainter({required this.islands, required this.wavePhase});
+  _MaritimePathPainter({required this.islandPositions, required this.wavePhase});
 
   @override
   void paint(Canvas canvas, Size size) {
     final pathPaint = Paint()
-      ..color = Colors.white.withAlpha(150)
+      ..color = Colors.white.withAlpha(160)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.5
       ..strokeCap = StrokeCap.round;
 
     final glowPaint = Paint()
-      ..color = const Color(0xFFFDE047).withAlpha(120)
+      ..color = const Color(0xFFFDE047).withAlpha(130)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 7.0;
 
-    // Draw maritime curved route between islands
-    for (int i = 0; i < islands.length - 1; i++) {
-      final p1 = islands[i].mapPosition + const Offset(85, 120);
-      final p2 = islands[i + 1].mapPosition + const Offset(85, 120);
+    // Draw maritime curved route between vertical islands
+    for (int i = 0; i < islandPositions.length - 1; i++) {
+      final p1 = islandPositions[i] + const Offset(80, 95);
+      final p2 = islandPositions[i + 1] + const Offset(80, 95);
 
-      final midX = (p1.dx + p2.dx) / 2;
-      final midY = (p1.dy + p2.dy) / 2 + (i % 2 == 0 ? 35 : -35);
+      final midX = (p1.dx + p2.dx) / 2 + (i % 2 == 0 ? 35 : -35);
+      final midY = (p1.dy + p2.dy) / 2;
 
       final curvePath = Path()
         ..moveTo(p1.dx, p1.dy)
@@ -1479,18 +1656,18 @@ class _MaritimePathPainter extends CustomPainter {
       _drawBuoy(canvas, Offset(midX, midY), i + 1);
     }
 
-    // Draw ambient ocean waves
+    // Draw ambient ocean waves throughout vertical height
     final wavePaint = Paint()
       ..color = Colors.white.withAlpha(35)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
-    for (double x = 40; x < size.width; x += 160) {
-      final waveY = 310 + math.sin((x / 80) + wavePhase * math.pi * 2) * 6;
+    for (double y = 60; y < size.height; y += 120) {
+      final waveX = (size.width / 2) + math.sin((y / 70) + wavePhase * math.pi * 2) * 50 - 50;
       final wave = Path()
-        ..moveTo(x, waveY)
-        ..quadraticBezierTo(x + 20, waveY - 8, x + 40, waveY)
-        ..quadraticBezierTo(x + 60, waveY + 8, x + 80, waveY);
+        ..moveTo(waveX - 40, y)
+        ..quadraticBezierTo(waveX - 20, y - 6, waveX, y)
+        ..quadraticBezierTo(waveX + 20, y + 6, waveX + 40, y);
       canvas.drawPath(wave, wavePaint);
     }
   }
