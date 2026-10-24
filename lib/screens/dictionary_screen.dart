@@ -4,6 +4,7 @@ import '../models/dictionary_models.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
 import '../widgets/vector_illustrations.dart';
+import '../widgets/voice_record_dialog.dart';
 
 class DictionaryScreen extends StatefulWidget {
   final Function(int count) onVictory;
@@ -73,6 +74,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   void _openWordInspector(DictionaryWordItem word) async {
     _audio.playSfx('pop');
     _audio.speak(word.word);
+    StorageService.updateDailyMissionProgress('dict', 1);
 
     final wasNewlyLearned = await StorageService.markWordLearned(word.word);
     if (wasNewlyLearned) {
@@ -1000,82 +1002,110 @@ class _WordInspectorDialogState extends State<_WordInspectorDialog>
 
                           const SizedBox(height: 14),
 
-                          // 4. ACTION BUTTONS: Baca Utuh & Fonik
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    widget.audio.playSfx('sparkle');
-                                    widget.audio.speak(word.word);
-                                  },
-                                  icon: const Text('🗣️', style: TextStyle(fontSize: 16)),
-                                  label: Text(
-                                    'Baca Utuh',
-                                    style: GoogleFonts.fredoka(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0284C7),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
+                          // 4. ACTION BUTTONS: Baca Utuh, Fonik, Kalimat, Suaraku
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  widget.audio.playSfx('sparkle');
+                                  widget.audio.speak(word.word);
+                                },
+                                icon: const Text('🗣️', style: TextStyle(fontSize: 16)),
+                                label: Text(
+                                  'Baca Utuh',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    widget.audio.playSfx('ding');
-                                    widget.audio.speak(word.phonicSound);
-                                  },
-                                  icon: const Text('🔤', style: TextStyle(fontSize: 16)),
-                                  label: Text(
-                                    'Bunyi Fonik',
-                                    style: GoogleFonts.fredoka(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFF59E0B),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0284C7),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    widget.audio.playSfx('cheer');
-                                    widget.audio.speak(word.sentence);
-                                  },
-                                  icon: const Text('📖', style: TextStyle(fontSize: 16)),
-                                  label: Text(
-                                    'Kalimat',
-                                    style: GoogleFonts.fredoka(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF10B981),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  widget.audio.playSfx('ding');
+                                  widget.audio.speak(word.phonicSound);
+                                },
+                                icon: const Text('🔤', style: TextStyle(fontSize: 16)),
+                                label: Text(
+                                  'Bunyi Fonik',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
-                            ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFF59E0B),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  widget.audio.playSfx('cheer');
+                                  widget.audio.speak(word.sentence);
+                                },
+                                icon: const Text('📖', style: TextStyle(fontSize: 16)),
+                                label: Text(
+                                  'Kalimat',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => VoiceRecordDialog(
+                                      recordingKey: 'dict_${word.word}',
+                                      wordOrLetter: word.word,
+                                      displayLabel: 'Kata ${word.word}',
+                                      category: 'Kata',
+                                      illustrationKey: word.illustrationKey,
+                                      phoneticTip: word.sentence,
+                                    ),
+                                  );
+                                },
+                                icon: const Text('🎙️', style: TextStyle(fontSize: 16)),
+                                label: Text(
+                                  'Suaraku',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF7E22CE),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
 
                           const SizedBox(height: 14),
