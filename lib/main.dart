@@ -11,6 +11,7 @@ import 'widgets/rest_time_dialog.dart';
 import 'widgets/daily_reward_dialog.dart';
 import 'widgets/trophy_showcase_dialog.dart';
 import 'widgets/settings_dialog.dart';
+import 'widgets/child_avatar_widget.dart';
 import 'screens/map_screen.dart';
 import 'screens/tracing_screen.dart';
 import 'screens/train_screen.dart';
@@ -90,6 +91,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
   List<String> _unlockedStickers = ['stk_apel'];
   String _currentRoute = 'map';
   String _mascotText = 'Hai! Ayo bertualang dan belajar membaca bersama Miko!';
+  String _childAvatar = 'miko';
+  String _childName = 'Petualang Hebat';
 
   // Screen Time Limiter variables
   int _limitMinutes = 0;
@@ -117,6 +120,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
     final limit = await StorageService.getScreenTimeLimit();
     final todaySec = await StorageService.getTodayPlayTimeSeconds();
     final canDaily = await StorageService.canClaimDailyReward();
+    final avatar = await StorageService.getChildAvatar();
+    final name = await StorageService.getChildName();
     if (mounted) {
       setState(() {
         _stars = stars;
@@ -124,6 +129,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         _limitMinutes = limit;
         _todayPlayTimeSeconds = todaySec;
         _hasDailyReward = canDaily;
+        _childAvatar = avatar;
+        _childName = name;
       });
       _startPlayTimer();
       AudioService().startBgm();
@@ -262,11 +269,30 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
     );
   }
 
+  void _openAvatarSelectionDialog() async {
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (_) => AvatarSelectionDialog(
+        currentAvatarId: _childAvatar,
+        currentChildName: _childName,
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _childAvatar = result['avatarId'] ?? _childAvatar;
+        _childName = result['childName'] ?? _childName;
+      });
+    }
+  }
+
   void _openSettingsDialog() {
     showDialog(
       context: context,
       builder: (_) => SettingsDialog(
         onOpenParentalGate: _openParentalGate,
+        currentAvatarId: _childAvatar,
+        currentChildName: _childName,
+        onOpenAvatarDialog: _openAvatarSelectionDialog,
       ),
     );
   }
@@ -310,6 +336,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
                 mascotText: _mascotText,
                 stars: _stars,
                 hasDailyReward: _hasDailyReward,
+                avatarId: _childAvatar,
+                onAvatarPressed: _openAvatarSelectionDialog,
                 onDailyRewardPressed: _openDailyRewardDialog,
                 onTrophyPressed: _openTrophyShowcase,
                 onDictionaryPressed: () => _navigateTo('dictionary'),
@@ -380,6 +408,9 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           onBonusStars: _addStars,
           onOpenTrophies: _openTrophyShowcase,
           onOpenSettings: _openSettingsDialog,
+          avatarId: _childAvatar,
+          childName: _childName,
+          onOpenAvatarDialog: _openAvatarSelectionDialog,
         );
     }
   }
