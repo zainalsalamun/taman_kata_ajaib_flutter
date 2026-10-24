@@ -1,11 +1,16 @@
 package com.tamankata.app.taman_kata_ajaib_flutter
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.media.MediaPlayer
+import android.media.MediaRecorder
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import kotlin.concurrent.thread
 import kotlin.math.PI
 import kotlin.math.exp
@@ -15,6 +20,8 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.tamankata.app/audio"
     @Volatile private var isBgmPlaying = false
     private var bgmThread: Thread? = null
+    private var mediaRecorder: MediaRecorder? = null
+    private var mediaPlayer: MediaPlayer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -36,9 +43,134 @@ class MainActivity : FlutterActivity() {
                 "playAsset" -> {
                     result.success(false)
                 }
+                "startRecording" -> {
+                    val key = call.argument<String>("key") ?: "temp"
+                    val success = startRecording(key)
+                    result.success(success)
+                }
+                "stopRecording" -> {
+                    val success = stopRecording()
+                    result.success(success)
+                }
+                "playRecording" -> {
+                    val key = call.argument<String>("key") ?: "temp"
+                    val success = playRecording(key)
+                    result.success(success)
+                }
+                "stopPlayback" -> {
+                    stopPlayback()
+                    result.success(true)
+                }
+                "hasRecording" -> {
+                    val key = call.argument<String>("key") ?: "temp"
+                    result.success(hasRecording(key))
+                }
+                "deleteRecording" -> {
+                    val key = call.argument<String>("key") ?: "temp"
+                    result.success(deleteRecording(key))
+                }
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun startRecording(key: String): Boolean {
+        return try {
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 101)
+                return false
+            }
+            mediaRecorder?.apply {
+                try { stop() } catch (_: Exception) {}
+                release()
+            }
+            val sanitizedKey = key.replace("[^a-zA-Z0-9_-]".toRegex(), "_")
+            val file = File(cacheDir, "rec_$sanitizedKey.m4a")
+            if (file.exists()) file.delete()
+
+            mediaRecorder = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                MediaRecorder(this)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(file.absolutePath)
+                prepare()
+                start()
+            }
+            true
+        } catch (e: Exception) {
+            mediaRecorder?.release()
+            mediaRecorder = null
+            false
+        }
+    }
+
+    private fun stopRecording(): Boolean {
+        return try {
+            mediaRecorder?.apply {
+                stop()
+                release()
+            }
+            mediaRecorder = null
+            true
+        } catch (e: Exception) {
+            mediaRecorder?.release()
+            mediaRecorder = null
+            false
+        }
+    }
+
+    private fun playRecording(key: String): Boolean {
+        return try {
+            mediaPlayer?.apply {
+                if (isPlaying) stop()
+                release()
+            }
+            val sanitizedKey = key.replace("[^a-zA-Z0-9_-]".toRegex(), "_")
+            val file = File(cacheDir, "rec_$sanitizedKey.m4a")
+            if (!file.exists() || file.length() == 0L) return false
+
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(file.absolutePath)
+                prepare()
+                start()
+                setOnCompletionListener {
+                    it.release()
+                    mediaPlayer = null
+                }
+            }
+            true
+        } catch (e: Exception) {
+            mediaPlayer?.release()
+            mediaPlayer = null
+            false
+        }
+    }
+
+    private fun stopPlayback() {
+        try {
+            mediaPlayer?.apply {
+                if (isPlaying) stop()
+                release()
+            }
+            mediaPlayer = null
+        } catch (_: Exception) {}
+    }
+
+    private fun hasRecording(key: String): Boolean {
+        val sanitizedKey = key.replace("[^a-zA-Z0-9_-]".toRegex(), "_")
+        val file = File(cacheDir, "rec_$sanitizedKey.m4a")
+        return file.exists() && file.length() > 0L
+    }
+
+    private fun deleteRecording(key: String): Boolean {
+        val sanitizedKey = key.replace("[^a-zA-Z0-9_-]".toRegex(), "_")
+        val file = File(cacheDir, "rec_$sanitizedKey.m4a")
+        return if (file.exists()) file.delete() else true
     }
 
     private fun playProceduralSfx(sfxType: String) {
