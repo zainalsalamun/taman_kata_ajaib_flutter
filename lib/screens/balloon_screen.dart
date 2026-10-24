@@ -197,6 +197,7 @@ class _BalloonScreenState extends State<BalloonScreen>
       HapticFeedback.mediumImpact();
       _audio.playSfx('pop');
       _audio.speak('Pop! ${item.word}! Benar!');
+      StorageService.updateDailyMissionProgress('balloon', 1);
 
       Future.delayed(const Duration(milliseconds: 400), () async {
         if (!mounted) return;
