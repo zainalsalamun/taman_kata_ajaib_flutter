@@ -300,6 +300,7 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
     HapticFeedback.heavyImpact();
     _audio.playSfx('star');
     _audio.speak('Hore! Kata ${_current.word} berhasil ditemukan!');
+    StorageService.updateDailyMissionProgress('maze', 1);
 
     final hasMoreInLevel = _currentIndex + 1 < _mazeWords.length;
 
