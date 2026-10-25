@@ -9,6 +9,7 @@ import '../widgets/island_mastery_dialog.dart';
 import '../widgets/level_selector_ribbon.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/voice_record_dialog.dart';
 
 class TrainScreen extends StatefulWidget {
   final Function(int starsAdded) onVictory;
@@ -119,6 +120,7 @@ class _TrainScreenState extends State<TrainScreen>
         // Success
         HapticFeedback.mediumImpact();
         _audio.playSfx('tuut');
+        StorageService.updateDailyMissionProgress('train', 1);
         Future.delayed(const Duration(milliseconds: 300), () {
           final syllablesSpelled = _current.syllables.join('... ');
           _audio.speak(
@@ -269,6 +271,32 @@ class _TrainScreenState extends State<TrainScreen>
                     icon: 'speaker',
                     size: 16,
                     color: Color(0xFF854D0E)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => VoiceRecordDialog(
+                    recordingKey: 'train_${_current.word}',
+                    wordOrLetter: _current.word,
+                    displayLabel: 'Kata ${_current.word}',
+                    category: 'Suku Kata',
+                    illustrationKey: _current.illustrationKey,
+                    phoneticTip: 'Susun kata ${_current.word}!',
+                    onBonusStars: (b) => widget.onVictory(b),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3E8FF),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFD8B4FE), width: 1.5),
+                ),
+                child: const Text('🎙️', style: TextStyle(fontSize: 14)),
               ),
             ),
           ],
