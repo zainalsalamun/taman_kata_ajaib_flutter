@@ -117,6 +117,7 @@ class _QuizScreenState extends State<QuizScreen>
       // Correct!
       HapticFeedback.mediumImpact();
       _audio.playSfx('ding');
+      StorageService.updateDailyMissionProgress('quiz', 1);
       setState(() {
         _isAnswered = true;
       });
