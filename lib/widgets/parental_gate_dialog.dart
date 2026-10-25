@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/storage_service.dart';
 import '../services/audio_service.dart';
 import 'vector_illustrations.dart';
+import 'child_avatar_widget.dart';
+import '../services/voice_recording_service.dart';
 
 class TrophyDef {
   final String id;
@@ -145,6 +147,46 @@ const List<TrophyDef> _allTrophies = [
     desc: 'Tamat Tingkat 3: Taklukkan labirin kata kaya 3 suku kata',
     glowColor: Color(0xFFEA580C),
   ),
+  TrophyDef(
+    id: 'voice_first_star',
+    title: 'Bintang Suara Pertama',
+    icon: '🎙️',
+    island: 'Suaraku Ajaib',
+    desc: 'Rekam suaramu menirukan bunyi huruf atau kata pertama kali!',
+    glowColor: Color(0xFFA855F7),
+  ),
+  TrophyDef(
+    id: 'voice_master',
+    title: 'Penyiar Cilik Berbakat',
+    icon: '🌟',
+    island: 'Suaraku Ajaib',
+    desc: 'Koleksi 5+ rekaman suara ananda di Galeri Suara!',
+    glowColor: Color(0xFFF59E0B),
+  ),
+  TrophyDef(
+    id: 'daily_mission_master',
+    title: 'Penakluk Misi Harian',
+    icon: '🏆',
+    island: 'Misi Harian',
+    desc: 'Tuntaskan ketiga misi belajar harian dalam satu hari penuh!',
+    glowColor: Color(0xFF10B981),
+  ),
+  TrophyDef(
+    id: 'streak_3_star',
+    title: 'Bintang Rajin 3 Hari',
+    icon: '🔥',
+    island: 'Misi Harian',
+    desc: 'Belajar dan selesaikan misi 3 hari berturut-turut tanpa putus!',
+    glowColor: Color(0xFFF97316),
+  ),
+  TrophyDef(
+    id: 'streak_7_champion',
+    title: 'Juara Konsistensi 7 Hari',
+    icon: '👑',
+    island: 'Misi Harian',
+    desc: 'Taklukkan runtutan belajar 7 hari penuh dan raih Peti Emas!',
+    glowColor: Color(0xFFEAB308),
+  ),
 ];
 
 class ParentalGateDialog extends StatefulWidget {
@@ -173,6 +215,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
   int _todaySeconds = 0;
   int _activeTab = 0; // 0: Trofi, 1: Rapor, 2: Waktu & Reset
   String _childName = 'Juara Cilik';
+  String _childAvatar = 'miko';
   int _trophyFilterIndex = 0; // 0: Semua, 1: Diraih, 2: Terkunci
   String? _tappedTrophyId;
 
@@ -184,6 +227,8 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
   int _tracingIndex = 0;
   int _storiesCount = 0;
   int _stickersCount = 0;
+  List<Map<String, dynamic>> _voiceRecordings = [];
+  String? _activePlayingVoiceKey;
 
   @override
   void initState() {
@@ -204,6 +249,8 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
     final stories = await StorageService.getCompletedStories();
     final stickers = await StorageService.getUnlockedStickers();
     final name = await StorageService.getChildName();
+    final avatar = await StorageService.getChildAvatar();
+    final recordings = await StorageService.getVoiceRecordingMetas();
 
     if (stories.length >= 4 && !trophies.contains('story_comprehension_master')) {
       await StorageService.addTrophy('story_comprehension_master');
@@ -223,6 +270,8 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
         _storiesCount = stories.length;
         _stickersCount = stickers.length;
         _childName = name;
+        _childAvatar = avatar;
+        _voiceRecordings = recordings;
       });
     }
   }
@@ -576,7 +625,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
         ),
         const SizedBox(height: 8),
 
-        // Tabs Selector (Trofi, Rapor, Pengaturan)
+        // Tabs Selector (Trofi, Rapor, Pengaturan, Galeri Suara)
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
@@ -599,6 +648,12 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                 index: 2,
                 icon: '⚙️',
                 label: 'Waktu, Suara & Reset',
+              ),
+              const SizedBox(width: 6),
+              _buildTabButton(
+                index: 3,
+                icon: '🎙️',
+                label: 'Galeri Suara (${_voiceRecordings.length})',
               ),
             ],
           ),
@@ -665,8 +720,11 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
       case 1:
         return _buildLearningReport();
       case 2:
-      default:
         return _buildSettingsAndReset();
+      case 3:
+        return _buildVoiceRecordingsGallery();
+      default:
+        return _buildLuxuryTrophyCabinet();
     }
   }
 
@@ -1111,12 +1169,18 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                           ),
                           const SizedBox(height: 6),
 
-                          // Recipient Child Name with Edit Pen Button
+                          // Recipient Child Name with Avatar & Edit Button
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                ChildAvatarWidget(
+                                  avatarId: _childAvatar,
+                                  size: 38,
+                                  showGlow: true,
+                                ),
+                                const SizedBox(width: 10),
                                 Text(
                                   _childName,
                                   style: GoogleFonts.fredoka(
@@ -1129,7 +1193,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                                 GestureDetector(
                                   onTap: () => _editChildNameDialog(setDialogState),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF3E8FF),
                                       borderRadius: BorderRadius.circular(10),
@@ -1141,7 +1205,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                                         const Icon(Icons.edit_rounded, size: 12, color: Color(0xFF7E22CE)),
                                         const SizedBox(width: 3),
                                         Text(
-                                          'Ubah Nama',
+                                          'Ubah Profil',
                                           style: GoogleFonts.fredoka(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
@@ -1328,66 +1392,26 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
     );
   }
 
-  void _editChildNameDialog(StateSetter setDialogState) {
-    final textController = TextEditingController(text: _childName);
-    showDialog(
+  void _editChildNameDialog(StateSetter setDialogState) async {
+    final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Nama Ananda Juara',
-          style: GoogleFonts.fredoka(fontWeight: FontWeight.bold, color: const Color(0xFF7E22CE)),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ketik nama ananda agar tercantum indah di sertifikat penghargaan:',
-              style: GoogleFonts.nunito(fontSize: 12, color: const Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: textController,
-              autofocus: true,
-              style: GoogleFonts.fredoka(fontSize: 16, fontWeight: FontWeight.bold),
-              decoration: InputDecoration(
-                hintText: 'Contoh: Aisyah, Kenzo, Fatih',
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7E22CE),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () {
-              final newName = textController.text.trim();
-              if (newName.isNotEmpty) {
-                setState(() {
-                  _childName = newName;
-                });
-                setDialogState(() {
-                  _childName = newName;
-                });
-                StorageService.saveChildName(newName);
-                AudioService().speak('Nama ananda tersimpan sebagai $newName!');
-              }
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Simpan', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+      builder: (ctx) => AvatarSelectionDialog(
+        currentAvatarId: _childAvatar,
+        currentChildName: _childName,
       ),
     );
+    if (result != null && mounted) {
+      final newAvatar = result['avatarId'] ?? _childAvatar;
+      final newName = result['childName'] ?? _childName;
+      setState(() {
+        _childAvatar = newAvatar;
+        _childName = newName;
+      });
+      setDialogState(() {
+        _childAvatar = newAvatar;
+        _childName = newName;
+      });
+    }
   }
 
   Widget _buildCertificateMiniBadge({
@@ -1707,6 +1731,66 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 0. Child Profile Card
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFAF5FF), Color(0xFFF3E8FF)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFD8B4FE), width: 1.5),
+            ),
+            child: Row(
+              children: [
+                ChildAvatarWidget(avatarId: _childAvatar, size: 48, showGlow: true),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Profil Petualang Cilik',
+                        style: GoogleFonts.nunito(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF7E22CE),
+                        ),
+                      ),
+                      Text(
+                        _childName,
+                        style: GoogleFonts.fredoka(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF581C87),
+                        ),
+                      ),
+                      Text(
+                        'Sahabat: ${ChildAvatarData.getAvatar(_childAvatar).name}',
+                        style: GoogleFonts.nunito(
+                          fontSize: 11,
+                          color: const Color(0xFF6B21A8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => _editChildNameDialog(setState),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7E22CE),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Ubah Profil', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // 1. Screen Time Section
           Container(
             padding: const EdgeInsets.all(12),
@@ -1923,14 +2007,53 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                const Divider(color: Color(0xFFBBF7D0), height: 1),
+                const SizedBox(height: 10),
+
+                // Voice Speech Rate Selector
+                Text(
+                  '🐢 Kecepatan Pelafalan Pemandu',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF14532D),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    // Option: Santai (0.75x)
+                    Expanded(
+                      child: _buildVoiceSpeedOption(
+                        speed: 'slow',
+                        icon: '🐢',
+                        title: 'Mode Santai',
+                        subtitle: '0.75x (Balita/Pemula)',
+                        isSelected: AudioService().speechSpeed == 'slow',
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Option: Ceria (1.0x)
+                    Expanded(
+                      child: _buildVoiceSpeedOption(
+                        speed: 'normal',
+                        icon: '🐰',
+                        title: 'Mode Ceria',
+                        subtitle: '1.0x (Anak Lancar)',
+                        isSelected: AudioService().speechSpeed != 'slow',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
                 // Test Speech button & Engine info
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
                       child: Text(
-                        AudioService().engineStatus,
+                        '${AudioService().engineStatus} • ${AudioService().isSlowSpeed ? "Santai 🐢 (0.75x)" : "Ceria 🐰 (1.0x)"}',
                         style: GoogleFonts.nunito(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -1944,10 +2067,19 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
                     GestureDetector(
                       onTap: () {
                         HapticFeedback.lightImpact();
+                        final isSlow = AudioService().isSlowSpeed;
                         if (AudioService().voiceGender == 'male') {
-                          AudioService().speak('Halo! Aku Miko, suara laki-laki siap menemani belajar!');
+                          AudioService().speak(
+                            isSlow
+                                ? 'Ha-lo! A-ku Mi-ko, mo-de san-tai un-tuk be-la-jar!'
+                                : 'Halo! Aku Miko, suara laki-laki siap menemani belajar!',
+                          );
                         } else {
-                          AudioService().speak('Halo! Aku Miko, suara perempuan siap menemani belajar!');
+                          AudioService().speak(
+                            isSlow
+                                ? 'Ha-lo! A-ku Mi-ko, mo-de san-tai un-tuk be-la-jar!'
+                                : 'Halo! Aku Miko, suara perempuan siap menemani belajar!',
+                          );
                         }
                       },
                       child: Container(
@@ -2198,6 +2330,454 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
         ),
       ),
     );
+  }
+
+  Widget _buildVoiceSpeedOption({
+    required String speed,
+    required String icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.mediumImpact();
+        await AudioService().setSpeechSpeed(speed);
+        setState(() {});
+        final isSlow = speed == 'slow';
+        if (AudioService().voiceGender == 'male') {
+          AudioService().speak(
+            isSlow
+                ? 'Ha-lo! Mo-de san-tai ak-tif.'
+                : 'Halo! Mode ceria aktif!',
+          );
+        } else {
+          AudioService().speak(
+            isSlow
+                ? 'Ha-lo! Mo-de san-tai ak-tif.'
+                : 'Halo! Mode ceria aktif!',
+          );
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFDCFCE7) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF16A34A) : const Color(0xFFD1D5DB),
+            width: isSelected ? 2.5 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF16A34A).withAlpha(40),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? const Color(0xFF14532D)
+                                : const Color(0xFF334155),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFF16A34A),
+                          size: 14,
+                        ),
+                      ],
+                    ],
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.nunito(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    VoiceRecordingService().stopPlayback();
+    super.dispose();
+  }
+
+  // --- TAB 4: GALERI SUARA ANANDA ---
+  Widget _buildVoiceRecordingsGallery() {
+    if (_voiceRecordings.isEmpty) {
+      return Center(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFE9D5FF), width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x107E22CE),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3E8FF),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFD8B4FE), width: 3),
+                  ),
+                  child: const Center(
+                    child: Text('🎙️', style: TextStyle(fontSize: 40)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Belum Ada Rekaman Suara',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF581C87),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ajak $_childName menekan tombol 🎙️ "Rekam Suaraku" saat bermain Menulis Huruf, Kereta Kata, atau Kamus Kata.\n\nSetiap rekaman akan tersimpan di sini agar Ayah & Bunda bisa mendengarkan pelafalan ananda dan memberikan apresiasi! ⭐',
+                  style: GoogleFonts.nunito(
+                    fontSize: 12.5,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Top Info Header Banner
+        Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFAF5FF), Color(0xFFF3E8FF)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFD8B4FE), width: 1.5),
+          ),
+          child: Row(
+            children: [
+              const Text('🎙️', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Galeri Suara Emas Ananda (${_voiceRecordings.length} Rekaman)',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF6B21A8),
+                      ),
+                    ),
+                    Text(
+                      'Dengarkan pelafalan kata & huruf yang telah direkam oleh $_childName!',
+                      style: GoogleFonts.nunito(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF7E22CE),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // List of Recording Cards
+        Expanded(
+          child: ListView.separated(
+            physics: const BouncingScrollPhysics(),
+            itemCount: _voiceRecordings.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final rec = _voiceRecordings[index];
+              final key = rec['key'] as String? ?? '';
+              final word = rec['wordOrLetter'] as String? ?? '';
+              final label = rec['displayLabel'] as String? ?? '';
+              final category = rec['category'] as String? ?? 'Kata';
+              final avatar = rec['avatarId'] as String? ?? _childAvatar;
+              final recordedAt = rec['recordedAt'] as String? ?? '';
+              final duration = (rec['durationSeconds'] as num?)?.toInt() ?? 2;
+              final isPlaying = _activePlayingVoiceKey == key;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isPlaying ? const Color(0xFFA855F7) : const Color(0xFFE2E8F0),
+                    width: isPlaying ? 2 : 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isPlaying ? const Color(0x257E22CE) : const Color(0x08000000),
+                      blurRadius: isPlaying ? 8 : 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Child Avatar with mic badge
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        ChildAvatarWidget(avatarId: avatar, size: 38, showGlow: false),
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF9333EA),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Text('🎙️', style: TextStyle(fontSize: 9)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Word and Meta Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                word,
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3E8FF),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  category,
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF7E22CE),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$label • ${_formatRecordingDate(recordedAt)} • ${duration}s',
+                            style: GoogleFonts.nunito(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Playback Button (Child Voice)
+                    ElevatedButton.icon(
+                      onPressed: () => _toggleVoicePlayback(key, word, duration),
+                      icon: Text(isPlaying ? '⏹️' : '▶️', style: const TextStyle(fontSize: 13)),
+                      label: Text(
+                        isPlaying ? 'Stop' : 'Suaraku',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isPlaying ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+
+                    // Compare with Teacher Audio
+                    IconButton(
+                      icon: const Text('🗣️', style: TextStyle(fontSize: 16)),
+                      tooltip: 'Dengar Suara Pemandu',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        AudioService().speak(word);
+                      },
+                    ),
+
+                    // Delete Recording Button
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFF94A3B8), size: 18),
+                      tooltip: 'Hapus Rekaman',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      onPressed: () => _confirmDeleteRecording(key, word),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _toggleVoicePlayback(String key, String word, int durationSec) async {
+    HapticFeedback.selectionClick();
+    if (_activePlayingVoiceKey == key) {
+      await VoiceRecordingService().stopPlayback();
+      if (mounted) {
+        setState(() => _activePlayingVoiceKey = null);
+      }
+      return;
+    }
+
+    setState(() => _activePlayingVoiceKey = key);
+    final success = await VoiceRecordingService().playRecording(key);
+    if (!success) {
+      await AudioService().speak(word);
+    }
+
+    Future.delayed(Duration(seconds: math.max(2, durationSec + 1)), () {
+      if (mounted && _activePlayingVoiceKey == key) {
+        setState(() => _activePlayingVoiceKey = null);
+      }
+    });
+  }
+
+  void _confirmDeleteRecording(String key, String word) async {
+    HapticFeedback.mediumImpact();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Hapus Rekaman?',
+          style: GoogleFonts.fredoka(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Apakah Ayah/Bunda ingin menghapus rekaman suara untuk "$word"?',
+          style: GoogleFonts.nunito(fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Batal', style: GoogleFonts.fredoka(color: const Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Hapus', style: GoogleFonts.fredoka(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await VoiceRecordingService().deleteRecording(key);
+      final updated = await StorageService.getVoiceRecordingMetas();
+      if (mounted) {
+        setState(() {
+          _voiceRecordings = updated;
+          if (_activePlayingVoiceKey == key) {
+            _activePlayingVoiceKey = null;
+          }
+        });
+      }
+    }
+  }
+
+  String _formatRecordingDate(String isoString) {
+    final dt = DateTime.tryParse(isoString);
+    if (dt == null) return '';
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '${dt.day} ${months[dt.month - 1]}, $hour:$minute';
   }
 }
 
