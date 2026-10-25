@@ -9,6 +9,7 @@ import '../widgets/island_mastery_dialog.dart';
 import '../widgets/level_selector_ribbon.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/voice_record_dialog.dart';
 
 enum BrushType { solid, rainbow, glitter }
 
@@ -251,6 +252,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     final rate = hits / _current.guidePoints.length;
     if (rate >= 0.75 && !_isCompleted) {
       _isCompleted = true;
+      StorageService.updateDailyMissionProgress('trace', 1);
 
       // Determine Star Rating: 1 to 3 stars
       int awardedStars = 3;
@@ -473,29 +475,80 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Speaker Audio Pill
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE0F2FE),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFFBAE6FD)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.volume_up_rounded, size: 14, color: Color(0xFF0284C7)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Dengar Suara',
-                                    style: GoogleFonts.fredoka(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF0369A1),
+                            // Speaker Audio & Voice Record Pills
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    _audio.speak('${_current.letter}! ${_current.word}!');
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE0F2FE),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: const Color(0xFFBAE6FD)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.volume_up_rounded, size: 14, color: Color(0xFF0284C7)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Dengar',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF0369A1),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (ctx) => VoiceRecordDialog(
+                                        recordingKey: 'tracing_${_current.letter}',
+                                        wordOrLetter: _current.letter,
+                                        displayLabel: 'Huruf ${_current.letter}',
+                                        category: 'Huruf',
+                                        illustrationKey: _current.illustrationKey,
+                                        phoneticTip: '${_current.letter}! ${_current.word}!',
+                                        onBonusStars: (b) => widget.onVictory(b),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3E8FF),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: const Color(0xFFD8B4FE)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text('🎙️', style: TextStyle(fontSize: 11)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Rekam',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFF7E22CE),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             ObjectIllustrationWidget(
                               illustrationKey: _current.illustrationKey,
@@ -692,6 +745,27 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
               icon: const Icon(Icons.volume_up_rounded, color: Color(0xFF0284C7), size: 20),
               onPressed: () {
                 _audio.speak('${_current.letter}! ${_current.word}!');
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Text('🎙️', style: TextStyle(fontSize: 18)),
+              tooltip: 'Rekam Suaraku',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => VoiceRecordDialog(
+                    recordingKey: 'tracing_${_current.letter}',
+                    wordOrLetter: _current.letter,
+                    displayLabel: 'Huruf ${_current.letter}',
+                    category: 'Huruf',
+                    illustrationKey: _current.illustrationKey,
+                    phoneticTip: '${_current.letter}! ${_current.word}!',
+                    onBonusStars: (b) => widget.onVictory(b),
+                  ),
+                );
               },
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
