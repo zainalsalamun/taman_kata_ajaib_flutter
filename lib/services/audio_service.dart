@@ -14,6 +14,7 @@ class AudioService {
   bool _isMuted = false;
   bool _isBgmMuted = false;
   String _voiceGender = 'female';
+  String _speechSpeed = 'normal';
 
   static final Map<String, String> _phonicsMap = {
     'A': 'Aa',
@@ -47,6 +48,7 @@ class AudioService {
   AudioService._internal() {
     _platform.init();
     _initVoiceGender();
+    _initSpeechSpeed();
   }
 
   Future<void> _initVoiceGender() async {
@@ -57,11 +59,22 @@ class AudioService {
     } catch (_) {}
   }
 
+  Future<void> _initSpeechSpeed() async {
+    try {
+      final saved = await StorageService.getSpeechSpeed();
+      _speechSpeed = saved;
+      final rate = _speechSpeed == 'slow' ? 0.75 : 1.0;
+      await _platform.setSpeechRate(rate);
+    } catch (_) {}
+  }
+
   bool get isMuted => _isMuted;
   bool get isBgmMuted => _isBgmMuted;
   bool get isBgmPlaying => _assetPlayer.isBgmPlaying;
   String get engineStatus => _platform.getEngineStatus();
   String get voiceGender => _voiceGender;
+  String get speechSpeed => _speechSpeed;
+  bool get isSlowSpeed => _speechSpeed == 'slow';
 
   /// Sets voice gender ('female' or 'male') and persists selection
   Future<void> setVoiceGender(String gender) async {
@@ -69,6 +82,16 @@ class AudioService {
     try {
       await StorageService.saveVoiceGender(_voiceGender);
       await _platform.setVoiceGender(_voiceGender);
+    } catch (_) {}
+  }
+
+  /// Sets speech speed ('normal' or 'slow') and persists selection
+  Future<void> setSpeechSpeed(String speed) async {
+    _speechSpeed = speed == 'slow' ? 'slow' : 'normal';
+    try {
+      await StorageService.saveSpeechSpeed(_speechSpeed);
+      final rate = _speechSpeed == 'slow' ? 0.75 : 1.0;
+      await _platform.setSpeechRate(rate);
     } catch (_) {}
   }
 
