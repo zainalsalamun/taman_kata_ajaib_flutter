@@ -40,6 +40,7 @@ extension type SpeechSynthesisVoice._(JSObject _) implements JSObject {
 class TtsPlatformWeb implements TtsPlatform {
   SpeechSynthesisVoice? _indonesianVoice;
   String _voiceGender = 'female';
+  double _speechRateMultiplier = 1.0;
 
   SpeechSynthesis? _getSynth() {
     try {
@@ -66,6 +67,11 @@ class TtsPlatformWeb implements TtsPlatform {
   Future<void> setVoiceGender(String gender) async {
     _voiceGender = gender == 'male' ? 'male' : 'female';
     _loadVoices();
+  }
+
+  @override
+  Future<void> setSpeechRate(double rate) async {
+    _speechRateMultiplier = rate.clamp(0.5, 1.5);
   }
 
   void _loadVoices() {
@@ -181,8 +187,8 @@ class TtsPlatformWeb implements TtsPlatform {
 
       final utterance = SpeechSynthesisUtterance();
       utterance.text = cleaned;
-      // Natural human conversational pace: articulate, cheerful, and smooth
-      utterance.rate = 0.90;
+      // Natural human conversational pace: articulate, cheerful, and smooth, scaled by speed rate
+      utterance.rate = (0.90 * _speechRateMultiplier).clamp(0.4, 2.0);
       // Vocal pitch intonation based on selected gender
       utterance.pitch = _voiceGender == 'male' ? 0.88 : 1.12;
       utterance.volume = 1.0;
