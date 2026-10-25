@@ -3,13 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/audio_service.dart';
+import 'child_avatar_widget.dart';
 
 class SettingsDialog extends StatefulWidget {
   final VoidCallback? onOpenParentalGate;
+  final String currentAvatarId;
+  final String currentChildName;
+  final VoidCallback? onOpenAvatarDialog;
 
   const SettingsDialog({
     super.key,
     this.onOpenParentalGate,
+    this.currentAvatarId = 'miko',
+    this.currentChildName = 'Petualang Hebat',
+    this.onOpenAvatarDialog,
   });
 
   @override
@@ -20,14 +27,26 @@ class _SettingsDialogState extends State<SettingsDialog> {
   final AudioService _audio = AudioService();
   bool _isPlayingTest = false;
 
-  void _testSpeech(String gender) async {
+  void _testSpeech({String? gender, String? speed}) async {
     HapticFeedback.mediumImpact();
     setState(() => _isPlayingTest = true);
 
-    if (gender == 'male') {
-      await _audio.speak('Halo adik pintar! Aku Miko dengan suara Kakak Cowok, siap menemani belajar membaca!');
+    final targetGender = gender ?? _audio.voiceGender;
+    final targetSpeed = speed ?? _audio.speechSpeed;
+    final isSlow = targetSpeed == 'slow';
+
+    if (targetGender == 'male') {
+      await _audio.speak(
+        isSlow
+            ? 'Ha-lo a-dik pin-tar! Mo-de san-tai a-gar mu-dah me-nge-ja.'
+            : 'Halo adik pintar! Aku Miko dengan suara Kakak Cowok, siap menemani belajar!',
+      );
     } else {
-      await _audio.speak('Halo adik manis! Aku Miko dengan suara Kakak Cewek, siap menemani belajar membaca!');
+      await _audio.speak(
+        isSlow
+            ? 'Ha-lo a-dik ma-nis! Mo-de san-tai a-gar mu-dah me-nge-ja.'
+            : 'Halo adik manis! Aku Miko dengan suara Kakak Cewek, siap menemani belajar!',
+      );
     }
 
     if (mounted) {
@@ -39,7 +58,14 @@ class _SettingsDialogState extends State<SettingsDialog> {
     HapticFeedback.selectionClick();
     await _audio.setVoiceGender(gender);
     setState(() {});
-    _testSpeech(gender);
+    _testSpeech(gender: gender);
+  }
+
+  void _selectSpeed(String speed) async {
+    HapticFeedback.selectionClick();
+    await _audio.setSpeechSpeed(speed);
+    setState(() {});
+    _testSpeech(speed: speed);
   }
 
   @override
@@ -48,6 +74,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     final dialogWidth = math.min(540.0, screenSize.width * 0.94);
     final dialogHeight = math.min(680.0, screenSize.height * 0.92);
     final currentGender = _audio.voiceGender;
+    final currentSpeed = _audio.speechSpeed;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -151,6 +178,86 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Section 0: Profil & Sahabat Belajar
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFAF5FF), Color(0xFFF3E8FF)],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFD8B4FE), width: 1.5),
+                        ),
+                        child: Row(
+                          children: [
+                            ChildAvatarWidget(
+                              avatarId: widget.currentAvatarId,
+                              size: 50,
+                              showGlow: true,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Profil Petualang Cilik',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF7E22CE),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    widget.currentChildName,
+                                    style: GoogleFonts.fredoka(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF581C87),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'Sahabat: ${ChildAvatarData.getAvatar(widget.currentAvatarId).name}',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF6B21A8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (widget.onOpenAvatarDialog != null)
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  widget.onOpenAvatarDialog!();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF9333EA),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  'Ganti',
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
                       // Section 1: Karakter Suara
                       Row(
                         children: [
@@ -211,6 +318,68 @@ class _SettingsDialogState extends State<SettingsDialog> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+
+                      // Section 1.5: Kecepatan Suara Pemandu
+                      Row(
+                        children: [
+                          const Text('🐢', style: TextStyle(fontSize: 18)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Kecepatan Suara Pemandu',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF581C87),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Pilih kecepatan pelafalan kata & huruf sesuai kemampuan mengeja ananda:',
+                        style: GoogleFonts.nunito(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Two Speed Cards: Mode Santai vs Mode Ceria
+                      Row(
+                        children: [
+                          // Mode Santai Card
+                          Expanded(
+                            child: _buildSpeedCard(
+                              speed: 'slow',
+                              icon: '🐢',
+                              title: 'Mode Santai',
+                              subtitle: 'Kecepatan 0.75x',
+                              description: 'Pelafalan fonik pelan, suku kata terucap jelas bagi balita',
+                              isSelected: currentSpeed == 'slow',
+                              color: const Color(0xFFECFDF5),
+                              borderColor: const Color(0xFF6EE7B7),
+                              activeColor: const Color(0xFF059669),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // Mode Ceria Card
+                          Expanded(
+                            child: _buildSpeedCard(
+                              speed: 'normal',
+                              icon: '🐰',
+                              title: 'Mode Ceria',
+                              subtitle: 'Kecepatan 1.0x',
+                              description: 'Irama natural & lincah untuk anak yang sudah lancar',
+                              isSelected: currentSpeed != 'slow',
+                              color: const Color(0xFFFFFBEB),
+                              borderColor: const Color(0xFFFCD34D),
+                              activeColor: const Color(0xFFD97706),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 12),
 
                       // Test Voice & Engine Status Banner
@@ -229,7 +398,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               child: Text(
                                 _isPlayingTest
                                     ? 'Memutar contoh suara Miko...'
-                                    : 'Karakter aktif: ${currentGender == 'male' ? 'Kakak Cowok 👦' : 'Kakak Cewek 👧'}',
+                                    : 'Karakter: ${currentGender == 'male' ? 'Kakak Cowok 👦' : 'Kakak Cewek 👧'} • ${currentSpeed == 'slow' ? 'Santai 🐢 (0.75x)' : 'Ceria 🐰 (1.0x)'}',
                                 style: GoogleFonts.nunito(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -238,7 +407,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                               ),
                             ),
                             ElevatedButton.icon(
-                              onPressed: () => _testSpeech(currentGender),
+                              onPressed: () => _testSpeech(gender: currentGender, speed: currentSpeed),
                               icon: const Icon(Icons.play_arrow_rounded, size: 16),
                               label: const Text('Tes Suara'),
                               style: ElevatedButton.styleFrom(
@@ -571,6 +740,129 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         const SizedBox(width: 3),
                         Text(
                           'Dipilih',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Text(
+                    'Pilih',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: GoogleFonts.fredoka(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  color: isSelected ? activeColor : const Color(0xFF1E293B),
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                subtitle,
+                style: GoogleFonts.nunito(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? activeColor : const Color(0xFF64748B),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                description,
+                style: GoogleFonts.nunito(
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF94A3B8),
+                  height: 1.25,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpeedCard({
+    required String speed,
+    required String icon,
+    required String title,
+    required String subtitle,
+    required String description,
+    required bool isSelected,
+    required Color color,
+    required Color borderColor,
+    required Color activeColor,
+  }) {
+    return GestureDetector(
+      onTap: () => _selectSpeed(speed),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : color,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isSelected ? activeColor : borderColor,
+            width: isSelected ? 2.5 : 1.2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withAlpha(50),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  const BoxShadow(
+                    color: Color(0x08000000),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(icon, style: const TextStyle(fontSize: 28)),
+                if (isSelected)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: activeColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check, size: 10, color: Colors.white),
+                        const SizedBox(width: 3),
+                        Text(
+                          'Aktif',
                           style: GoogleFonts.fredoka(
                             fontSize: 9.5,
                             fontWeight: FontWeight.bold,
