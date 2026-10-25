@@ -5,4 +5,5 @@ abstract class TtsPlatform {
   void dispose();
   String getEngineStatus();
   Future<void> setVoiceGender(String gender);
+  Future<void> setSpeechRate(double rate);
 }
