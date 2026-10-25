@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/game_models.dart';
+import '../models/daily_mission_models.dart';
 
 class StorageService {
   static const String _keyStars = 'taman_kata_stars';
@@ -19,10 +20,26 @@ class StorageService {
   static const String _keyLastVisitedIsland = 'taman_kata_last_visited_island';
   static const String _keyOpenedChests = 'taman_kata_opened_chests';
   static const String _keyChildName = 'taman_kata_child_name';
+  static const String _keyChildAvatar = 'taman_kata_child_avatar';
   static const String _keyVoiceGender = 'taman_kata_voice_gender';
+  static const String _keySpeechSpeed = 'taman_kata_speech_speed';
   static const String _keyLastDailySpinDate = 'taman_kata_last_daily_spin_date';
   static const String _keyDailyStreak = 'taman_kata_daily_streak';
   static const String _keyLearnedWords = 'taman_kata_learned_words';
+  static const String _keyVoiceRecordings = 'taman_kata_voice_recordings';
+  static const String _keyDailyMissions = 'taman_kata_daily_missions';
+  static const String _keyDailyMissionsDate = 'taman_kata_daily_missions_date';
+  static const String _keyAllMissionsBonusClaimed = 'taman_kata_daily_all_claimed';
+
+  static Future<String> getChildAvatar() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyChildAvatar) ?? 'miko';
+  }
+
+  static Future<void> saveChildAvatar(String avatarId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyChildAvatar, avatarId);
+  }
 
   static Future<String> getVoiceGender() async {
     final prefs = await SharedPreferences.getInstance();
@@ -32,6 +49,16 @@ class StorageService {
   static Future<void> saveVoiceGender(String gender) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyVoiceGender, gender == 'male' ? 'male' : 'female');
+  }
+
+  static Future<String> getSpeechSpeed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keySpeechSpeed) ?? 'normal';
+  }
+
+  static Future<void> saveSpeechSpeed(String speed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keySpeechSpeed, speed == 'slow' ? 'slow' : 'normal');
   }
 
   static Future<String> getChildName() async {
@@ -52,6 +79,35 @@ class StorageService {
   static Future<void> saveLastVisitedIsland(String route) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyLastVisitedIsland, route);
+  }
+
+  // --- SUARAKU AJAIB / VOICE RECORDING METHODS ---
+  static Future<List<Map<String, dynamic>>> getVoiceRecordingMetas() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyVoiceRecordings);
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveVoiceRecordingMeta(Map<String, dynamic> item) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = await getVoiceRecordingMetas();
+    final key = item['key'] as String;
+    list.removeWhere((m) => m['key'] == key);
+    list.insert(0, item);
+    await prefs.setString(_keyVoiceRecordings, jsonEncode(list));
+  }
+
+  static Future<void> deleteVoiceRecordingMeta(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = await getVoiceRecordingMetas();
+    list.removeWhere((m) => m['key'] == key);
+    await prefs.setString(_keyVoiceRecordings, jsonEncode(list));
   }
 
   static Future<List<String>> getOpenedChests() async {
@@ -460,6 +516,149 @@ class StorageService {
       await prefs.setInt('taman_kata_${game}_l2_index', 0);
       await prefs.setInt('taman_kata_${game}_l3_index', 0);
     }
+  }
+
+  // --- MISI HARIAN & RUNTUTAN BELAJAR (DAILY MISSIONS & 7-DAY STREAK) ---
+  static DateTime _parseDateOnly(String str) {
+    final parts = str.split('-');
+    if (parts.length >= 3) {
+      return DateTime(
+        int.tryParse(parts[0]) ?? 2026,
+        int.tryParse(parts[1]) ?? 1,
+        int.tryParse(parts[2]) ?? 1,
+      );
+    }
+    return DateTime.now();
+  }
+
+  static Future<DailyMissionsState> getDailyMissionsState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayStr = _getTodayDateString();
+    final storedDate = prefs.getString(_keyDailyMissionsDate);
+    final rawJson = prefs.getString(_keyDailyMissions);
+    final allClaimedDate = prefs.getString(_keyAllMissionsBonusClaimed);
+    int currentStreak = prefs.getInt(_keyDailyStreak) ?? 1;
+
+    if (storedDate == todayStr && rawJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(rawJson);
+        final missions = decoded
+            .map((m) => DailyMissionItem.fromJson(m as Map<String, dynamic>))
+            .toList();
+        return DailyMissionsState(
+          date: todayStr,
+          missions: missions,
+          allClaimed: allClaimedDate == todayStr,
+          streakDays: currentStreak.clamp(1, 7),
+        );
+      } catch (_) {}
+    }
+
+    // New day or first time initialization:
+    if (storedDate != null) {
+      try {
+        final lastDt = _parseDateOnly(storedDate);
+        final todayDt = _parseDateOnly(todayStr);
+        final diffDays = todayDt.difference(lastDt).inDays;
+        if (diffDays == 1) {
+          currentStreak = (currentStreak % 7) + 1;
+        } else if (diffDays > 1) {
+          currentStreak = 1;
+        }
+      } catch (_) {
+        currentStreak = 1;
+      }
+    }
+
+    await prefs.setInt(_keyDailyStreak, currentStreak);
+    final newMissions = DailyMissionPool.generateMissionsForDate(DateTime.now());
+    final encoded = jsonEncode(newMissions.map((m) => m.toJson()).toList());
+    await prefs.setString(_keyDailyMissions, encoded);
+    await prefs.setString(_keyDailyMissionsDate, todayStr);
+
+    return DailyMissionsState(
+      date: todayStr,
+      missions: newMissions,
+      allClaimed: false,
+      streakDays: currentStreak.clamp(1, 7),
+    );
+  }
+
+  static Future<bool> updateDailyMissionProgress(String actionType, [int amount = 1]) async {
+    final prefs = await SharedPreferences.getInstance();
+    final state = await getDailyMissionsState();
+    bool anyChanged = false;
+    bool justCompleted = false;
+
+    for (final mission in state.missions) {
+      if (mission.actionType == actionType && !mission.isCompleted) {
+        mission.currentCount = (mission.currentCount + amount).clamp(0, mission.targetCount);
+        anyChanged = true;
+        if (mission.isCompleted) {
+          justCompleted = true;
+        }
+      }
+    }
+
+    if (anyChanged) {
+      final encoded = jsonEncode(state.missions.map((m) => m.toJson()).toList());
+      await prefs.setString(_keyDailyMissions, encoded);
+    }
+
+    return justCompleted;
+  }
+
+  static Future<int> claimDailyMission(String missionId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final state = await getDailyMissionsState();
+
+    for (final mission in state.missions) {
+      if (mission.id == missionId && mission.isCompleted && !mission.isClaimed) {
+        mission.isClaimed = true;
+        final encoded = jsonEncode(state.missions.map((m) => m.toJson()).toList());
+        await prefs.setString(_keyDailyMissions, encoded);
+
+        // Award stars
+        final currentStars = await getStars();
+        await saveStars(currentStars + mission.starReward);
+        return mission.starReward;
+      }
+    }
+    return 0;
+  }
+
+  static Future<int> claimAllDailyMissionsBonus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final todayStr = _getTodayDateString();
+    final allClaimedDate = prefs.getString(_keyAllMissionsBonusClaimed);
+    if (allClaimedDate == todayStr) return 0;
+
+    final state = await getDailyMissionsState();
+    if (!state.allCompleted) return 0;
+
+    await prefs.setString(_keyAllMissionsBonusClaimed, todayStr);
+
+    int bonusStars = 5;
+    final trophies = await getTrophies();
+
+    if (!trophies.contains('daily_mission_master')) {
+      await addTrophy('daily_mission_master');
+    }
+
+    if (state.streakDays >= 3 && !trophies.contains('streak_3_star')) {
+      await addTrophy('streak_3_star');
+    }
+
+    if (state.streakDays >= 7) {
+      bonusStars += 15; // +15 extra stars for golden chest day 7!
+      if (!trophies.contains('streak_7_champion')) {
+        await addTrophy('streak_7_champion');
+      }
+    }
+
+    final currentStars = await getStars();
+    await saveStars(currentStars + bonusStars);
+    return bonusStars;
   }
 }
 
