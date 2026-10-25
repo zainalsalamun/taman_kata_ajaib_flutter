@@ -316,6 +316,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
     if (_selectedBook != null) {
       _completedStories.add(_selectedBook!.id);
       StorageService.saveCompletedStories(_completedStories.toList());
+      StorageService.updateDailyMissionProgress('story', 1);
       if (_completedStories.length >= sampleStoryBooks.length) {
         StorageService.addTrophy('story_comprehension_master');
       }
