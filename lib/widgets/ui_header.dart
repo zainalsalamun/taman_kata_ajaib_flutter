@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'vector_illustrations.dart';
+import 'child_avatar_widget.dart';
 import '../services/audio_service.dart';
 
 class UiHeader extends StatefulWidget {
   final String mascotText;
   final int stars;
+  final String avatarId;
   final VoidCallback onHomePressed;
   final VoidCallback onStickersPressed;
   final VoidCallback onParentalPressed;
+  final VoidCallback? onAvatarPressed;
   final VoidCallback? onDailyRewardPressed;
   final VoidCallback? onTrophyPressed;
   final VoidCallback? onDictionaryPressed;
@@ -19,9 +22,11 @@ class UiHeader extends StatefulWidget {
     super.key,
     required this.mascotText,
     required this.stars,
+    this.avatarId = 'miko',
     required this.onHomePressed,
     required this.onStickersPressed,
     required this.onParentalPressed,
+    this.onAvatarPressed,
     this.onDailyRewardPressed,
     this.onTrophyPressed,
     this.onDictionaryPressed,
@@ -75,21 +80,17 @@ class _UiHeaderState extends State<UiHeader> {
                 ),
                 SizedBox(width: buttonSpacing),
                 GestureDetector(
-                  onTap: () => _audio.speak(widget.mascotText),
-                  child: Container(
-                    width: buttonSize,
-                    height: buttonSize,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFFDE68A), width: 2),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x10000000), offset: Offset(0, 2)),
-                      ],
-                    ),
-                    child: Center(
-                      child: MascotWidget(size: buttonSize - 6),
-                    ),
+                  onTap: () {
+                    if (widget.onAvatarPressed != null) {
+                      widget.onAvatarPressed!();
+                    } else {
+                      _audio.speak(widget.mascotText);
+                    }
+                  },
+                  child: ChildAvatarWidget(
+                    avatarId: widget.avatarId,
+                    size: buttonSize,
+                    showBorder: true,
                   ),
                 ),
               ],
@@ -107,7 +108,13 @@ class _UiHeaderState extends State<UiHeader> {
                   SizedBox(width: buttonSpacing),
                   Flexible(
                     child: GestureDetector(
-                      onTap: () => _audio.speak(widget.mascotText),
+                      onTap: () {
+                        if (widget.onAvatarPressed != null) {
+                          widget.onAvatarPressed!();
+                        } else {
+                          _audio.speak(widget.mascotText);
+                        }
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -118,7 +125,11 @@ class _UiHeaderState extends State<UiHeader> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            MascotWidget(size: isMobile ? 28 : 34),
+                            ChildAvatarWidget(
+                              avatarId: widget.avatarId,
+                              size: isMobile ? 28 : 34,
+                              showBorder: false,
+                            ),
                             const SizedBox(width: 6),
                             Flexible(
                               child: Text(
