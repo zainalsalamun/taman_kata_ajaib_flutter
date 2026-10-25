@@ -9,6 +9,7 @@ class TtsPlatformIo implements TtsPlatform {
   bool _isInitialized = false;
   String _activeVoiceName = 'id-ID';
   String _voiceGender = 'female'; // 'female' or 'male'
+  double _speechRateMultiplier = 1.0;
 
   static final Map<String, String> _phonicsMap = {
     'A': 'Aa',
@@ -66,6 +67,16 @@ class TtsPlatformIo implements TtsPlatform {
     _voiceGender = gender == 'male' ? 'male' : 'female';
     await _ensureInitialized();
     await _applyVoiceAndPitch();
+  }
+
+  @override
+  Future<void> setSpeechRate(double rate) async {
+    _speechRateMultiplier = rate;
+    await _ensureInitialized();
+    try {
+      final targetRate = (0.48 * _speechRateMultiplier).clamp(0.25, 1.0);
+      await _flutterTts.setSpeechRate(targetRate);
+    } catch (_) {}
   }
 
   Future<void> _setupTts() async {
@@ -222,7 +233,8 @@ class TtsPlatformIo implements TtsPlatform {
     try {
       final targetPitch = isMale ? 0.88 : 1.12;
       await _flutterTts.setPitch(targetPitch);
-      await _flutterTts.setSpeechRate(0.48);
+      final targetRate = (0.48 * _speechRateMultiplier).clamp(0.25, 1.0);
+      await _flutterTts.setSpeechRate(targetRate);
       await _flutterTts.setVolume(1.0);
     } catch (_) {}
   }
