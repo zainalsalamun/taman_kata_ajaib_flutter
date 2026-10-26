@@ -126,6 +126,17 @@ class TrophyRepository {
       voicePraise: 'Selamat! Kamu sudah menuntaskan 26 huruf alfabet dari A sampai Z dengan sangat rapi!',
       sfx: 'magic_chime',
     ),
+    TrophyItem(
+      id: 'trophy_speed_rush',
+      title: 'Piala Kilat Petir Emas',
+      subtitle: 'Juara Tantangan 60 Detik',
+      category: TrophyCategory.special,
+      iconEmoji: '⚡',
+      badgeText: 'KILAT JUARA ⚡',
+      howToUnlock: 'Jawab minimal 10 kata dalam 60 detik di Tantangan Kilat!',
+      voicePraise: 'Wah, luar biasa cepat! Refleks membaca dan ketajaman matamu secepat kilat petir emas!',
+      sfx: 'fanfare',
+    ),
 
     // --- 2. PIALA PETUALANGAN TINGKAT (ISLAND PROGRESS) ---
     TrophyItem(
