@@ -45,6 +45,7 @@ class MapScreen extends StatefulWidget {
   final String avatarId;
   final String childName;
   final VoidCallback? onOpenAvatarDialog;
+  final VoidCallback? onOpenCertificate;
 
   const MapScreen({
     super.key,
@@ -55,6 +56,7 @@ class MapScreen extends StatefulWidget {
     this.avatarId = 'miko',
     this.childName = 'Petualang Hebat',
     this.onOpenAvatarDialog,
+    this.onOpenCertificate,
   });
 
   @override
@@ -637,6 +639,46 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
                             color: const Color(0xFF854D0E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+
+              // Certificate Shortcut Button
+              if (widget.onOpenCertificate != null) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.heavyImpact();
+                    _audio.playSfx('sparkle');
+                    widget.onOpenCertificate!();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('📜', style: TextStyle(fontSize: 14)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Piagam',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF92400E),
                           ),
                         ),
                       ],
