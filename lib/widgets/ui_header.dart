@@ -155,20 +155,13 @@ class _UiHeaderState extends State<UiHeader> {
           SizedBox(width: buttonSpacing),
 
           // Right: Action Buttons (Stars, Sound, Music, Stickers, Dictionary, Parental Gate)
-          if (isNarrow)
-            Expanded(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: _buildRightActionButtons(isNarrow, isMobile, buttonSize, iconSize, buttonSpacing),
-              ),
-            )
-          else
-            FittedBox(
+          Flexible(
+            child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerRight,
               child: _buildRightActionButtons(isNarrow, isMobile, buttonSize, iconSize, buttonSpacing),
             ),
+          ),
         ],
       ),
     );
