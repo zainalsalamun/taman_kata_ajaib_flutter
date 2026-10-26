@@ -7,6 +7,7 @@ import '../services/audio_service.dart';
 import '../services/storage_service.dart';
 import 'interactive_fireworks.dart';
 import 'vector_illustrations.dart';
+import 'achievement_certificate_dialog.dart';
 
 class TrophyShowcaseDialog extends StatefulWidget {
   final VoidCallback? onBackToMap;
@@ -205,35 +206,68 @@ class _TrophyShowcaseDialogState extends State<TrophyShowcaseDialog>
 
                         const SizedBox(height: 10),
 
-                        // 6. Action Button: Kembali ke Peta / Main Lagi
-                        SizedBox(
-                          height: 44,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              Navigator.of(context).pop();
-                              if (widget.onBackToMap != null) {
-                                widget.onBackToMap!();
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFF59E0B),
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                        // 6. Action Buttons: Lihat Piagam Juara & Tutup
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                HapticFeedback.heavyImpact();
+                                _audio.playSfx('sparkle');
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AchievementCertificateDialog(
+                                    onBackToMap: widget.onBackToMap,
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0284C7),
+                                foregroundColor: Colors.white,
+                                elevation: 3,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
-                            ),
-                            icon: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                            label: Text(
-                              'Tutup Galeri Juara',
-                              style: GoogleFonts.fredoka(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                              icon: const Text('📜', style: TextStyle(fontSize: 16)),
+                              label: Text(
+                                'Lihat Piagam Juara',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 10),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.of(context).pop();
+                                if (widget.onBackToMap != null) {
+                                  widget.onBackToMap!();
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFF59E0B),
+                                foregroundColor: Colors.white,
+                                elevation: 3,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                              ),
+                              icon: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                              label: Text(
+                                'Tutup Galeri',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
