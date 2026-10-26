@@ -742,6 +742,46 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                                 ),
                               ),
 
+                              const SizedBox(width: 6),
+
+                              // Speed Rush Shortcut Button
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.mediumImpact();
+                                  widget.onSelectGame('speed_words');
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 11, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFFFEF3C7), Color(0xFFFDE047)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: const Color(0xFFEAB308), width: 1.5),
+                                    boxShadow: const [
+                                      BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text('⚡', style: TextStyle(fontSize: 14)),
+                                      if (!isCompact) ...[
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Kilat 60s',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                            color: const Color(0xFF854D0E),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+
                               if (widget.onOpenSettings != null) ...[
                                 const SizedBox(width: 6),
                                 GestureDetector(
