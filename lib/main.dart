@@ -10,6 +10,7 @@ import 'widgets/parental_gate_dialog.dart';
 import 'widgets/rest_time_dialog.dart';
 import 'widgets/daily_reward_dialog.dart';
 import 'widgets/trophy_showcase_dialog.dart';
+import 'widgets/achievement_certificate_dialog.dart';
 import 'widgets/settings_dialog.dart';
 import 'widgets/child_avatar_widget.dart';
 import 'screens/map_screen.dart';
@@ -269,6 +270,15 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
     );
   }
 
+  void _openCertificateDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AchievementCertificateDialog(
+        onBackToMap: () => _navigateTo('map'),
+      ),
+    );
+  }
+
   void _openAvatarSelectionDialog() async {
     final result = await showDialog<Map<String, String>>(
       context: context,
@@ -411,6 +421,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           avatarId: _childAvatar,
           childName: _childName,
           onOpenAvatarDialog: _openAvatarSelectionDialog,
+          onOpenCertificate: _openCertificateDialog,
         );
     }
   }
