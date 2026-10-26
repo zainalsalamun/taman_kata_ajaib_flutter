@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
+import 'achievement_certificate_dialog.dart';
 
 class ChildAvatar {
   final String id;
@@ -1051,37 +1052,77 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
                 ),
               ),
 
-              // Bottom Save Button
+              // Bottom Actions (Certificate & Save Profile)
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _saveProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF16A34A),
-                      foregroundColor: Colors.white,
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Pilih & Simpan Profil 🚀',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Button to view Certificate
+                    SizedBox(
+                      width: double.infinity,
+                      height: 40,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          _audio.playSfx('sparkle');
+                          showDialog(
+                            context: context,
+                            builder: (_) => const AchievementCertificateDialog(),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFD97706),
+                          side: const BorderSide(color: Color(0xFFF59E0B), width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          backgroundColor: const Color(0xFFFFFBEB),
+                        ),
+                        icon: const Text('📜', style: TextStyle(fontSize: 15)),
+                        label: Text(
+                          'Lihat Piagam Juara Ananda 👑',
                           style: GoogleFonts.fredoka(
-                            fontSize: 15,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
+                            color: const Color(0xFFB45309),
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+
+                    // Primary Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _saveProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          foregroundColor: Colors.white,
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Pilih & Simpan Profil 🚀',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
