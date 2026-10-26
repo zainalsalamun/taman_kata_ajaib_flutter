@@ -390,6 +390,12 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           onVictory: _addStars,
           onBack: () => _navigateTo('map'),
         );
+      case 'speed_words':
+        return QuizScreen(
+          onVictory: _addStars,
+          onBack: () => _navigateTo('map'),
+          startInSpeedMode: true,
+        );
       case 'playground':
         return StickerPlaygroundScreen(
           unlockedStickers: _unlockedStickers,
