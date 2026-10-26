@@ -81,6 +81,23 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // Animation Controllers
   late AnimationController _shipRockController;
   late AnimationController _waveController;
+  late AnimationController _twinkleController;
+
+  // Day / Night Atmosphere State
+  String _timeMode = 'auto'; // 'auto', 'day', 'sunset', 'night'
+
+  String get _effectiveTimeOfDay {
+    if (_timeMode != 'auto') return _timeMode;
+    final now = DateTime.now();
+    final timeVal = now.hour + now.minute / 60.0;
+    if (timeVal >= 5.5 && timeVal < 16.5) {
+      return 'day';
+    } else if (timeVal >= 16.5 && timeVal < 18.5) {
+      return 'sunset';
+    } else {
+      return 'night';
+    }
+  }
 
   // Interactive Creature States
   bool _isDolphinJumping = false;
@@ -207,6 +224,11 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       duration: const Duration(seconds: 4),
     )..repeat();
 
+    _twinkleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+
     _loadState();
   }
 
@@ -214,6 +236,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   void dispose() {
     _shipRockController.dispose();
     _waveController.dispose();
+    _twinkleController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -227,6 +250,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     final lastIsland = await StorageService.getLastVisitedIsland();
     final chests = await StorageService.getOpenedChests();
     final missionState = await StorageService.getDailyMissionsState();
+    final timeMode = await StorageService.getMapTimeMode();
 
     if (mounted) {
       setState(() {
@@ -239,6 +263,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         _openedChests = chests;
         _dailyMissionsCompleted = missionState.completedCount;
         _dailyStreakDays = missionState.streakDays;
+        _timeMode = timeMode;
         _isLoading = false;
       });
 
@@ -247,6 +272,70 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         _scrollToCurrentIsland(immediate: true);
       });
     }
+  }
+
+  void _cycleTimeMode() async {
+    HapticFeedback.mediumImpact();
+    _audio.playSfx('pop');
+
+    String nextMode;
+    switch (_timeMode) {
+      case 'auto':
+        nextMode = 'day';
+        break;
+      case 'day':
+        nextMode = 'sunset';
+        break;
+      case 'sunset':
+        nextMode = 'night';
+        break;
+      case 'night':
+      default:
+        nextMode = 'auto';
+        break;
+    }
+
+    setState(() {
+      _timeMode = nextMode;
+    });
+    await StorageService.saveMapTimeMode(nextMode);
+
+    final effective = _effectiveTimeOfDay;
+    String voiceMsg;
+    String toastMsg;
+
+    if (nextMode == 'auto') {
+      final effLabel = effective == 'day'
+          ? 'Siang ☀️'
+          : (effective == 'sunset' ? 'Senja 🌅' : 'Malam 🌙');
+      voiceMsg = 'Waktu otomatis diaktifkan! Mengikuti jam asli: $effLabel.';
+      toastMsg = 'Waktu Otomatis (Saat Ini: $effLabel)';
+    } else if (nextMode == 'day') {
+      voiceMsg = 'Matahari bersinar cerah! Selamat berpetualang di lautan!';
+      toastMsg = 'Mode Siang Cerah ☀️';
+    } else if (nextMode == 'sunset') {
+      voiceMsg = 'Wah, senja keemasan yang indah di atas samudra!';
+      toastMsg = 'Mode Senja Keemasan 🌅';
+    } else {
+      voiceMsg = 'Malam bertabur bintang yang ajaib! Lentera pulau menyala!';
+      toastMsg = 'Mode Malam Berbintang 🌙✨';
+    }
+
+    _audio.speak(voiceMsg);
+    _showToastMessage(toastMsg);
+  }
+
+  void _showToastMessage(String message) {
+    setState(() {
+      _bonusToastMessage = message;
+    });
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _bonusToastMessage == message) {
+        setState(() {
+          _bonusToastMessage = null;
+        });
+      }
+    });
   }
 
   void _openDailyMissionsDialog() {
@@ -470,6 +559,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
+
+              // Weather & Day/Night Atmosphere Button
+              const SizedBox(width: 8),
+              _buildTimeModeButton(),
 
               // Daily Missions Shortcut Button
               const SizedBox(width: 8),
@@ -818,23 +911,227 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildTimeModeButton() {
+    String icon;
+    String label;
+    List<Color> gradientColors;
+    Color borderColor;
+    Color textColor;
+    Color glowColor;
+
+    final eff = _effectiveTimeOfDay;
+
+    switch (_timeMode) {
+      case 'day':
+        icon = '☀️';
+        label = 'Siang';
+        gradientColors = const [Color(0xFFFEF08A), Color(0xFFFDE047)];
+        borderColor = const Color(0xFFEAB308);
+        textColor = const Color(0xFF854D0E);
+        glowColor = const Color(0x30EAB308);
+        break;
+      case 'sunset':
+        icon = '🌅';
+        label = 'Senja';
+        gradientColors = const [Color(0xFFFED7AA), Color(0xFFFB923C)];
+        borderColor = const Color(0xFFEA580C);
+        textColor = const Color(0xFF7C2D12);
+        glowColor = const Color(0x30EA580C);
+        break;
+      case 'night':
+        icon = '🌙';
+        label = 'Malam';
+        gradientColors = const [Color(0xFF312E81), Color(0xFF1E1B4B)];
+        borderColor = const Color(0xFF818CF8);
+        textColor = const Color(0xFFE0E7FF);
+        glowColor = const Color(0x50818CF8);
+        break;
+      case 'auto':
+      default:
+        final effIcon = eff == 'day' ? '☀️' : (eff == 'sunset' ? '🌅' : '🌙');
+        icon = '⏰$effIcon';
+        label = 'Otomatis';
+        gradientColors = const [Color(0xFFF1F5F9), Color(0xFFE2E8F0)];
+        borderColor = const Color(0xFF94A3B8);
+        textColor = const Color(0xFF334155);
+        glowColor = const Color(0x20000000);
+        break;
+    }
+
+    return GestureDetector(
+      onTap: _cycleTimeMode,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: gradientColors),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor, width: 1.8),
+          boxShadow: [
+            BoxShadow(color: glowColor, blurRadius: 6, offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 13)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.fredoka(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w900,
+                color: textColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Glowing Celestial Sky Body (Sun, Sunset Sun, or Crescent Moon)
+  Widget _buildCelestialSkyBody() {
+    if (_effectiveTimeOfDay == 'night') {
+      return AnimatedBuilder(
+        animation: _twinkleController,
+        builder: (context, child) {
+          final glow = 14.0 + _twinkleController.value * 8.0;
+          return Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFDE047).withAlpha(100),
+                  blurRadius: glow,
+                  spreadRadius: 3.0,
+                ),
+                BoxShadow(
+                  color: const Color(0xFF67E8F9).withAlpha(55),
+                  blurRadius: glow * 1.5,
+                  spreadRadius: 2.0,
+                ),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('🌙', style: TextStyle(fontSize: 36)),
+                SizedBox(width: 4),
+                Text('✨', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          );
+        },
+      );
+    } else if (_effectiveTimeOfDay == 'sunset') {
+      return AnimatedBuilder(
+        animation: _twinkleController,
+        builder: (context, child) {
+          final glow = 16.0 + _twinkleController.value * 8.0;
+          return Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFF97316).withAlpha(120),
+                  blurRadius: glow,
+                  spreadRadius: 5.0,
+                ),
+                BoxShadow(
+                  color: const Color(0xFFFDE047).withAlpha(90),
+                  blurRadius: glow * 1.4,
+                  spreadRadius: 2.0,
+                ),
+              ],
+            ),
+            child: const Text('🌅', style: TextStyle(fontSize: 38)),
+          );
+        },
+      );
+    } else {
+      // Day
+      return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x60FDE047),
+              blurRadius: 18,
+              spreadRadius: 6.0,
+            ),
+          ],
+        ),
+        child: const Text('☀️', style: TextStyle(fontSize: 36)),
+      );
+    }
+  }
+
+  // Glowing Lantern for Night Mode on Islands
+  Widget _buildGlowingLantern() {
+    return AnimatedBuilder(
+      animation: _twinkleController,
+      builder: (context, child) {
+        final glow = 6.0 + _twinkleController.value * 5.0;
+        return Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF08A),
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFBBF24).withAlpha((150 + 90 * _twinkleController.value).toInt()),
+                blurRadius: glow,
+                spreadRadius: 2.0,
+              ),
+            ],
+          ),
+          child: const Text('🏮', style: TextStyle(fontSize: 12)),
+        );
+      },
+    );
+  }
+
   // ==========================================
   // 1. ADVENTURE MAP VIEW (LIVING ARCHIPELAGO)
   // ==========================================
   Widget _buildAdventureMapView() {
     const mapCanvasHeight = 1960.0;
 
+    List<Color> mapSkyColors;
+    if (_effectiveTimeOfDay == 'night') {
+      mapSkyColors = const [
+        Color(0xFF090D1A), // Midnight Sky
+        Color(0xFF1E1B4B), // Starry Violet
+        Color(0xFF2E1065), // Deep Cosmic Purple
+        Color(0xFF0C4A6E), // Glowing Ocean Depth
+      ];
+    } else if (_effectiveTimeOfDay == 'sunset') {
+      mapSkyColors = const [
+        Color(0xFFFB923C), // Sunset Tangerine
+        Color(0xFFF43F5E), // Coral Rose
+        Color(0xFF8B5CF6), // Twilight Violet
+        Color(0xFF1E1B4B), // Deep Sea Indigo
+      ];
+    } else {
+      mapSkyColors = const [
+        Color(0xFF38BDF8), // Light Sky Aqua
+        Color(0xFF0284C7), // Turquoise Ocean
+        Color(0xFF0369A1), // Deep Sea
+      ];
+    }
+
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF38BDF8), // Light Sky Aqua
-            Color(0xFF0284C7), // Turquoise Ocean
-            Color(0xFF0369A1), // Deep Sea
-          ],
-          stops: [0.0, 0.55, 1.0],
+          colors: mapSkyColors,
+          stops: mapSkyColors.length == 4 ? const [0.0, 0.35, 0.70, 1.0] : const [0.0, 0.55, 1.0],
         ),
       ),
       child: LayoutBuilder(
@@ -869,12 +1166,35 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
+                  // Night Sky Stars & Nebula (when night)
+                  if (_effectiveTimeOfDay == 'night')
+                    Positioned.fill(
+                      child: AnimatedBuilder(
+                        animation: _twinkleController,
+                        builder: (context, child) {
+                          return CustomPaint(
+                            painter: _CelestialNightPainter(
+                              twinklePhase: _twinkleController.value,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                  // Celestial Sky Body (Sun, Sunset, or Moon)
+                  Positioned(
+                    left: centerX + 60,
+                    top: 18,
+                    child: _buildCelestialSkyBody(),
+                  ),
+
                   // Maritime Path & Buoys
                   Positioned.fill(
                     child: CustomPaint(
                       painter: _MaritimePathPainter(
                         islandPositions: islandPositions,
                         wavePhase: _waveController.value,
+                        timeOfDay: _effectiveTimeOfDay,
                       ),
                     ),
                   ),
@@ -938,8 +1258,11 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   }) {
     return GestureDetector(
       onTap: () => _sailToIsland(island),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
         children: [
           // Floating Level Badge & Age Pill
           Row(
@@ -1183,8 +1506,16 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-    );
-  }
+      if (_effectiveTimeOfDay == 'night')
+        Positioned(
+          top: 14,
+          right: -4,
+          child: _buildGlowingLantern(),
+        ),
+    ],
+  ),
+);
+}
 
   // Captain Miko's Animated Sailing Ship Widget
   Widget _buildSailingShipWidget() {
@@ -1292,6 +1623,28 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 child: const MascotWidget(size: 22),
               ),
             ),
+
+            // Lit Mast Lantern on the Ship at Night
+            if (_effectiveTimeOfDay == 'night')
+              Positioned(
+                top: 14,
+                left: 10,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF08A),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFBBF24).withAlpha(220),
+                        blurRadius: 8,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: const Text('🏮', style: TextStyle(fontSize: 10)),
+                ),
+              ),
           ],
         ),
       ),
@@ -1391,18 +1744,32 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Soft Sky Clouds
+  // Soft Sky Clouds with Day/Sunset/Night Theme Tints
   Widget _buildSkyCloud({required double size}) {
+    Color cloudBg;
+    Color iconColor;
+
+    if (_effectiveTimeOfDay == 'night') {
+      cloudBg = const Color(0xFF818CF8).withAlpha(60);
+      iconColor = const Color(0xFFC7D2FE).withAlpha(120);
+    } else if (_effectiveTimeOfDay == 'sunset') {
+      cloudBg = const Color(0xFFFED7AA).withAlpha(200);
+      iconColor = const Color(0xFFFDE68A).withAlpha(220);
+    } else {
+      cloudBg = Colors.white.withAlpha(210);
+      iconColor = Colors.white.withAlpha(240);
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: size * 0.4, vertical: size * 0.2),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(210),
+        color: cloudBg,
         borderRadius: BorderRadius.circular(size),
         boxShadow: const [
           BoxShadow(color: Color(0x10000000), blurRadius: 6, offset: Offset(0, 2)),
         ],
       ),
-      child: Icon(Icons.cloud_rounded, color: Colors.white.withAlpha(240), size: size),
+      child: Icon(Icons.cloud_rounded, color: iconColor, size: size),
     );
   }
 
@@ -1410,16 +1777,33 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // 2. QUICK CARDS VIEW (RESPONSIVE VERTICAL GRID)
   // ==========================================
   Widget _buildQuickCardsView() {
+    List<Color> quickBgColors;
+    if (_effectiveTimeOfDay == 'night') {
+      quickBgColors = const [
+        Color(0xFF312E81),
+        Color(0xFF1E1B4B),
+        Color(0xFF0F172A),
+      ];
+    } else if (_effectiveTimeOfDay == 'sunset') {
+      quickBgColors = const [
+        Color(0xFFFED7AA),
+        Color(0xFFFECDD3),
+        Color(0xFFDDD6FE),
+      ];
+    } else {
+      quickBgColors = const [
+        Color(0xFFBBF7D0),
+        Color(0xFFBAE6FD),
+        Color(0xFFE0F2FE),
+      ];
+    }
+
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: RadialGradient(
           center: Alignment.bottomCenter,
           radius: 1.2,
-          colors: [
-            Color(0xFFBBF7D0),
-            Color(0xFFBAE6FD),
-            Color(0xFFE0F2FE),
-          ],
+          colors: quickBgColors,
         ),
       ),
       child: LayoutBuilder(
@@ -1621,19 +2005,46 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 class _MaritimePathPainter extends CustomPainter {
   final List<Offset> islandPositions;
   final double wavePhase;
+  final String timeOfDay;
 
-  _MaritimePathPainter({required this.islandPositions, required this.wavePhase});
+  _MaritimePathPainter({
+    required this.islandPositions,
+    required this.wavePhase,
+    this.timeOfDay = 'day',
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
+    Color pathColor;
+    Color glowColor;
+    Color waveColor;
+    Color buoyColor;
+
+    if (timeOfDay == 'night') {
+      pathColor = const Color(0xFF67E8F9).withAlpha(190);
+      glowColor = const Color(0xFFA855F7).withAlpha(140);
+      waveColor = const Color(0xFF38BDF8).withAlpha(55);
+      buoyColor = const Color(0xFF06B6D4);
+    } else if (timeOfDay == 'sunset') {
+      pathColor = const Color(0xFFFED7AA).withAlpha(200);
+      glowColor = const Color(0xFFFB923C).withAlpha(150);
+      waveColor = const Color(0xFFFDE047).withAlpha(50);
+      buoyColor = const Color(0xFFF97316);
+    } else {
+      pathColor = Colors.white.withAlpha(160);
+      glowColor = const Color(0xFFFDE047).withAlpha(130);
+      waveColor = Colors.white.withAlpha(35);
+      buoyColor = const Color(0xFFF59E0B);
+    }
+
     final pathPaint = Paint()
-      ..color = Colors.white.withAlpha(160)
+      ..color = pathColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.5
       ..strokeCap = StrokeCap.round;
 
     final glowPaint = Paint()
-      ..color = const Color(0xFFFDE047).withAlpha(130)
+      ..color = glowColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 7.0;
 
@@ -1653,12 +2064,12 @@ class _MaritimePathPainter extends CustomPainter {
       canvas.drawPath(curvePath, pathPaint);
 
       // Draw floating nautical buoy / stepping stone at midpoint
-      _drawBuoy(canvas, Offset(midX, midY), i + 1);
+      _drawBuoy(canvas, Offset(midX, midY), i + 1, buoyColor);
     }
 
     // Draw ambient ocean waves throughout vertical height
     final wavePaint = Paint()
-      ..color = Colors.white.withAlpha(35)
+      ..color = waveColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
@@ -1672,12 +2083,12 @@ class _MaritimePathPainter extends CustomPainter {
     }
   }
 
-  void _drawBuoy(Canvas canvas, Offset center, int stepNumber) {
+  void _drawBuoy(Canvas canvas, Offset center, int stepNumber, Color buoyColor) {
     // Water ripple
-    canvas.drawCircle(center, 14, Paint()..color = Colors.white.withAlpha(70));
+    canvas.drawCircle(center, 14, Paint()..color = buoyColor.withAlpha(50));
 
     // Wooden / Golden Stepping Buoy
-    final buoyPaint = Paint()..color = const Color(0xFFF59E0B);
+    final buoyPaint = Paint()..color = buoyColor;
     canvas.drawCircle(center, 9, buoyPaint);
     canvas.drawCircle(center, 9, Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.5);
 
@@ -1702,4 +2113,95 @@ class _MaritimePathPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MaritimePathPainter oldDelegate) => true;
+}
+
+// Celestial Night Stars & Nebula Canvas Painter
+class _CelestialNightPainter extends CustomPainter {
+  final double twinklePhase;
+
+  _CelestialNightPainter({required this.twinklePhase});
+
+  static final List<_StarData> _stars = List.generate(70, (index) {
+    final seed = index * 9973;
+    final xRatio = ((seed * 31) % 1000) / 1000.0;
+    final yRatio = ((seed * 73) % 1960) / 1960.0;
+    final size = 1.5 + ((seed * 17) % 35) / 10.0;
+    final phaseOffset = ((seed * 13) % 100) / 100.0;
+    final isDiamond = (index % 5 == 0);
+    final colorType = index % 3;
+    return _StarData(
+      xRatio: xRatio,
+      yRatio: yRatio,
+      size: size,
+      phaseOffset: phaseOffset,
+      isDiamond: isDiamond,
+      colorType: colorType,
+    );
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final s in _stars) {
+      final x = s.xRatio * size.width;
+      final y = s.yRatio * size.height;
+
+      final effectiveTwinkle = (math.sin((twinklePhase + s.phaseOffset) * math.pi * 2) + 1.0) / 2.0;
+      final alpha = (80 + 175 * effectiveTwinkle).toInt().clamp(0, 255);
+
+      Color starColor;
+      if (s.colorType == 1) {
+        starColor = const Color(0xFFFEF08A).withAlpha(alpha);
+      } else if (s.colorType == 2) {
+        starColor = const Color(0xFF67E8F9).withAlpha(alpha);
+      } else {
+        starColor = Colors.white.withAlpha(alpha);
+      }
+
+      if (s.isDiamond && s.size > 2.5) {
+        _drawDiamondStar(canvas, Offset(x, y), s.size * (0.8 + 0.4 * effectiveTwinkle), starColor);
+      } else {
+        canvas.drawCircle(
+          Offset(x, y),
+          s.size * (0.7 + 0.3 * effectiveTwinkle),
+          Paint()..color = starColor,
+        );
+      }
+    }
+  }
+
+  void _drawDiamondStar(Canvas canvas, Offset center, double radius, Color color) {
+    final path = Path()
+      ..moveTo(center.dx, center.dy - radius * 1.5)
+      ..lineTo(center.dx + radius * 0.4, center.dy - radius * 0.4)
+      ..lineTo(center.dx + radius * 1.5, center.dy)
+      ..lineTo(center.dx + radius * 0.4, center.dy + radius * 0.4)
+      ..lineTo(center.dx, center.dy + radius * 1.5)
+      ..lineTo(center.dx - radius * 0.4, center.dy + radius * 0.4)
+      ..lineTo(center.dx - radius * 1.5, center.dy)
+      ..lineTo(center.dx - radius * 0.4, center.dy - radius * 0.4)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CelestialNightPainter oldDelegate) => true;
+}
+
+class _StarData {
+  final double xRatio;
+  final double yRatio;
+  final double size;
+  final double phaseOffset;
+  final bool isDiamond;
+  final int colorType;
+
+  _StarData({
+    required this.xRatio,
+    required this.yRatio,
+    required this.size,
+    required this.phaseOffset,
+    required this.isDiamond,
+    required this.colorType,
+  });
 }
