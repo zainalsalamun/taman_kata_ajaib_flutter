@@ -31,6 +31,8 @@ class StorageService {
   static const String _keyDailyMissions = 'taman_kata_daily_missions';
   static const String _keyDailyMissionsDate = 'taman_kata_daily_missions_date';
   static const String _keyAllMissionsBonusClaimed = 'taman_kata_daily_all_claimed';
+  static const String _keySpeedRushHighScore = 'taman_kata_speed_rush_high_score';
+  static const String _keySpeedRushBestCombo = 'taman_kata_speed_rush_best_combo';
 
   static Future<String> getChildAvatar() async {
     final prefs = await SharedPreferences.getInstance();
@@ -453,6 +455,37 @@ class StorageService {
       trophies.add(trophyId);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyTrophies, jsonEncode(trophies));
+    }
+  }
+
+  static Future<void> unlockTrophy(String trophyId) => addTrophy(trophyId);
+
+  // --- TANTANGAN KILAT KATA 60 DETIK (SPEED RUSH) ---
+  static Future<int> getSpeedRushHighScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keySpeedRushHighScore) ?? 0;
+  }
+
+  static Future<bool> saveSpeedRushHighScore(int score) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getInt(_keySpeedRushHighScore) ?? 0;
+    if (score > current) {
+      await prefs.setInt(_keySpeedRushHighScore, score);
+      return true; // new high score
+    }
+    return false;
+  }
+
+  static Future<int> getSpeedRushBestCombo() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keySpeedRushBestCombo) ?? 0;
+  }
+
+  static Future<void> saveSpeedRushBestCombo(int combo) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getInt(_keySpeedRushBestCombo) ?? 0;
+    if (combo > current) {
+      await prefs.setInt(_keySpeedRushBestCombo, combo);
     }
   }
 
