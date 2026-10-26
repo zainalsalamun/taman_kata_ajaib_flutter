@@ -486,328 +486,357 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         // 2. Top Header Toolbar (Title Badge & View Switcher)
         Positioned(
           top: 8,
-          left: 12,
-          right: 12,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: math.max(MediaQuery.of(context).size.width - 24, 580),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Adventure Title Badge
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(245),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFFCD34D), width: 2.5),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x18000000), blurRadius: 8, offset: Offset(0, 3)),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('⛵', style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 8),
-                        Text(
-                          'PETA KEPULAUAN KATA AJAIB',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFFD97706),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+          left: 10,
+          right: 10,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final isCompact = screenWidth < 850;
+              final isMobile = screenWidth < 600;
 
-              // View Mode Switcher Pill (Map vs Quick Cards)
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(240),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x10000000), blurRadius: 4, offset: Offset(0, 2)),
-                  ],
-                ),
+              return SizedBox(
+                height: 38,
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildViewPill(
-                      isMap: true,
-                      icon: '🗺️',
-                      label: 'Peta Laut',
-                      isActive: _isMapView,
-                    ),
-                    const SizedBox(width: 4),
-                    _buildViewPill(
-                      isMap: false,
-                      icon: '📋',
-                      label: 'Daftar Cepat',
-                      isActive: !_isMapView,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Weather & Day/Night Atmosphere Button
-              const SizedBox(width: 8),
-              _buildTimeModeButton(),
-
-              // Daily Missions Shortcut Button
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _openDailyMissionsDialog,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('📅', style: TextStyle(fontSize: 14)),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Misi $_dailyMissionsCompleted/3',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFFB45309),
-                        ),
+                    // Adventure Title Badge
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 10 : 14,
+                        vertical: 6,
                       ),
-                      if (_dailyStreakDays > 1) ...[
-                        const SizedBox(width: 4),
-                        Text('🔥$_dailyStreakDays',
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(245),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: const Color(0xFFFCD34D), width: 2),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x18000000), blurRadius: 6, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('⛵', style: TextStyle(fontSize: 15)),
+                          const SizedBox(width: 6),
+                          Text(
+                            isMobile ? 'Peta' : (isCompact ? 'Peta Kata' : 'PETA KEPULAUAN KATA AJAIB'),
                             style: GoogleFonts.fredoka(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                color: const Color(0xFFEA580C))),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-
-              // Trophy Showcase Shortcut Button
-              if (widget.onOpenTrophies != null) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.mediumImpact();
-                    widget.onOpenTrophies!();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFEF08A), Color(0xFFFBBF24)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFD97706), width: 1.5),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('🏆', style: TextStyle(fontSize: 14)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Trofi',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF854D0E),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-
-              // Certificate Shortcut Button
-              if (widget.onOpenCertificate != null) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.heavyImpact();
-                    _audio.playSfx('sparkle');
-                    widget.onOpenCertificate!();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('📜', style: TextStyle(fontSize: 14)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Piagam',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF92400E),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(width: 8),
-              // Kamus Shortcut Button
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.mediumImpact();
-                  widget.onSelectGame('dictionary');
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('📚', style: TextStyle(fontSize: 14)),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Kamus',
-                        style: GoogleFonts.fredoka(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0369A1),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Settings Shortcut Button
-              if (widget.onOpenSettings != null) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.mediumImpact();
-                    widget.onOpenSettings!();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFF3E8FF), Color(0xFFDDD6FE)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF7C3AED), width: 1.5),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('⚙️', style: TextStyle(fontSize: 14)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Pengaturan',
-                          style: GoogleFonts.fredoka(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF6D28D9),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              // Child Avatar Profile Pill
-              if (widget.onOpenAvatarDialog != null) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    widget.onOpenAvatarDialog!();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFAF5FF), Color(0xFFF3E8FF)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFA855F7), width: 1.5),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ChildAvatarWidget(avatarId: widget.avatarId, size: 22, showGlow: false),
-                        const SizedBox(width: 6),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 80),
-                          child: Text(
-                            widget.childName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.fredoka(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF6B21A8),
+                              fontSize: isMobile ? 12 : 13,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFFD97706),
+                              letterSpacing: 0.5,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+
+                    const SizedBox(width: 8),
+
+                    // Right: Scrollable Row of Controls & Shortcuts (Guaranteed 0 overflow)
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // View Mode Switcher Pill
+                              Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(240),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+                                  boxShadow: const [
+                                    BoxShadow(color: Color(0x10000000), blurRadius: 4, offset: Offset(0, 2)),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildViewPill(
+                                      isMap: true,
+                                      icon: '🗺️',
+                                      label: isCompact ? 'Peta' : 'Peta Laut',
+                                      isActive: _isMapView,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    _buildViewPill(
+                                      isMap: false,
+                                      icon: '📋',
+                                      label: isCompact ? 'Daftar' : 'Daftar Cepat',
+                                      isActive: !_isMapView,
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(width: 6),
+
+                              // Weather Button
+                              _buildTimeModeButton(),
+
+                              const SizedBox(width: 6),
+
+                              // Daily Missions Button
+                              GestureDetector(
+                                onTap: _openDailyMissionsDialog,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                                    boxShadow: const [
+                                      BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text('📅', style: TextStyle(fontSize: 14)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        isCompact ? '$_dailyMissionsCompleted/3' : 'Misi $_dailyMissionsCompleted/3',
+                                        style: GoogleFonts.fredoka(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFFB45309),
+                                        ),
+                                      ),
+                                      if (_dailyStreakDays > 1) ...[
+                                        const SizedBox(width: 4),
+                                        Text('🔥$_dailyStreakDays',
+                                            style: GoogleFonts.fredoka(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w900,
+                                                color: const Color(0xFFEA580C))),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              if (widget.onOpenTrophies != null) ...[
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    widget.onOpenTrophies!();
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 11, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFEF08A), Color(0xFFFBBF24)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: const Color(0xFFD97706), width: 1.5),
+                                      boxShadow: const [
+                                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text('🏆', style: TextStyle(fontSize: 14)),
+                                        if (!isCompact) ...[
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Trofi',
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
+                                              color: const Color(0xFF854D0E),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              if (widget.onOpenCertificate != null) ...[
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.heavyImpact();
+                                    _audio.playSfx('sparkle');
+                                    widget.onOpenCertificate!();
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                                      boxShadow: const [
+                                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text('📜', style: TextStyle(fontSize: 14)),
+                                        if (!isCompact) ...[
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Piagam',
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
+                                              color: const Color(0xFF92400E),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              const SizedBox(width: 6),
+
+                              // Kamus Button
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.mediumImpact();
+                                  widget.onSelectGame('dictionary');
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 11, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFFE0F2FE), Color(0xFFBAE6FD)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: const Color(0xFF0284C7), width: 1.5),
+                                    boxShadow: const [
+                                      BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text('📚', style: TextStyle(fontSize: 14)),
+                                      if (!isCompact) ...[
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Kamus',
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                            color: const Color(0xFF0369A1),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              if (widget.onOpenSettings != null) ...[
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.mediumImpact();
+                                    widget.onOpenSettings!();
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 11, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFF3E8FF), Color(0xFFDDD6FE)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: const Color(0xFF7C3AED), width: 1.5),
+                                      boxShadow: const [
+                                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Text('⚙️', style: TextStyle(fontSize: 14)),
+                                        if (!isCompact) ...[
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Pengaturan',
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
+                                              color: const Color(0xFF6D28D9),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              if (widget.onOpenAvatarDialog != null) ...[
+                                const SizedBox(width: 6),
+                                GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    widget.onOpenAvatarDialog!();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFAF5FF), Color(0xFFF3E8FF)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: const Color(0xFFA855F7), width: 1.5),
+                                      boxShadow: const [
+                                        BoxShadow(color: Color(0x20000000), blurRadius: 4, offset: Offset(0, 2)),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ChildAvatarWidget(avatarId: widget.avatarId, size: 22, showGlow: false),
+                                        if (!isCompact) ...[
+                                          const SizedBox(width: 6),
+                                          ConstrainedBox(
+                                            constraints: const BoxConstraints(maxWidth: 80),
+                                            child: Text(
+                                              widget.childName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.fredoka(
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(0xFF6B21A8),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ],
+              );
+            },
           ),
         ),
-      ),
-    ),
 
         // 3. Floating Bonus Toast Notification
         if (_bonusToastMessage != null)
