@@ -23,6 +23,7 @@ class StorageService {
   static const String _keyChildAvatar = 'taman_kata_child_avatar';
   static const String _keyVoiceGender = 'taman_kata_voice_gender';
   static const String _keySpeechSpeed = 'taman_kata_speech_speed';
+  static const String _keyMapTimeMode = 'taman_kata_map_time_mode';
   static const String _keyLastDailySpinDate = 'taman_kata_last_daily_spin_date';
   static const String _keyDailyStreak = 'taman_kata_daily_streak';
   static const String _keyLearnedWords = 'taman_kata_learned_words';
@@ -59,6 +60,16 @@ class StorageService {
   static Future<void> saveSpeechSpeed(String speed) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keySpeechSpeed, speed == 'slow' ? 'slow' : 'normal');
+  }
+
+  static Future<String> getMapTimeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyMapTimeMode) ?? 'auto';
+  }
+
+  static Future<void> saveMapTimeMode(String mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyMapTimeMode, mode);
   }
 
   static Future<String> getChildName() async {
