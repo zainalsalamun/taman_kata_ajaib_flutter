@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../widgets/vector_illustrations.dart';
 import '../widgets/child_avatar_widget.dart';
 import '../widgets/daily_missions_dialog.dart';
-import '../models/daily_mission_models.dart';
 import '../services/audio_service.dart';
 import '../services/storage_service.dart';
 
@@ -112,13 +111,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       title: 'Dermaga Jejak Huruf',
       shortName: 'Jejak Huruf',
       ageRecommendation: 'Usia 3-5 Thn',
-      description: 'Tarik garis ajaib dan kenali bunyi fonik huruf A–Z!',
+      description: 'Tulis huruf besar A–Z, huruf kecil a–z, pasangan Aa, angka & bentuk!',
       illustrationKey: 'apel',
       primaryColor: Color(0xFFFEF08A),
       secondaryColor: Color(0xFFFDE047),
       accentColor: Color(0xFFEAB308),
       mapPosition: Offset(110, 155),
-      speechQuote: 'Dermaga Jejak Huruf! Belajar menulis huruf A sampai Z bersama Miko!',
+      speechQuote: 'Dermaga Jejak Huruf! Belajar menulis huruf besar, huruf kecil, dan mencocokkan pasangan huruf bersama Miko!',
     ),
     const IslandData(
       route: 'train',
