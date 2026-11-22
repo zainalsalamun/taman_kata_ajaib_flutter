@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +13,8 @@ import '../services/storage_service.dart';
 import '../widgets/voice_record_dialog.dart';
 
 enum BrushType { solid, rainbow, glitter }
+
+enum TracingLetterSubMode { uppercase, lowercase, matchPairs }
 
 class BrushItem {
   final String id;
@@ -117,6 +120,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
   int _currentLevel = 1;
   int _unlockedLevel = 1;
   int _currentIndex = 0;
+  TracingLetterSubMode _letterSubMode = TracingLetterSubMode.uppercase;
   List<LetterTracingData> _currentItems = GameRepository.getTracingItems(1);
   final List<Offset> _userStrokes = [];
   bool _isCompleted = false;
@@ -125,6 +129,16 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
   final ScrollController _scrollController = ScrollController();
   int _selectedBrushIndex = 0;
   late AnimationController _guideAnimController;
+
+  // Mini-game "Pasangan Aa" (Uppercase-Lowercase Matching) State
+  int _matchBatchIndex = 0; // 0..6 (batches of 4 letters across 26 letters)
+  List<LetterTracingData> _matchBatchItems = [];
+  List<LetterTracingData> _shuffledLowercaseChoices = [];
+  String? _selectedUpperLetter;
+  String? _selectedLowerLetter;
+  final Set<String> _matchedUppercaseLetters = {};
+  String? _wrongUpperFlash;
+  String? _wrongLowerFlash;
 
   BrushItem get _selectedBrush => _kBrushes[_selectedBrushIndex];
   LetterTracingData get _current => _currentIndex < _currentItems.length ? _currentItems[_currentIndex] : _currentItems[0];
@@ -144,7 +158,8 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     final lvl = await StorageService.getGameLevel('tracing');
     final unl = await StorageService.getUnlockedGameLevel('tracing');
     final idx = await StorageService.getGameLevelIndex('tracing', lvl);
-    final items = GameRepository.getTracingItems(lvl);
+    final isLower = _letterSubMode == TracingLetterSubMode.lowercase;
+    final items = GameRepository.getTracingItems(lvl, isLowercase: isLower);
 
     if (mounted) {
       setState(() {
@@ -158,6 +173,155 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     }
   }
 
+  void _switchLetterSubMode(TracingLetterSubMode newMode) {
+    if (_letterSubMode == newMode) return;
+    HapticFeedback.mediumImpact();
+    _audio.playSfx('pop');
+
+    if (newMode == TracingLetterSubMode.matchPairs) {
+      setState(() {
+        _letterSubMode = newMode;
+      });
+      _startMatchPairsBatch(0);
+      return;
+    }
+
+    final isLower = newMode == TracingLetterSubMode.lowercase;
+    final items = GameRepository.getTracingItems(1, isLowercase: isLower);
+    setState(() {
+      _letterSubMode = newMode;
+      _currentItems = items;
+      if (_currentIndex >= items.length) {
+        _currentIndex = 0;
+      }
+    });
+    _startLetter();
+    _scrollToCurrentLetter();
+  }
+
+  void _startMatchPairsBatch(int batchIdx) {
+    final allUpper = GameRepository.letters;
+    final totalBatches = (allUpper.length / 4).ceil();
+    final safeBatch = batchIdx % totalBatches;
+    final startIdx = safeBatch * 4;
+    final endIdx = math.min(startIdx + 4, allUpper.length);
+    final slice = allUpper.sublist(startIdx, endIdx);
+    final shuffled = List<LetterTracingData>.from(slice)..shuffle();
+
+    setState(() {
+      _matchBatchIndex = safeBatch;
+      _matchBatchItems = slice;
+      _shuffledLowercaseChoices = shuffled;
+      _selectedUpperLetter = null;
+      _selectedLowerLetter = null;
+      _matchedUppercaseLetters.clear();
+      _wrongUpperFlash = null;
+      _wrongLowerFlash = null;
+    });
+
+    final firstLetter = slice.first.letter;
+    final lastLetter = slice.last.letter;
+    _audio.speak(
+      'Cocokkan induk huruf besar dengan anak huruf kecilnya! Kelompok huruf $firstLetter sampai $lastLetter!',
+    );
+  }
+
+  void _onTapUpperMatchCard(LetterTracingData item) {
+    if (_matchedUppercaseLetters.contains(item.letter)) {
+      _audio.speak('Huruf ${item.letter} besar dan ${item.letter.toLowerCase()} kecil untuk ${item.word} sudah cocok!');
+      return;
+    }
+    HapticFeedback.selectionClick();
+    _audio.playSfx('pop');
+    setState(() {
+      _selectedUpperLetter = item.letter;
+      _wrongUpperFlash = null;
+    });
+    _audio.speak('Huruf besar ${item.letter}!');
+    _tryEvaluateMatchPair();
+  }
+
+  void _onTapLowerMatchCard(LetterTracingData item) {
+    if (_matchedUppercaseLetters.contains(item.letter)) return;
+    HapticFeedback.selectionClick();
+    _audio.playSfx('pop');
+    setState(() {
+      _selectedLowerLetter = item.letter;
+      _wrongLowerFlash = null;
+    });
+    _audio.speak('Huruf kecil ${item.letter.toLowerCase()}!');
+    _tryEvaluateMatchPair();
+  }
+
+  void _tryEvaluateMatchPair() async {
+    if (_selectedUpperLetter == null || _selectedLowerLetter == null) return;
+
+    final upper = _selectedUpperLetter!;
+    final lower = _selectedLowerLetter!;
+
+    if (upper == lower) {
+      // Correct match!
+      final matchedItem = _matchBatchItems.firstWhere(
+        (e) => e.letter == upper,
+        orElse: () => _matchBatchItems.first,
+      );
+      HapticFeedback.heavyImpact();
+      _audio.playSfx('star');
+      setState(() {
+        _matchedUppercaseLetters.add(upper);
+        _selectedUpperLetter = null;
+        _selectedLowerLetter = null;
+      });
+
+      _audio.speak('Pintar! Huruf besar $upper cocok dengan huruf kecil ${upper.toLowerCase()}! ${matchedItem.word}!');
+
+      if (_matchedUppercaseLetters.length >= _matchBatchItems.length) {
+        // Batch completed!
+        StorageService.updateDailyMissionProgress('trace', 1);
+        widget.onVictory(4);
+        await StorageService.addTrophy('letter_match_master');
+
+        final totalBatches = (GameRepository.letters.length / 4).ceil();
+        final nextBatch = (_matchBatchIndex + 1) % totalBatches;
+
+        if (!mounted) return;
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => VictoryDialog(
+              title: '🧩 Pasangan Huruf Cocok!',
+              subtitle:
+                  'Hebat sekali! Kamu berhasil mencocokkan semua induk huruf besar dan anak huruf kecil di kelompok ini!\nKamu dapat +4 Bintang Juara!',
+              onNext: () {
+                _startMatchPairsBatch(nextBatch);
+              },
+            ),
+          );
+        });
+      }
+    } else {
+      // Mismatch
+      HapticFeedback.lightImpact();
+      _audio.playSfx('whoosh');
+      setState(() {
+        _wrongUpperFlash = upper;
+        _wrongLowerFlash = lower;
+      });
+      _audio.speak('Belum cocok, ayo cari pasangan huruf $upper yang tepat ya!');
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) {
+          setState(() {
+            _selectedLowerLetter = null;
+            _wrongUpperFlash = null;
+            _wrongLowerFlash = null;
+          });
+        }
+      });
+    }
+  }
+
   void _switchLevel(int newLevel) async {
     if (newLevel < 1 || newLevel > 3) return;
     if (newLevel > _unlockedLevel) {
@@ -167,11 +331,15 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     }
 
     HapticFeedback.mediumImpact();
-    final items = GameRepository.getTracingItems(newLevel);
+    final isLower = newLevel == 1 && _letterSubMode == TracingLetterSubMode.lowercase;
+    final items = GameRepository.getTracingItems(newLevel, isLowercase: isLower);
     final idx = await StorageService.getGameLevelIndex('tracing', newLevel);
 
     setState(() {
       _currentLevel = newLevel;
+      if (newLevel != 1 && _letterSubMode == TracingLetterSubMode.matchPairs) {
+        _letterSubMode = TracingLetterSubMode.uppercase;
+      }
       _currentItems = items;
       _currentIndex = (idx < items.length) ? idx : 0;
     });
@@ -196,7 +364,11 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
     _guideAnimController.reset();
     _guideAnimController.repeat(reverse: true);
     if (_currentLevel == 1) {
-      _audio.speak('Huruf ${_current.letter}! ${_current.word}');
+      if (_letterSubMode == TracingLetterSubMode.lowercase) {
+        _audio.speak('Huruf kecil ${_current.letter}! ${_current.word}');
+      } else {
+        _audio.speak('Huruf besar ${_current.letter}! ${_current.word}');
+      }
     } else if (_currentLevel == 2) {
       _audio.speak('Angka ${_current.letter}! ${_current.word}!');
     } else {
@@ -257,9 +429,13 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
       // Determine Star Rating: 1 to 3 stars
       int awardedStars = 3;
       String starTitle = '⭐⭐⭐ Sempurna!';
-      String itemType = _currentLevel == 1 ? "Huruf" : (_currentLevel == 2 ? "Angka" : "Bentuk");
+      String itemType = _currentLevel == 1
+          ? (_letterSubMode == TracingLetterSubMode.lowercase ? "Huruf Kecil" : "Huruf")
+          : (_currentLevel == 2 ? "Angka" : "Bentuk");
       String praiseMessage = _currentLevel == 1
-          ? 'Luar biasa! Tulisan huruf ${_current.letter} sangat rapi!'
+          ? (_letterSubMode == TracingLetterSubMode.lowercase
+              ? 'Luar biasa! Tulisan huruf kecil ${_current.letter} sangat rapi!'
+              : 'Luar biasa! Tulisan huruf ${_current.letter} sangat rapi!')
           : (_currentLevel == 2
               ? 'Pintar sekali! Angka ${_current.letter} berhasil kamu tulis!'
               : 'Wah indah! Bentuk ${_current.word} terlukis dengan sempurna!');
@@ -336,7 +512,11 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
         }
         await StorageService.addTrophy('tracing_l$_currentLevel');
         if (_currentLevel == 1) {
-          await StorageService.addTrophy('tracing_alphabet_master');
+          if (_letterSubMode == TracingLetterSubMode.lowercase) {
+            await StorageService.addTrophy('tracing_lowercase_master');
+          } else {
+            await StorageService.addTrophy('tracing_alphabet_master');
+          }
         }
         await StorageService.saveGameLevelIndex('tracing', _currentLevel, 0);
 
@@ -363,6 +543,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isMatchPairsMode = _currentLevel == 1 && _letterSubMode == TracingLetterSubMode.matchPairs;
 
     if (isPortrait) {
       return Padding(
@@ -380,35 +561,47 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                     onSelectLevel: _switchLevel,
                   ),
                 ),
-                const SizedBox(width: 6),
-                _buildModeSwitcher(),
-                const SizedBox(width: 6),
-                _buildClearButton(),
+                if (!isMatchPairsMode) ...[
+                  const SizedBox(width: 6),
+                  _buildModeSwitcher(),
+                  const SizedBox(width: 6),
+                  _buildClearButton(),
+                ],
               ],
             ),
             const SizedBox(height: 6),
 
-            // 2. Scrollable Item Ribbon (A-Z, 1-10, Shapes)
-            _buildItemRibbon(),
-            const SizedBox(height: 6),
+            // 1b. Level 1 Letter Case & Matching Sub-Mode Selector
+            if (_currentLevel == 1) ...[
+              _buildLetterSubModeRibbon(),
+              const SizedBox(height: 6),
+            ],
 
-            // 3. Compact Guide Card
-            _buildCompactGuideCard(),
-            const SizedBox(height: 8),
+            if (isMatchPairsMode)
+              Expanded(child: _buildMatchPairsGameView(isPortrait: true))
+            else ...[
+              // 2. Scrollable Item Ribbon (A-Z, a-z, 1-10, Shapes)
+              _buildItemRibbon(),
+              const SizedBox(height: 6),
 
-            // 4. Center Drawing Canvas (Expanded & Touch-Spacious)
-            Expanded(
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: 1.0,
-                  child: _buildDrawingCanvas(),
+              // 3. Compact Guide Card
+              _buildCompactGuideCard(),
+              const SizedBox(height: 8),
+
+              // 4. Center Drawing Canvas (Expanded & Touch-Spacious)
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: _buildDrawingCanvas(),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            // 5. Bottom Horizontal Brush Rack
-            _buildHorizontalBrushRack(),
+              // 5. Bottom Horizontal Brush Rack
+              _buildHorizontalBrushRack(),
+            ],
           ],
         ),
       );
@@ -418,220 +611,258 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
         children: [
-          // 1. Top Control Bar: Level Selector Ribbon + Mode Switcher + Clear Button
+          // 1. Top Control Bar: Level Selector Ribbon + Sub-mode + Mode Switcher + Clear Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Flexible(
                 flex: 4,
-                child: LevelSelectorRibbon(
-                  currentLevel: _currentLevel,
-                  unlockedLevel: _unlockedLevel,
-                  onSelectLevel: _switchLevel,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      LevelSelectorRibbon(
+                        currentLevel: _currentLevel,
+                        unlockedLevel: _unlockedLevel,
+                        onSelectLevel: _switchLevel,
+                      ),
+                      if (_currentLevel == 1) ...[
+                        const SizedBox(width: 8),
+                        _buildLetterSubModeRibbon(),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              _buildModeSwitcher(),
-              const SizedBox(width: 8),
-              _buildClearButton(),
+              if (!isMatchPairsMode) ...[
+                const SizedBox(width: 8),
+                _buildModeSwitcher(),
+                const SizedBox(width: 8),
+                _buildClearButton(),
+              ],
             ],
           ),
           const SizedBox(height: 6),
 
-          // 2. Scrollable Item Ribbon (A-Z, 1-10, Shapes)
-          _buildItemRibbon(),
-          const SizedBox(height: 10),
+          if (isMatchPairsMode)
+            Expanded(child: _buildMatchPairsGameView(isPortrait: false))
+          else ...[
+            // 2. Scrollable Item Ribbon (A-Z, a-z, 1-10, Shapes)
+            _buildItemRibbon(),
+            const SizedBox(height: 10),
 
-          // Main Tracing Layout (Left Guide Card, Center Canvas, Right Brush Rack)
-          Expanded(
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Left Guide Card
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        _audio.speak('${_current.letter}! ${_current.word}!');
-                      },
-                      child: Container(
-                        width: 205,
-                        height: 320,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFBAE6FD), width: 3),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x10000000),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Speaker Audio & Voice Record Pills
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    _audio.speak('${_current.letter}! ${_current.word}!');
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFE0F2FE),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: const Color(0xFFBAE6FD)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.volume_up_rounded, size: 14, color: Color(0xFF0284C7)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Dengar',
-                                          style: GoogleFonts.fredoka(
-                                            fontSize: 10.5,
-                                            fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF0369A1),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                GestureDetector(
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (ctx) => VoiceRecordDialog(
-                                        recordingKey: 'tracing_${_current.letter}',
-                                        wordOrLetter: _current.letter,
-                                        displayLabel: 'Huruf ${_current.letter}',
-                                        category: 'Huruf',
-                                        illustrationKey: _current.illustrationKey,
-                                        phoneticTip: '${_current.letter}! ${_current.word}!',
-                                        onBonusStars: (b) => widget.onVictory(b),
-                                      ),
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF3E8FF),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: const Color(0xFFD8B4FE)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text('🎙️', style: TextStyle(fontSize: 11)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Rekam',
-                                          style: GoogleFonts.fredoka(
-                                            fontSize: 10.5,
-                                            fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF7E22CE),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            ObjectIllustrationWidget(
-                              illustrationKey: _current.illustrationKey,
-                              size: 60,
-                            ),
-                            Column(
-                              children: [
-                                Text(
-                                  '${_current.letter} - ${_current.word}',
-                                  style: GoogleFonts.fredoka(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900,
-                                    color: const Color(0xFF0284C7),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _current.hint,
-                                  style: GoogleFonts.fredoka(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF64748B),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                            // Prev / Next Navigation Arrows
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF0F9FF),
-                                borderRadius: BorderRadius.circular(16),
+            // Main Tracing Layout (Left Guide Card, Center Canvas, Right Brush Rack)
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Left Guide Card
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _audio.speak('${_current.letter}! ${_current.word}!');
+                        },
+                        child: Container(
+                          width: 205,
+                          height: 320,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFBAE6FD), width: 3),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x10000000),
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Speaker Audio & Voice Record Pills
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.arrow_back_ios_rounded, size: 16),
-                                    color: _currentIndex > 0 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
-                                    onPressed: _currentIndex > 0 ? () => _selectLetter(_currentIndex - 1) : null,
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                  Text(
-                                    '${_currentIndex + 1} / ${_currentItems.length}',
-                                    style: GoogleFonts.nunito(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                      color: const Color(0xFF0369A1),
+                                  GestureDetector(
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      _audio.speak('${_current.letter}! ${_current.word}!');
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE0F2FE),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: const Color(0xFFBAE6FD)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.volume_up_rounded, size: 14, color: Color(0xFF0284C7)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Dengar',
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF0369A1),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                                    color: _currentIndex < _currentItems.length - 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
-                                    onPressed: _currentIndex < _currentItems.length - 1 ? () => _selectLetter(_currentIndex + 1) : null,
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx) => VoiceRecordDialog(
+                                          recordingKey: 'tracing_${_current.letter}',
+                                          wordOrLetter: _current.letter,
+                                          displayLabel: 'Huruf ${_current.letter}',
+                                          category: 'Huruf',
+                                          illustrationKey: _current.illustrationKey,
+                                          phoneticTip: '${_current.letter}! ${_current.word}!',
+                                          onBonusStars: (b) => widget.onVictory(b),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF3E8FF),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: const Color(0xFFD8B4FE)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text('🎙️', style: TextStyle(fontSize: 11)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Rekam',
+                                            style: GoogleFonts.fredoka(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF7E22CE),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                              ObjectIllustrationWidget(
+                                illustrationKey: _current.illustrationKey,
+                                size: 56,
+                              ),
+                              Column(
+                                children: [
+                                  if (_currentLevel == 1)
+                                    Container(
+                                      margin: const EdgeInsets.only(bottom: 3),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFEF9C3),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: const Color(0xFFFDE047)),
+                                      ),
+                                      child: Text(
+                                        'Pasangan: ${_current.letter.toUpperCase()}${_current.letter.toLowerCase()}',
+                                        style: GoogleFonts.fredoka(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFFB45309),
+                                        ),
+                                      ),
+                                    ),
+                                  Text(
+                                    '${_current.letter} - ${_current.word}',
+                                    style: GoogleFonts.fredoka(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFF0284C7),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _current.hint,
+                                    style: GoogleFonts.fredoka(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                              // Prev / Next Navigation Arrows
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0F9FF),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.arrow_back_ios_rounded, size: 16),
+                                      color: _currentIndex > 0 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                                      onPressed: _currentIndex > 0 ? () => _selectLetter(_currentIndex - 1) : null,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                    Text(
+                                      '${_currentIndex + 1} / ${_currentItems.length}',
+                                      style: GoogleFonts.nunito(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                        color: const Color(0xFF0369A1),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                                      color: _currentIndex < _currentItems.length - 1 ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1),
+                                      onPressed: _currentIndex < _currentItems.length - 1 ? () => _selectLetter(_currentIndex + 1) : null,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
+                      const SizedBox(width: 16),
 
-                    // Center Drawing Canvas
-                    SizedBox(
-                      width: 320,
-                      height: 320,
-                      child: _buildDrawingCanvas(),
-                    ),
-                    const SizedBox(width: 16),
+                      // Center Drawing Canvas
+                      SizedBox(
+                        width: 320,
+                        height: 320,
+                        child: _buildDrawingCanvas(),
+                      ),
+                      const SizedBox(width: 16),
 
-                    // Right Brush Rack (Vertical)
-                    _buildVerticalBrushRack(),
-                  ],
+                      // Right Brush Rack (Vertical)
+                      _buildVerticalBrushRack(),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -914,7 +1145,7 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _kBrushes.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              separatorBuilder: (_, _) => const SizedBox(width: 6),
               itemBuilder: (context, idx) {
                 final brush = _kBrushes[idx];
                 final isSel = idx == _selectedBrushIndex;
@@ -1096,6 +1327,368 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
             icon: '📝',
             label: 'Mandiri',
             isActive: _isFreehandMode,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Sub-mode Ribbon for Level 1: Huruf Besar (A-Z), Huruf Kecil (a-z), Pasangan (Aa)
+  Widget _buildLetterSubModeRibbon() {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(240),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFBAE6FD), width: 1.8),
+        boxShadow: const [
+          BoxShadow(color: Color(0x10000000), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildLetterSubModePill(
+            mode: TracingLetterSubMode.uppercase,
+            icon: '🔤',
+            label: 'Besar A-Z',
+          ),
+          const SizedBox(width: 4),
+          _buildLetterSubModePill(
+            mode: TracingLetterSubMode.lowercase,
+            icon: '🔡',
+            label: 'Kecil a-z',
+          ),
+          const SizedBox(width: 4),
+          _buildLetterSubModePill(
+            mode: TracingLetterSubMode.matchPairs,
+            icon: '🧩',
+            label: 'Pasangan Aa',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLetterSubModePill({
+    required TracingLetterSubMode mode,
+    required String icon,
+    required String label,
+  }) {
+    final isActive = _letterSubMode == mode;
+    return GestureDetector(
+      onTap: () => _switchLetterSubMode(mode),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFF97316) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 12)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.fredoka(
+                fontSize: 11.5,
+                fontWeight: FontWeight.bold,
+                color: isActive ? Colors.white : const Color(0xFF475569),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Mini-game View: Cocokkan Induk Huruf Besar (A-Z) & Anak Huruf Kecil (a-z)
+  Widget _buildMatchPairsGameView({required bool isPortrait}) {
+    final totalBatches = (GameRepository.letters.length / 4).ceil();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(235),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFBAE6FD), width: 3),
+        boxShadow: const [
+          BoxShadow(color: Color(0x12000000), blurRadius: 12, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header Info & Batch Selector
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🧩', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        isPortrait
+                            ? 'Sentuh Huruf Besar lalu Huruf Kecilnya!'
+                            : 'Sentuh Induk Huruf Besar (A-Z), lalu cari pasangan Anak Huruf Kecilnya (a-z)!',
+                        style: GoogleFonts.fredoka(
+                          fontSize: isPortrait ? 12.5 : 14,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF0369A1),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Batch Navigation Pills
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF59E0B), width: 1.5),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        final prev = (_matchBatchIndex - 1 + totalBatches) % totalBatches;
+                        _startMatchPairsBatch(prev);
+                      },
+                      child: const Icon(Icons.chevron_left_rounded, size: 20, color: Color(0xFFB45309)),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Kelompok ${_matchBatchIndex + 1}/$totalBatches',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF92400E),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () {
+                        final next = (_matchBatchIndex + 1) % totalBatches;
+                        _startMatchPairsBatch(next);
+                      },
+                      child: const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFFB45309)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Uppercase Row (Induk Huruf Besar)
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Row 1: Uppercase Cards with Object Illustration
+                Expanded(
+                  child: Row(
+                    children: _matchBatchItems.map((item) {
+                      final isMatched = _matchedUppercaseLetters.contains(item.letter);
+                      final isSelected = _selectedUpperLetter == item.letter;
+                      final isWrong = _wrongUpperFlash == item.letter;
+
+                      Color bg = const Color(0xFFF0F9FF);
+                      Color border = const Color(0xFF7DD3FC);
+                      if (isMatched) {
+                        bg = const Color(0xFFDCFCE7);
+                        border = const Color(0xFF22C55E);
+                      } else if (isWrong) {
+                        bg = const Color(0xFFFEE2E2);
+                        border = const Color(0xFFEF4444);
+                      } else if (isSelected) {
+                        bg = const Color(0xFFFEF08A);
+                        border = const Color(0xFFEAB308);
+                      }
+
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: GestureDetector(
+                            onTap: () => _onTapUpperMatchCard(item),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: bg,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: border,
+                                  width: (isSelected || isMatched) ? 3.0 : 2.0,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: border.withAlpha(65),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        ObjectIllustrationWidget(
+                                          illustrationKey: item.illustrationKey,
+                                          size: 36,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          isMatched
+                                              ? '${item.letter}${item.letter.toLowerCase()}'
+                                              : item.letter,
+                                          style: GoogleFonts.fredoka(
+                                            fontSize: 38,
+                                            fontWeight: FontWeight.w900,
+                                            color: isMatched
+                                                ? const Color(0xFF15803D)
+                                                : const Color(0xFF0369A1),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      isMatched ? '✅ ${item.word}' : item.word,
+                                      style: GoogleFonts.fredoka(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: isMatched
+                                            ? const Color(0xFF166534)
+                                            : const Color(0xFF475569),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Divider Instruction Pill
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    '⬇️ Pasangkan dengan Anak Huruf Kecil di Bawah ⬇️',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Row 2: Shuffled Lowercase Cards
+                Expanded(
+                  child: Row(
+                    children: _shuffledLowercaseChoices.map((item) {
+                      final isMatched = _matchedUppercaseLetters.contains(item.letter);
+                      final isSelected = _selectedLowerLetter == item.letter;
+                      final isWrong = _wrongLowerFlash == item.letter;
+
+                      Color bg = const Color(0xFFFFFBEB);
+                      Color border = const Color(0xFFFCD34D);
+                      if (isMatched) {
+                        bg = const Color(0xFFDCFCE7);
+                        border = const Color(0xFF22C55E);
+                      } else if (isWrong) {
+                        bg = const Color(0xFFFEE2E2);
+                        border = const Color(0xFFEF4444);
+                      } else if (isSelected) {
+                        bg = const Color(0xFFFEF08A);
+                        border = const Color(0xFFEAB308);
+                      }
+
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5),
+                          child: GestureDetector(
+                            onTap: () => _onTapLowerMatchCard(item),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: bg,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: border,
+                                  width: (isSelected || isMatched) ? 3.0 : 2.0,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: border.withAlpha(65),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      item.letter.toLowerCase(),
+                                      style: GoogleFonts.fredoka(
+                                        fontSize: 44,
+                                        fontWeight: FontWeight.w900,
+                                        color: isMatched
+                                            ? const Color(0xFF15803D)
+                                            : const Color(0xFFB45309),
+                                      ),
+                                    ),
+                                    Text(
+                                      isMatched ? 'Cocok! ⭐' : 'huruf ${item.letter.toLowerCase()}',
+                                      style: GoogleFonts.fredoka(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: isMatched
+                                            ? const Color(0xFF166534)
+                                            : const Color(0xFF78350F),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
