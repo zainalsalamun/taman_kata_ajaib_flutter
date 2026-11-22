@@ -491,6 +491,370 @@ class GameRepository {
   // ==========================================
   // DERMAGA JEJAK HURUF (TRACING) MULTI-LEVEL
   // ==========================================
+  static final List<LetterTracingData> lowercaseLetters = [
+    LetterTracingData(
+      letter: 'a',
+      word: 'apel',
+      illustrationKey: 'apel',
+      hint: 'Buat perut bulat di kiri, lalu tarik garis tegak di kanan!',
+      guidePoints: [
+        const Offset(190, 140),
+        const Offset(130, 130),
+        const Offset(105, 195),
+        const Offset(140, 260),
+        const Offset(195, 240),
+        const Offset(195, 130),
+        const Offset(195, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'b',
+      word: 'balon',
+      illustrationKey: 'balon',
+      hint: 'Tarik tiang tinggi dari atas ke bawah, lalu beri perut bulat di kanan bawah!',
+      guidePoints: [
+        const Offset(115, 65),
+        const Offset(115, 175),
+        const Offset(115, 265),
+        const Offset(175, 145),
+        const Offset(215, 200),
+        const Offset(175, 265),
+        const Offset(115, 250),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'c',
+      word: 'ceri',
+      illustrationKey: 'ceri',
+      hint: 'Putar setengah lingkaran mungil menghadap ke kanan!',
+      guidePoints: [
+        const Offset(210, 145),
+        const Offset(155, 125),
+        const Offset(110, 195),
+        const Offset(155, 265),
+        const Offset(210, 245),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'd',
+      word: 'domba',
+      illustrationKey: 'domba',
+      hint: 'Buat perut bulat di kiri bawah, lalu tarik tiang tinggi di kanan!',
+      guidePoints: [
+        const Offset(195, 145),
+        const Offset(140, 140),
+        const Offset(105, 200),
+        const Offset(145, 265),
+        const Offset(195, 245),
+        const Offset(195, 65),
+        const Offset(195, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'e',
+      word: 'elang',
+      illustrationKey: 'elang',
+      hint: 'Garis mendatar di tengah, lalu putar melengkung ke atas dan bawah!',
+      guidePoints: [
+        const Offset(115, 190),
+        const Offset(210, 190),
+        const Offset(195, 135),
+        const Offset(135, 135),
+        const Offset(110, 200),
+        const Offset(155, 265),
+        const Offset(205, 245),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'f',
+      word: 'foto',
+      illustrationKey: 'foto',
+      hint: 'Lengkung tongkat dari atas turun lurus, lalu garis kecil di tengah!',
+      guidePoints: [
+        const Offset(205, 75),
+        const Offset(160, 65),
+        const Offset(150, 165),
+        const Offset(150, 270),
+        const Offset(115, 155),
+        const Offset(190, 155),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'g',
+      word: 'gajah',
+      illustrationKey: 'gajah',
+      hint: 'Buat kepala bulat, lalu tarik ekor melengkung seperti kail di bawah!',
+      guidePoints: [
+        const Offset(195, 135),
+        const Offset(135, 135),
+        const Offset(110, 185),
+        const Offset(150, 230),
+        const Offset(195, 205),
+        const Offset(195, 135),
+        const Offset(195, 255),
+        const Offset(155, 290),
+        const Offset(120, 270),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'h',
+      word: 'harimau',
+      illustrationKey: 'harimau',
+      hint: 'Tiang tinggi dari atas ke bawah, lalu buat lengkung kursi di kanan!',
+      guidePoints: [
+        const Offset(115, 65),
+        const Offset(115, 175),
+        const Offset(115, 265),
+        const Offset(130, 160),
+        const Offset(185, 145),
+        const Offset(205, 205),
+        const Offset(205, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'i',
+      word: 'ikan',
+      illustrationKey: 'ikan',
+      hint: 'Tarik tiang pendek lurus ke bawah, lalu beri titik di atasnya!',
+      guidePoints: [
+        const Offset(160, 135),
+        const Offset(160, 200),
+        const Offset(160, 265),
+        const Offset(160, 90),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'j',
+      word: 'jeruk',
+      illustrationKey: 'jeruk',
+      hint: 'Tarik garis turun melengkung ke kiri bawah, lalu beri titik di atas!',
+      guidePoints: [
+        const Offset(175, 135),
+        const Offset(175, 230),
+        const Offset(150, 285),
+        const Offset(120, 265),
+        const Offset(175, 90),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'k',
+      word: 'kuda',
+      illustrationKey: 'kuda',
+      hint: 'Tiang tinggi tegak, lalu cabang pendek miring ke atas dan ke bawah!',
+      guidePoints: [
+        const Offset(120, 65),
+        const Offset(120, 175),
+        const Offset(120, 265),
+        const Offset(200, 140),
+        const Offset(130, 195),
+        const Offset(205, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'l',
+      word: 'lemon',
+      illustrationKey: 'lemon',
+      hint: 'Tarik satu tiang tinggi lurus dari atas sampai ke bawah!',
+      guidePoints: [
+        const Offset(160, 65),
+        const Offset(160, 135),
+        const Offset(160, 200),
+        const Offset(160, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'm',
+      word: 'mobil',
+      illustrationKey: 'mobil',
+      hint: 'Tiang pendek di kiri, lalu buat dua bukit kembar ke kanan!',
+      guidePoints: [
+        const Offset(95, 140),
+        const Offset(95, 265),
+        const Offset(130, 145),
+        const Offset(160, 200),
+        const Offset(160, 265),
+        const Offset(195, 145),
+        const Offset(225, 200),
+        const Offset(225, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'n',
+      word: 'nanas',
+      illustrationKey: 'nanas',
+      hint: 'Tiang pendek di kiri, lalu buat satu lengkung terowongan ke kanan!',
+      guidePoints: [
+        const Offset(115, 140),
+        const Offset(115, 265),
+        const Offset(145, 150),
+        const Offset(190, 145),
+        const Offset(205, 205),
+        const Offset(205, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'o',
+      word: 'obat',
+      illustrationKey: 'obat',
+      hint: 'Putar satu lingkaran bundar mungil yang rapi!',
+      guidePoints: [
+        const Offset(160, 125),
+        const Offset(105, 195),
+        const Offset(160, 265),
+        const Offset(215, 195),
+        const Offset(160, 125),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'p',
+      word: 'pisang',
+      illustrationKey: 'pisang',
+      hint: 'Tarik tiang turun ke bawah garis, lalu buat kepala bulat di kanan!',
+      guidePoints: [
+        const Offset(120, 135),
+        const Offset(120, 215),
+        const Offset(120, 290),
+        const Offset(175, 135),
+        const Offset(215, 185),
+        const Offset(175, 235),
+        const Offset(120, 225),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'q',
+      word: 'quran',
+      illustrationKey: 'buku',
+      hint: 'Buat kepala bulat di kiri, lalu tarik tiang lurus turun di kanan!',
+      guidePoints: [
+        const Offset(195, 145),
+        const Offset(140, 135),
+        const Offset(105, 185),
+        const Offset(145, 235),
+        const Offset(195, 220),
+        const Offset(195, 135),
+        const Offset(195, 290),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'r',
+      word: 'roti',
+      illustrationKey: 'roti',
+      hint: 'Tarik tiang pendek turun, lalu beri pucuk daun melengkung di atas kanan!',
+      guidePoints: [
+        const Offset(130, 135),
+        const Offset(130, 205),
+        const Offset(130, 265),
+        const Offset(150, 155),
+        const Offset(195, 135),
+      ],
+    ),
+    LetterTracingData(
+      letter: 's',
+      word: 'sapi',
+      illustrationKey: 'sapi',
+      hint: 'Liuk-liuk mungil melengkung seperti ular kecil!',
+      guidePoints: [
+        const Offset(200, 145),
+        const Offset(155, 125),
+        const Offset(120, 165),
+        const Offset(160, 195),
+        const Offset(200, 230),
+        const Offset(155, 265),
+        const Offset(115, 245),
+      ],
+    ),
+    LetterTracingData(
+      letter: 't',
+      word: 'topi',
+      illustrationKey: 'topi',
+      hint: 'Tarik tiang dari atas turun sedikit melengkung, lalu garis sabuk di tengah!',
+      guidePoints: [
+        const Offset(155, 80),
+        const Offset(155, 185),
+        const Offset(165, 265),
+        const Offset(190, 260),
+        const Offset(120, 140),
+        const Offset(195, 140),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'u',
+      word: 'udang',
+      illustrationKey: 'udang',
+      hint: 'Turun melengkung seperti mangkuk mungil, lalu naik dan turun di kanan!',
+      guidePoints: [
+        const Offset(115, 135),
+        const Offset(115, 225),
+        const Offset(155, 265),
+        const Offset(200, 225),
+        const Offset(200, 135),
+        const Offset(200, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'v',
+      word: 'vas',
+      illustrationKey: 'vas',
+      hint: 'Garis miring pendek turun ke tengah bawah, lalu miring naik ke kanan!',
+      guidePoints: [
+        const Offset(110, 135),
+        const Offset(160, 265),
+        const Offset(210, 135),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'w',
+      word: 'wortel',
+      illustrationKey: 'wortel',
+      hint: 'Dua lembah mungil berdampingan: turun, naik, turun, naik!',
+      guidePoints: [
+        const Offset(95, 135),
+        const Offset(125, 265),
+        const Offset(160, 175),
+        const Offset(195, 265),
+        const Offset(225, 135),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'x',
+      word: 'xilofon',
+      illustrationKey: 'xilofon',
+      hint: 'Dua garis miring pendek menyilang di tengah!',
+      guidePoints: [
+        const Offset(115, 135),
+        const Offset(160, 200),
+        const Offset(205, 265),
+        const Offset(205, 135),
+        const Offset(115, 265),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'y',
+      word: 'yoyo',
+      illustrationKey: 'yoyo',
+      hint: 'Cabang miring pendek di kiri, lalu garis miring panjang turun di kanan!',
+      guidePoints: [
+        const Offset(115, 135),
+        const Offset(160, 215),
+        const Offset(205, 135),
+        const Offset(160, 215),
+        const Offset(130, 290),
+      ],
+    ),
+    LetterTracingData(
+      letter: 'z',
+      word: 'zebra',
+      illustrationKey: 'zebra',
+      hint: 'Garis mendatar ke kanan, miring ke kiri bawah, lalu mendatar ke kanan!',
+      guidePoints: [
+        const Offset(115, 135),
+        const Offset(205, 135),
+        const Offset(115, 265),
+        const Offset(205, 265),
+      ],
+    ),
+  ];
+
   static final List<LetterTracingData> numbersTracing = [
     LetterTracingData(
       letter: '1',
@@ -729,7 +1093,7 @@ class GameRepository {
     ),
   ];
 
-  static List<LetterTracingData> getTracingItems(int level) {
+  static List<LetterTracingData> getTracingItems(int level, {bool isLowercase = false}) {
     switch (level) {
       case 2:
         return numbersTracing;
@@ -737,7 +1101,7 @@ class GameRepository {
         return shapesTracing;
       case 1:
       default:
-        return letters;
+        return isLowercase ? lowercaseLetters : letters;
     }
   }
 
