@@ -108,6 +108,22 @@ const List<TrophyDef> _allTrophies = [
     glowColor: Color(0xFFEAB308),
   ),
   TrophyDef(
+    id: 'tracing_lowercase_master',
+    title: 'Juara Huruf Kecil a-z',
+    icon: '🔡',
+    island: 'Jejak Huruf',
+    desc: 'Tulis dan kuasai seluruh 26 huruf kecil a sampai z',
+    glowColor: Color(0xFF0284C7),
+  ),
+  TrophyDef(
+    id: 'letter_match_master',
+    title: 'Detektif Pasangan Aa',
+    icon: '🧩',
+    island: 'Jejak Huruf',
+    desc: 'Cocokkan pasangan induk huruf besar (A-Z) dan anak huruf kecil (a-z)',
+    glowColor: Color(0xFF10B981),
+  ),
+  TrophyDef(
     id: 'story_comprehension_master',
     title: 'Mahkota Pendongeng Ajaib',
     icon: '👑',
