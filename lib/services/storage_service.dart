@@ -33,15 +33,85 @@ class StorageService {
   static const String _keyAllMissionsBonusClaimed = 'taman_kata_daily_all_claimed';
   static const String _keySpeedRushHighScore = 'taman_kata_speed_rush_high_score';
   static const String _keySpeedRushBestCombo = 'taman_kata_speed_rush_best_combo';
+  static const String _keyNeedsPracticeWords = 'taman_kata_needs_practice_words';
+  static const String _keyActiveProfileSlot = 'taman_kata_active_profile_slot';
+
+  // --- SISTEM MULTI-PROFIL ANAK (3 SLOT: KAKAK & ADIK) ---
+  static String _pKey(String baseKey, int slot) =>
+      slot <= 1 ? baseKey : '${baseKey}_p$slot';
+
+  static Future<int> getActiveProfileSlot() async {
+    final prefs = await SharedPreferences.getInstance();
+    return (prefs.getInt(_keyActiveProfileSlot) ?? 1).clamp(1, 3);
+  }
+
+  static Future<void> setActiveProfileSlot(int slot) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyActiveProfileSlot, slot.clamp(1, 3));
+  }
+
+  static String _defaultProfileName(int slot) {
+    switch (slot) {
+      case 2:
+        return 'Adik Ceria';
+      case 3:
+        return 'Sahabat Kecil';
+      case 1:
+      default:
+        return 'Juara Cilik';
+    }
+  }
+
+  static String _defaultProfileAvatar(int slot) {
+    switch (slot) {
+      case 2:
+        return 'cici';
+      case 3:
+        return 'kiki';
+      case 1:
+      default:
+        return 'miko';
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllProfileSummaries() async {
+    final prefs = await SharedPreferences.getInstance();
+    final activeSlot = (prefs.getInt(_keyActiveProfileSlot) ?? 1).clamp(1, 3);
+    final List<Map<String, dynamic>> summaries = [];
+
+    for (int slot = 1; slot <= 3; slot++) {
+      final name = prefs.getString(_pKey(_keyChildName, slot)) ?? _defaultProfileName(slot);
+      final avatar = prefs.getString(_pKey(_keyChildAvatar, slot)) ?? _defaultProfileAvatar(slot);
+      final stars = prefs.getInt(_pKey(_keyStars, slot)) ?? 20;
+      final trophiesRaw = prefs.getString(_pKey(_keyTrophies, slot));
+      int trophyCount = 0;
+      if (trophiesRaw != null) {
+        try {
+          trophyCount = (jsonDecode(trophiesRaw) as List).length;
+        } catch (_) {}
+      }
+      summaries.add({
+        'slot': slot,
+        'name': name,
+        'avatarId': avatar,
+        'stars': stars,
+        'trophyCount': trophyCount,
+        'isActive': slot == activeSlot,
+      });
+    }
+    return summaries;
+  }
 
   static Future<String> getChildAvatar() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyChildAvatar) ?? 'miko';
+    final slot = await getActiveProfileSlot();
+    return prefs.getString(_pKey(_keyChildAvatar, slot)) ?? _defaultProfileAvatar(slot);
   }
 
   static Future<void> saveChildAvatar(String avatarId) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyChildAvatar, avatarId);
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyChildAvatar, slot), avatarId);
   }
 
   static Future<String> getVoiceGender() async {
@@ -76,28 +146,36 @@ class StorageService {
 
   static Future<String> getChildName() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyChildName) ?? 'Juara Cilik';
+    final slot = await getActiveProfileSlot();
+    return prefs.getString(_pKey(_keyChildName, slot)) ?? _defaultProfileName(slot);
   }
 
   static Future<void> saveChildName(String name) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyChildName, name.trim().isEmpty ? 'Juara Cilik' : name.trim());
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(
+      _pKey(_keyChildName, slot),
+      name.trim().isEmpty ? _defaultProfileName(slot) : name.trim(),
+    );
   }
 
   static Future<String> getLastVisitedIsland() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyLastVisitedIsland) ?? 'tracing';
+    final slot = await getActiveProfileSlot();
+    return prefs.getString(_pKey(_keyLastVisitedIsland, slot)) ?? 'tracing';
   }
 
   static Future<void> saveLastVisitedIsland(String route) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyLastVisitedIsland, route);
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyLastVisitedIsland, slot), route);
   }
 
   // --- SUARAKU AJAIB / VOICE RECORDING METHODS ---
   static Future<List<Map<String, dynamic>>> getVoiceRecordingMetas() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_keyVoiceRecordings);
+    final slot = await getActiveProfileSlot();
+    final raw = prefs.getString(_pKey(_keyVoiceRecordings, slot));
     if (raw == null || raw.isEmpty) return [];
     try {
       final list = jsonDecode(raw) as List<dynamic>;
@@ -109,23 +187,26 @@ class StorageService {
 
   static Future<void> saveVoiceRecordingMeta(Map<String, dynamic> item) async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     final list = await getVoiceRecordingMetas();
     final key = item['key'] as String;
     list.removeWhere((m) => m['key'] == key);
     list.insert(0, item);
-    await prefs.setString(_keyVoiceRecordings, jsonEncode(list));
+    await prefs.setString(_pKey(_keyVoiceRecordings, slot), jsonEncode(list));
   }
 
   static Future<void> deleteVoiceRecordingMeta(String key) async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     final list = await getVoiceRecordingMetas();
     list.removeWhere((m) => m['key'] == key);
-    await prefs.setString(_keyVoiceRecordings, jsonEncode(list));
+    await prefs.setString(_pKey(_keyVoiceRecordings, slot), jsonEncode(list));
   }
 
   static Future<List<String>> getOpenedChests() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyOpenedChests);
+    final slot = await getActiveProfileSlot();
+    final jsonStr = prefs.getString(_pKey(_keyOpenedChests, slot));
     if (jsonStr == null) return [];
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
@@ -140,23 +221,27 @@ class StorageService {
     if (!opened.contains(chestId)) {
       opened.add(chestId);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyOpenedChests, jsonEncode(opened));
+      final slot = await getActiveProfileSlot();
+      await prefs.setString(_pKey(_keyOpenedChests, slot), jsonEncode(opened));
     }
   }
 
   static Future<int> getStars() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_keyStars) ?? 20;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey(_keyStars, slot)) ?? 20;
   }
 
   static Future<void> saveStars(int stars) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyStars, stars);
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey(_keyStars, slot), stars);
   }
 
   static Future<List<String>> getUnlockedStickers() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyStickers);
+    final slot = await getActiveProfileSlot();
+    final jsonStr = prefs.getString(_pKey(_keyStickers, slot));
     if (jsonStr == null) return ['stk_apel'];
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
@@ -168,7 +253,8 @@ class StorageService {
 
   static Future<void> saveUnlockedStickers(List<String> stickers) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyStickers, jsonEncode(stickers));
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyStickers, slot), jsonEncode(stickers));
   }
 
   // --- HADIAH HARIAN & RODA KEBERUNTUNGAN ---
@@ -181,19 +267,22 @@ class StorageService {
 
   static Future<bool> canClaimDailyReward() async {
     final prefs = await SharedPreferences.getInstance();
-    final lastDate = prefs.getString(_keyLastDailySpinDate);
+    final slot = await getActiveProfileSlot();
+    final lastDate = prefs.getString(_pKey(_keyLastDailySpinDate, slot));
     if (lastDate == null) return true;
     return lastDate != _getTodayDateString();
   }
 
   static Future<int> getDailyStreak() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_keyDailyStreak) ?? 1;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey(_keyDailyStreak, slot)) ?? 1;
   }
 
   static Future<String?> getLastDailySpinDate() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyLastDailySpinDate);
+    final slot = await getActiveProfileSlot();
+    return prefs.getString(_pKey(_keyLastDailySpinDate, slot));
   }
 
   static Future<Map<String, dynamic>> claimDailyReward({
@@ -201,10 +290,11 @@ class StorageService {
     String? rewardSticker,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     final todayStr = _getTodayDateString();
-    final lastDate = prefs.getString(_keyLastDailySpinDate);
+    final lastDate = prefs.getString(_pKey(_keyLastDailySpinDate, slot));
 
-    int currentStreak = prefs.getInt(_keyDailyStreak) ?? 1;
+    int currentStreak = prefs.getInt(_pKey(_keyDailyStreak, slot)) ?? 1;
     if (lastDate != null) {
       try {
         final lastDt = DateTime.parse(lastDate);
@@ -222,8 +312,8 @@ class StorageService {
       }
     }
 
-    await prefs.setString(_keyLastDailySpinDate, todayStr);
-    await prefs.setInt(_keyDailyStreak, currentStreak);
+    await prefs.setString(_pKey(_keyLastDailySpinDate, slot), todayStr);
+    await prefs.setInt(_pKey(_keyDailyStreak, slot), currentStreak);
 
     // Add stars
     final currentStars = await getStars();
@@ -246,7 +336,8 @@ class StorageService {
 
   static Future<List<PlacedSticker>> getPlacedStickers() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyPlacedStickers);
+    final slot = await getActiveProfileSlot();
+    final jsonStr = prefs.getString(_pKey(_keyPlacedStickers, slot));
     if (jsonStr == null) {
       // Default initial sticker on the canvas
       return [
@@ -269,18 +360,21 @@ class StorageService {
 
   static Future<void> savePlacedStickers(List<PlacedSticker> stickers) async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     final jsonList = stickers.map((e) => e.toJson()).toList();
-    await prefs.setString(_keyPlacedStickers, jsonEncode(jsonList));
+    await prefs.setString(_pKey(_keyPlacedStickers, slot), jsonEncode(jsonList));
   }
 
   static Future<String> getPlaygroundTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyPlaygroundTheme) ?? 'garden';
+    final slot = await getActiveProfileSlot();
+    return prefs.getString(_pKey(_keyPlaygroundTheme, slot)) ?? 'garden';
   }
 
   static Future<void> savePlaygroundTheme(String theme) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyPlaygroundTheme, theme);
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyPlaygroundTheme, slot), theme);
   }
 
   static Future<int> getScreenTimeLimit() async {
@@ -325,17 +419,20 @@ class StorageService {
   // --- JEJAK HURUF (TRACING) ---
   static Future<int> getTracingIndex() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_keyTracingIndex) ?? 0;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey(_keyTracingIndex, slot)) ?? 0;
   }
 
   static Future<void> saveTracingIndex(int index) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyTracingIndex, index);
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey(_keyTracingIndex, slot), index);
   }
 
   static Future<List<String>> getCompletedLetters() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyCompletedLetters);
+    final slot = await getActiveProfileSlot();
+    final jsonStr = prefs.getString(_pKey(_keyCompletedLetters, slot));
     if (jsonStr == null) return [];
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
@@ -347,46 +444,54 @@ class StorageService {
 
   static Future<void> saveCompletedLetters(List<String> letters) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyCompletedLetters, jsonEncode(letters));
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyCompletedLetters, slot), jsonEncode(letters));
   }
 
   // --- KERETA SUKU KATA (TRAIN) ---
   static Future<int> getTrainIndex() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_keyTrainIndex) ?? 0;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey(_keyTrainIndex, slot)) ?? 0;
   }
 
   static Future<void> saveTrainIndex(int index) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyTrainIndex, index);
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey(_keyTrainIndex, slot), index);
   }
 
   // --- BALON KATA AJAIB (BALLOON) ---
   static Future<int> getBalloonIndex() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_keyBalloonIndex) ?? 0;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey(_keyBalloonIndex, slot)) ?? 0;
   }
 
   static Future<void> saveBalloonIndex(int index) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyBalloonIndex, index);
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey(_keyBalloonIndex, slot), index);
   }
 
   // --- KUIS SENTUH PINTAR (QUIZ) ---
   static Future<int> getQuizIndex() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_keyQuizIndex) ?? 0;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey(_keyQuizIndex, slot)) ?? 0;
   }
 
   static Future<void> saveQuizIndex(int index) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyQuizIndex, index);
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey(_keyQuizIndex, slot), index);
   }
 
   // --- BUKU CERITA AJAIB (STORYBOOK) ---
   static Future<List<String>> getCompletedStories() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyCompletedStories);
+    final slot = await getActiveProfileSlot();
+    final jsonStr = prefs.getString(_pKey(_keyCompletedStories, slot));
     if (jsonStr == null) return [];
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
@@ -398,7 +503,8 @@ class StorageService {
 
   static Future<void> saveCompletedStories(List<String> stories) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyCompletedStories, jsonEncode(stories));
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyCompletedStories, slot), jsonEncode(stories));
   }
 
   // --- MULTI-LEVEL SYSTEM & TROPHIES ---
@@ -406,40 +512,48 @@ class StorageService {
 
   static Future<int> getGameLevel(String gameKey) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('taman_kata_${gameKey}_current_level') ?? 1;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey('taman_kata_${gameKey}_current_level', slot)) ?? 1;
   }
 
   static Future<void> saveGameLevel(String gameKey, int level) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('taman_kata_${gameKey}_current_level', level);
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey('taman_kata_${gameKey}_current_level', slot), level);
   }
 
   static Future<int> getUnlockedGameLevel(String gameKey) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('taman_kata_${gameKey}_unlocked_level') ?? 1;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey('taman_kata_${gameKey}_unlocked_level', slot)) ?? 1;
   }
 
   static Future<void> saveUnlockedGameLevel(String gameKey, int level) async {
     final prefs = await SharedPreferences.getInstance();
-    final currentUnlocked = prefs.getInt('taman_kata_${gameKey}_unlocked_level') ?? 1;
+    final slot = await getActiveProfileSlot();
+    final key = _pKey('taman_kata_${gameKey}_unlocked_level', slot);
+    final currentUnlocked = prefs.getInt(key) ?? 1;
     if (level > currentUnlocked) {
-      await prefs.setInt('taman_kata_${gameKey}_unlocked_level', level);
+      await prefs.setInt(key, level);
     }
   }
 
   static Future<int> getGameLevelIndex(String gameKey, int level) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('taman_kata_${gameKey}_l${level}_index') ?? 0;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey('taman_kata_${gameKey}_l${level}_index', slot)) ?? 0;
   }
 
   static Future<void> saveGameLevelIndex(String gameKey, int level, int index) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('taman_kata_${gameKey}_l${level}_index', index);
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey('taman_kata_${gameKey}_l${level}_index', slot), index);
   }
 
   static Future<List<String>> getTrophies() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyTrophies);
+    final slot = await getActiveProfileSlot();
+    final jsonStr = prefs.getString(_pKey(_keyTrophies, slot));
     if (jsonStr == null) return [];
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
@@ -454,7 +568,8 @@ class StorageService {
     if (!trophies.contains(trophyId)) {
       trophies.add(trophyId);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyTrophies, jsonEncode(trophies));
+      final slot = await getActiveProfileSlot();
+      await prefs.setString(_pKey(_keyTrophies, slot), jsonEncode(trophies));
     }
   }
 
@@ -463,14 +578,17 @@ class StorageService {
   // --- TANTANGAN KILAT KATA 60 DETIK (SPEED RUSH) ---
   static Future<int> getSpeedRushHighScore() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_keySpeedRushHighScore) ?? 0;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey(_keySpeedRushHighScore, slot)) ?? 0;
   }
 
   static Future<bool> saveSpeedRushHighScore(int score) async {
     final prefs = await SharedPreferences.getInstance();
-    final current = prefs.getInt(_keySpeedRushHighScore) ?? 0;
+    final slot = await getActiveProfileSlot();
+    final key = _pKey(_keySpeedRushHighScore, slot);
+    final current = prefs.getInt(key) ?? 0;
     if (score > current) {
-      await prefs.setInt(_keySpeedRushHighScore, score);
+      await prefs.setInt(key, score);
       return true; // new high score
     }
     return false;
@@ -478,21 +596,25 @@ class StorageService {
 
   static Future<int> getSpeedRushBestCombo() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_keySpeedRushBestCombo) ?? 0;
+    final slot = await getActiveProfileSlot();
+    return prefs.getInt(_pKey(_keySpeedRushBestCombo, slot)) ?? 0;
   }
 
   static Future<void> saveSpeedRushBestCombo(int combo) async {
     final prefs = await SharedPreferences.getInstance();
-    final current = prefs.getInt(_keySpeedRushBestCombo) ?? 0;
+    final slot = await getActiveProfileSlot();
+    final key = _pKey(_keySpeedRushBestCombo, slot);
+    final current = prefs.getInt(key) ?? 0;
     if (combo > current) {
-      await prefs.setInt(_keySpeedRushBestCombo, combo);
+      await prefs.setInt(key, combo);
     }
   }
 
   // --- KAMUS BERGAMBAR & SUARA MIKO ---
   static Future<List<String>> getLearnedWords() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_keyLearnedWords);
+    final slot = await getActiveProfileSlot();
+    final jsonStr = prefs.getString(_pKey(_keyLearnedWords, slot));
     if (jsonStr == null) return [];
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
@@ -508,57 +630,123 @@ class StorageService {
     if (!words.contains(normalized)) {
       words.add(normalized);
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyLearnedWords, jsonEncode(words));
+      final slot = await getActiveProfileSlot();
+      await prefs.setString(_pKey(_keyLearnedWords, slot), jsonEncode(words));
       return true; // newly learned
     }
     return false; // already learned
   }
 
+  // --- DIAGNOSTIK & ADAPTIVE REVIEW (KATA YANG PERLU DILATIH) ---
+  static Future<List<Map<String, dynamic>>> getNeedsPracticeWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
+    final raw = prefs.getString(_pKey(_keyNeedsPracticeWords, slot));
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      final parsed = list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+      parsed.sort((a, b) => ((b['missCount'] as num?)?.toInt() ?? 1)
+          .compareTo((a['missCount'] as num?)?.toInt() ?? 1));
+      return parsed;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> recordMistake({
+    required String word,
+    required String illustrationKey,
+    required String source,
+  }) async {
+    final cleanWord = word.trim().toUpperCase();
+    if (cleanWord.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
+    final list = await getNeedsPracticeWords();
+    final idx = list.indexWhere((m) => (m['word'] as String?)?.toUpperCase() == cleanWord);
+
+    if (idx >= 0) {
+      final currentMiss = (list[idx]['missCount'] as num?)?.toInt() ?? 1;
+      list[idx]['missCount'] = currentMiss + 1;
+      list[idx]['source'] = source;
+      list[idx]['lastMissedAt'] = DateTime.now().toIso8601String();
+    } else {
+      list.add({
+        'word': cleanWord,
+        'illustrationKey': illustrationKey.trim().toLowerCase(),
+        'source': source,
+        'missCount': 1,
+        'lastMissedAt': DateTime.now().toIso8601String(),
+      });
+    }
+    await prefs.setString(_pKey(_keyNeedsPracticeWords, slot), jsonEncode(list));
+  }
+
+  static Future<void> markNeedsPracticeWordResolved(String word) async {
+    final cleanWord = word.trim().toUpperCase();
+    final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
+    final list = await getNeedsPracticeWords();
+    list.removeWhere((m) => (m['word'] as String?)?.toUpperCase() == cleanWord);
+    await prefs.setString(_pKey(_keyNeedsPracticeWords, slot), jsonEncode(list));
+  }
+
+  static Future<void> clearAllNeedsPracticeWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyNeedsPracticeWords, slot), jsonEncode([]));
+  }
+
   // --- RESET OPSI 1: ULANGI DARI TINGKAT 1 (TROFI & BINTANG AMAN) ---
   static Future<void> resetToLevelOneKeepTrophies() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyTracingIndex, 0);
-    await prefs.setInt(_keyTrainIndex, 0);
-    await prefs.setInt(_keyBalloonIndex, 0);
-    await prefs.setInt(_keyQuizIndex, 0);
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey(_keyTracingIndex, slot), 0);
+    await prefs.setInt(_pKey(_keyTrainIndex, slot), 0);
+    await prefs.setInt(_pKey(_keyBalloonIndex, slot), 0);
+    await prefs.setInt(_pKey(_keyQuizIndex, slot), 0);
 
     for (final game in ['train', 'balloon', 'quiz', 'tracing']) {
-      await prefs.setInt('taman_kata_${game}_current_level', 1);
-      await prefs.setInt('taman_kata_${game}_l1_index', 0);
-      await prefs.setInt('taman_kata_${game}_l2_index', 0);
-      await prefs.setInt('taman_kata_${game}_l3_index', 0);
+      await prefs.setInt(_pKey('taman_kata_${game}_current_level', slot), 1);
+      await prefs.setInt(_pKey('taman_kata_${game}_l1_index', slot), 0);
+      await prefs.setInt(_pKey('taman_kata_${game}_l2_index', slot), 0);
+      await prefs.setInt(_pKey('taman_kata_${game}_l3_index', slot), 0);
     }
   }
 
   // --- RESET OPSI 2: RESET TOTAL DATA BELAJAR ---
   static Future<void> resetAllDataFactory() async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     await resetAllLearningProgress();
-    await prefs.setString(_keyTrophies, jsonEncode([]));
-    await prefs.setInt(_keyStars, 20);
-    await prefs.setString(_keyStickers, jsonEncode(['stk_apel']));
-    await prefs.setString(_keyLearnedWords, jsonEncode([]));
+    await prefs.setString(_pKey(_keyTrophies, slot), jsonEncode([]));
+    await prefs.setInt(_pKey(_keyStars, slot), 20);
+    await prefs.setString(_pKey(_keyStickers, slot), jsonEncode(['stk_apel']));
+    await prefs.setString(_pKey(_keyLearnedWords, slot), jsonEncode([]));
   }
 
   // --- RESET SEMUA PROGRES BELAJAR ---
   static Future<void> resetAllLearningProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyTracingIndex, 0);
-    await prefs.setString(_keyCompletedLetters, jsonEncode([]));
-    await prefs.setInt(_keyTrainIndex, 0);
-    await prefs.setInt(_keyBalloonIndex, 0);
-    await prefs.setInt(_keyQuizIndex, 0);
-    await prefs.setString(_keyCompletedStories, jsonEncode([]));
-    await prefs.setString(_keyOpenedChests, jsonEncode([]));
-    await prefs.setString(_keyLastVisitedIsland, 'tracing');
-    await prefs.setString(_keyLearnedWords, jsonEncode([]));
+    final slot = await getActiveProfileSlot();
+    await prefs.setInt(_pKey(_keyTracingIndex, slot), 0);
+    await prefs.setString(_pKey(_keyCompletedLetters, slot), jsonEncode([]));
+    await prefs.setInt(_pKey(_keyTrainIndex, slot), 0);
+    await prefs.setInt(_pKey(_keyBalloonIndex, slot), 0);
+    await prefs.setInt(_pKey(_keyQuizIndex, slot), 0);
+    await prefs.setString(_pKey(_keyCompletedStories, slot), jsonEncode([]));
+    await prefs.setString(_pKey(_keyOpenedChests, slot), jsonEncode([]));
+    await prefs.setString(_pKey(_keyLastVisitedIsland, slot), 'tracing');
+    await prefs.setString(_pKey(_keyLearnedWords, slot), jsonEncode([]));
+    await prefs.setString(_pKey(_keyNeedsPracticeWords, slot), jsonEncode([]));
 
     for (final game in ['train', 'balloon', 'quiz', 'tracing']) {
-      await prefs.setInt('taman_kata_${game}_current_level', 1);
-      await prefs.setInt('taman_kata_${game}_unlocked_level', 1);
-      await prefs.setInt('taman_kata_${game}_l1_index', 0);
-      await prefs.setInt('taman_kata_${game}_l2_index', 0);
-      await prefs.setInt('taman_kata_${game}_l3_index', 0);
+      await prefs.setInt(_pKey('taman_kata_${game}_current_level', slot), 1);
+      await prefs.setInt(_pKey('taman_kata_${game}_unlocked_level', slot), 1);
+      await prefs.setInt(_pKey('taman_kata_${game}_l1_index', slot), 0);
+      await prefs.setInt(_pKey('taman_kata_${game}_l2_index', slot), 0);
+      await prefs.setInt(_pKey('taman_kata_${game}_l3_index', slot), 0);
     }
   }
 
@@ -577,11 +765,12 @@ class StorageService {
 
   static Future<DailyMissionsState> getDailyMissionsState() async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     final todayStr = _getTodayDateString();
-    final storedDate = prefs.getString(_keyDailyMissionsDate);
-    final rawJson = prefs.getString(_keyDailyMissions);
-    final allClaimedDate = prefs.getString(_keyAllMissionsBonusClaimed);
-    int currentStreak = prefs.getInt(_keyDailyStreak) ?? 1;
+    final storedDate = prefs.getString(_pKey(_keyDailyMissionsDate, slot));
+    final rawJson = prefs.getString(_pKey(_keyDailyMissions, slot));
+    final allClaimedDate = prefs.getString(_pKey(_keyAllMissionsBonusClaimed, slot));
+    int currentStreak = prefs.getInt(_pKey(_keyDailyStreak, slot)) ?? 1;
 
     if (storedDate == todayStr && rawJson != null) {
       try {
@@ -614,11 +803,11 @@ class StorageService {
       }
     }
 
-    await prefs.setInt(_keyDailyStreak, currentStreak);
+    await prefs.setInt(_pKey(_keyDailyStreak, slot), currentStreak);
     final newMissions = DailyMissionPool.generateMissionsForDate(DateTime.now());
     final encoded = jsonEncode(newMissions.map((m) => m.toJson()).toList());
-    await prefs.setString(_keyDailyMissions, encoded);
-    await prefs.setString(_keyDailyMissionsDate, todayStr);
+    await prefs.setString(_pKey(_keyDailyMissions, slot), encoded);
+    await prefs.setString(_pKey(_keyDailyMissionsDate, slot), todayStr);
 
     return DailyMissionsState(
       date: todayStr,
@@ -630,6 +819,7 @@ class StorageService {
 
   static Future<bool> updateDailyMissionProgress(String actionType, [int amount = 1]) async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     final state = await getDailyMissionsState();
     bool anyChanged = false;
     bool justCompleted = false;
@@ -646,7 +836,7 @@ class StorageService {
 
     if (anyChanged) {
       final encoded = jsonEncode(state.missions.map((m) => m.toJson()).toList());
-      await prefs.setString(_keyDailyMissions, encoded);
+      await prefs.setString(_pKey(_keyDailyMissions, slot), encoded);
     }
 
     return justCompleted;
@@ -654,13 +844,14 @@ class StorageService {
 
   static Future<int> claimDailyMission(String missionId) async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     final state = await getDailyMissionsState();
 
     for (final mission in state.missions) {
       if (mission.id == missionId && mission.isCompleted && !mission.isClaimed) {
         mission.isClaimed = true;
         final encoded = jsonEncode(state.missions.map((m) => m.toJson()).toList());
-        await prefs.setString(_keyDailyMissions, encoded);
+        await prefs.setString(_pKey(_keyDailyMissions, slot), encoded);
 
         // Award stars
         final currentStars = await getStars();
@@ -673,14 +864,15 @@ class StorageService {
 
   static Future<int> claimAllDailyMissionsBonus() async {
     final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
     final todayStr = _getTodayDateString();
-    final allClaimedDate = prefs.getString(_keyAllMissionsBonusClaimed);
+    final allClaimedDate = prefs.getString(_pKey(_keyAllMissionsBonusClaimed, slot));
     if (allClaimedDate == todayStr) return 0;
 
     final state = await getDailyMissionsState();
     if (!state.allCompleted) return 0;
 
-    await prefs.setString(_keyAllMissionsBonusClaimed, todayStr);
+    await prefs.setString(_pKey(_keyAllMissionsBonusClaimed, slot), todayStr);
 
     int bonusStars = 5;
     final trophies = await getTrophies();
