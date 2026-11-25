@@ -149,6 +149,17 @@ class TrophyRepository {
       sfx: 'fanfare',
     ),
     TrophyItem(
+      id: 'adaptive_review_champion',
+      title: 'Penakluk Kata Sulit',
+      subtitle: 'Pantang Menyerah Berlatih',
+      category: TrophyCategory.special,
+      iconEmoji: '🎯',
+      badgeText: 'LATIH ULANG 🎯',
+      howToUnlock: 'Tuntaskan sesi Latih Kata Sulit di Kuil Sentuh Pintar atau Rapor Orang Tua!',
+      voicePraise: 'Luar biasa! Kamu pantang menyerah berlatih hingga berhasil menguasai kata-kata yang sulit!',
+      sfx: 'fanfare',
+    ),
+    TrophyItem(
       id: 'trophy_speed_rush',
       title: 'Piala Kilat Petir Emas',
       subtitle: 'Juara Tantangan 60 Detik',
