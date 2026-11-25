@@ -212,6 +212,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         _mascotText = 'Letuskan balon kata yang tepat ya!';
       } else if (route == 'quiz') {
         _mascotText = 'Dengarkan soalnya, lalu pencet gambar yang benar!';
+      } else if (route == 'adaptive_review') {
+        _mascotText = 'Ayo kita latih ulang kata-kata khusus agar makin mahir!';
       } else if (route == 'playground') {
         _mascotText = 'Tempel dan geser stikermu untuk menghias taman ajaib!';
       } else if (route == 'storybook') {
@@ -287,11 +289,14 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
         currentChildName: _childName,
       ),
     );
-    if (result != null && mounted) {
-      setState(() {
-        _childAvatar = result['avatarId'] ?? _childAvatar;
-        _childName = result['childName'] ?? _childName;
-      });
+    if (mounted) {
+      if (result != null) {
+        setState(() {
+          _childAvatar = result['avatarId'] ?? _childAvatar;
+          _childName = result['childName'] ?? _childName;
+        });
+      }
+      _loadStoredData();
     }
   }
 
@@ -319,6 +324,7 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           _checkScreenTimeLimit();
         },
         onDataReset: _loadStoredData,
+        onStartAdaptiveReview: () => _navigateTo('adaptive_review'),
       ),
     );
   }
@@ -395,6 +401,12 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
           onVictory: _addStars,
           onBack: () => _navigateTo('map'),
           startInSpeedMode: true,
+        );
+      case 'adaptive_review':
+        return QuizScreen(
+          onVictory: _addStars,
+          onBack: () => _navigateTo('map'),
+          startInReviewMode: true,
         );
       case 'playground':
         return StickerPlaygroundScreen(
