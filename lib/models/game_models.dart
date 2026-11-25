@@ -1157,7 +1157,71 @@ class GameRepository {
     TrainWordData(word: "TANGAN", syllables: ["TA", "NGAN"], illustrationKey: "tangan", choices: ["TA", "NGAN", "TI", "NGIN"]),
   ];
 
-  static List<TrainWordData> getTrainWords(int level) {
+  static final List<TrainWordData> trainSentences = [
+    TrainWordData(
+      word: "KUCING MINUM SUSU",
+      syllables: ["KUCING", "MINUM", "SUSU"],
+      illustrationKey: "kucing",
+      choices: ["KUCING", "MINUM", "SUSU", "ROTI"],
+    ),
+    TrainWordData(
+      word: "KUDA LARI CEPAT",
+      syllables: ["KUDA", "LARI", "CEPAT"],
+      illustrationKey: "kuda",
+      choices: ["KUDA", "LARI", "CEPAT", "BUKU"],
+    ),
+    TrainWordData(
+      word: "ADIK MAKAN APEL",
+      syllables: ["ADIK", "MAKAN", "APEL"],
+      illustrationKey: "apel",
+      choices: ["ADIK", "MAKAN", "APEL", "BOLA"],
+    ),
+    TrainWordData(
+      word: "BURUNG TERBANG TINGGI",
+      syllables: ["BURUNG", "TERBANG", "TINGGI"],
+      illustrationKey: "burung",
+      choices: ["BURUNG", "TERBANG", "TINGGI", "MEJA"],
+    ),
+    TrainWordData(
+      word: "IKAN RENANG LINCAH",
+      syllables: ["IKAN", "RENANG", "LINCAH"],
+      illustrationKey: "ikan",
+      choices: ["IKAN", "RENANG", "LINCAH", "TOPI"],
+    ),
+    TrainWordData(
+      word: "IBU BACA BUKU",
+      syllables: ["IBU", "BACA", "BUKU"],
+      illustrationKey: "buku",
+      choices: ["IBU", "BACA", "BUKU", "SAPI"],
+    ),
+    TrainWordData(
+      word: "DOMBA MAKAN RUMPUT",
+      syllables: ["DOMBA", "MAKAN", "RUMPUT"],
+      illustrationKey: "domba",
+      choices: ["DOMBA", "MAKAN", "RUMPUT", "MOBIL"],
+    ),
+    TrainWordData(
+      word: "PESAWAT TERBANG JAUH",
+      syllables: ["PESAWAT", "TERBANG", "JAUH"],
+      illustrationKey: "pesawat",
+      choices: ["PESAWAT", "TERBANG", "JAUH", "ROTI"],
+    ),
+    TrainWordData(
+      word: "KAKAK MAIN BOLA",
+      syllables: ["KAKAK", "MAIN", "BOLA"],
+      illustrationKey: "bola",
+      choices: ["KAKAK", "MAIN", "BOLA", "CERI"],
+    ),
+    TrainWordData(
+      word: "BINTANG SINAR TERANG",
+      syllables: ["BINTANG", "SINAR", "TERANG"],
+      illustrationKey: "bintang",
+      choices: ["BINTANG", "SINAR", "TERANG", "KUDA"],
+    ),
+  ];
+
+  static List<TrainWordData> getTrainWords(int level, {bool isSentenceMode = false}) {
+    if (isSentenceMode) return trainSentences;
     switch (level) {
       case 2:
         return trainWordsLevel2;
