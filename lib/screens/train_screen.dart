@@ -30,6 +30,7 @@ class _TrainScreenState extends State<TrainScreen>
   int _currentLevel = 1;
   int _unlockedLevel = 1;
   int _currentIndex = 0;
+  bool _isSentenceMode = false; // Mode Suku Kata vs Mode Susun Kalimat S-P-O
   List<TrainWordData> _trainWords = GameRepository.getTrainWords(1);
   final List<String> _filledSlots = [];
   final List<String> _hiddenChoices = [];
@@ -73,11 +74,12 @@ class _TrainScreenState extends State<TrainScreen>
   }
 
   void _switchLevel(int newLevel) async {
-    final words = GameRepository.getTrainWords(newLevel);
+    final words = GameRepository.getTrainWords(newLevel, isSentenceMode: false);
     final idx = await StorageService.getGameLevelIndex('train', newLevel);
     await StorageService.saveGameLevel('train', newLevel);
 
     setState(() {
+      _isSentenceMode = false;
       _currentLevel = newLevel;
       _trainWords = words;
       _currentIndex = (idx < words.length) ? idx : 0;
@@ -86,6 +88,18 @@ class _TrainScreenState extends State<TrainScreen>
     _startWord();
     final titles = {1: 'Tunas Ajaib', 2: 'Petualang Kata', 3: 'Master Literasi'};
     _audio.speak('Tingkat $_currentLevel: ${titles[_currentLevel]}! Ayo susun kata ${_current.word}!');
+  }
+
+  void _toggleSentenceMode(bool enableSentence) {
+    if (_isSentenceMode == enableSentence) return;
+    HapticFeedback.mediumImpact();
+    _audio.playSfx('pop');
+    setState(() {
+      _isSentenceMode = enableSentence;
+      _trainWords = GameRepository.getTrainWords(_currentLevel, isSentenceMode: enableSentence);
+      _currentIndex = 0;
+    });
+    _startWord();
   }
 
   @override
@@ -100,7 +114,11 @@ class _TrainScreenState extends State<TrainScreen>
       _hiddenChoices.clear();
       _trainAnimController.reset();
     });
-    _audio.speak('Susun kata ${_current.word}!');
+    if (_isSentenceMode) {
+      _audio.speak('Susun kalimat: ${_current.word}!');
+    } else {
+      _audio.speak('Susun kata ${_current.word}!');
+    }
   }
 
   void _onSyllableTapped(String syl) {
@@ -115,7 +133,7 @@ class _TrainScreenState extends State<TrainScreen>
     });
 
     if (_filledSlots.length == _current.syllables.length) {
-      final formed = _filledSlots.join('');
+      final formed = _isSentenceMode ? _filledSlots.join(' ') : _filledSlots.join('');
       if (formed == _current.word) {
         // Success
         HapticFeedback.mediumImpact();
@@ -133,23 +151,52 @@ class _TrainScreenState extends State<TrainScreen>
             final hasMoreInLevel = _currentIndex + 1 < _trainWords.length;
 
             if (hasMoreInLevel) {
-              // Regular word victory
-              widget.onVictory(3);
+              // Regular word/sentence victory
+              widget.onVictory(_isSentenceMode ? 4 : 3);
               final solvedWord = _current.word;
+              if (_isSentenceMode) {
+                await StorageService.addTrophy('train_sentence_master');
+              }
 
+              if (!mounted) return;
               showDialog(
                 context: context,
                 barrierDismissible: false,
                 builder: (_) => VictoryDialog(
-                  title: 'Hebat! Kata "$solvedWord"!',
-                  subtitle:
-                      'Kereta meluncur membawa kata $solvedWord!',
+                  title: _isSentenceMode
+                      ? '🌉 Kalimat "$solvedWord"!'
+                      : 'Hebat! Kata "$solvedWord"!',
+                  subtitle: _isSentenceMode
+                      ? 'Kereta kalimat meluncur membawa cerita: "$solvedWord"!\nKamu dapat +4 Bintang Juara!'
+                      : 'Kereta meluncur membawa kata $solvedWord!',
                   onNext: () {
                     setState(() {
                       _currentIndex++;
                     });
-                    StorageService.saveGameLevelIndex(
-                        'train', _currentLevel, _currentIndex);
+                    if (!_isSentenceMode) {
+                      StorageService.saveGameLevelIndex(
+                          'train', _currentLevel, _currentIndex);
+                    }
+                    _startWord();
+                  },
+                ),
+              );
+            } else if (_isSentenceMode) {
+              // Completed all 10 sentences!
+              widget.onVictory(20);
+              await StorageService.addTrophy('train_sentence_master');
+              if (!mounted) return;
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => VictoryDialog(
+                  title: '👑 Master Jembatan Kalimat!',
+                  subtitle:
+                      'Luar biasa! Kamu berhasil menyusun seluruh 10 gerbong kalimat cerita (Subjek + Predikat + Objek)!\nBonus +20 Bintang Juara!',
+                  onNext: () {
+                    setState(() {
+                      _currentIndex = 0;
+                    });
                     _startWord();
                   },
                 ),
@@ -430,11 +477,16 @@ class _TrainScreenState extends State<TrainScreen>
                     children: List.generate(_current.syllables.length, (idx) {
                       final isFilled = idx < _filledSlots.length;
                       final sylText = isFilled ? _filledSlots[idx] : '?';
+                      final roleLabels = ['Subjek', 'Predikat', 'Objek'];
+                      final roleLabel = (_isSentenceMode && idx < roleLabels.length)
+                          ? roleLabels[idx]
+                          : null;
 
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: 80,
-                        height: 72,
+                        width: _isSentenceMode ? 116 : 80,
+                        height: 74,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: BoxDecoration(
                           gradient: isFilled
                               ? const LinearGradient(colors: [Color(0xFF38BDF8), Color(0xFF0284C7)])
@@ -449,15 +501,32 @@ class _TrainScreenState extends State<TrainScreen>
                             BoxShadow(color: Color(0x15000000), offset: Offset(0, 4)),
                           ],
                         ),
-                        child: Center(
-                          child: Text(
-                            sylText,
-                            style: GoogleFonts.nunito(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: isFilled ? Colors.white : const Color(0xFF0284C7),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (roleLabel != null)
+                              Text(
+                                roleLabel,
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: isFilled
+                                      ? const Color(0xFFBAE6FD)
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                sylText,
+                                style: GoogleFonts.nunito(
+                                  fontSize: _isSentenceMode ? 17 : 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: isFilled ? Colors.white : const Color(0xFF0284C7),
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       );
                     }),
@@ -484,8 +553,9 @@ class _TrainScreenState extends State<TrainScreen>
         child: GestureDetector(
           onTap: () => _onSyllableTapped(syl),
           child: Container(
-            width: 82,
+            width: _isSentenceMode ? 115 : 82,
             height: 62,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFFFDE047), Color(0xFFFACC15)],
@@ -497,17 +567,92 @@ class _TrainScreenState extends State<TrainScreen>
               ],
             ),
             child: Center(
-              child: Text(
-                syl,
-                style: GoogleFonts.nunito(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF713F12),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  syl,
+                  style: GoogleFonts.nunito(
+                    fontSize: _isSentenceMode ? 17 : 22,
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF713F12),
+                  ),
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTrainModePill() {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(240),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFBAE6FD), width: 1.8),
+        boxShadow: const [
+          BoxShadow(color: Color(0x10000000), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: () => _toggleSentenceMode(false),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: !_isSentenceMode ? const Color(0xFF0284C7) : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🚂', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Suku Kata',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: !_isSentenceMode ? Colors.white : const Color(0xFF475569),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          GestureDetector(
+            onTap: () => _toggleSentenceMode(true),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: _isSentenceMode ? const Color(0xFFEA580C) : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🌉', style: TextStyle(fontSize: 12)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Kalimat S-P-O',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: _isSentenceMode ? Colors.white : const Color(0xFF475569),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -521,15 +666,27 @@ class _TrainScreenState extends State<TrainScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         child: Column(
           children: [
-            // Top Bar: Ribbon + Target Banner
+            // Top Bar: Ribbon + Mode Pill + Target Banner
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Flexible(
-                  child: LevelSelectorRibbon(
-                    currentLevel: _currentLevel,
-                    unlockedLevel: _unlockedLevel,
-                    onSelectLevel: _switchLevel,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!_isSentenceMode) ...[
+                          LevelSelectorRibbon(
+                            currentLevel: _currentLevel,
+                            unlockedLevel: _unlockedLevel,
+                            onSelectLevel: _switchLevel,
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        _buildTrainModePill(),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -591,21 +748,33 @@ class _TrainScreenState extends State<TrainScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         children: [
-          // Top Control Bar: Level Selector Ribbon + Target Object Banner
+          // Top Control Bar: Level Selector Ribbon + Mode Switcher + Target Object Banner
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Flexible(
-                flex: 4,
-                child: LevelSelectorRibbon(
-                  currentLevel: _currentLevel,
-                  unlockedLevel: _unlockedLevel,
-                  onSelectLevel: _switchLevel,
+                flex: 5,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!_isSentenceMode) ...[
+                        LevelSelectorRibbon(
+                          currentLevel: _currentLevel,
+                          unlockedLevel: _unlockedLevel,
+                          onSelectLevel: _switchLevel,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      _buildTrainModePill(),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               Flexible(
-                flex: 6,
+                flex: 5,
                 child: _buildTargetBanner(),
               ),
             ],
