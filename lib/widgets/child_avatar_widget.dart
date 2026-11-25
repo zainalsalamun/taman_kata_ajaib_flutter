@@ -694,12 +694,54 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
   late String _selectedAvatarId;
   late TextEditingController _nameController;
   final AudioService _audio = AudioService();
+  int _activeSlot = 1;
+  List<Map<String, dynamic>> _profileSummaries = [];
 
   @override
   void initState() {
     super.initState();
     _selectedAvatarId = widget.currentAvatarId;
     _nameController = TextEditingController(text: widget.currentChildName);
+    _loadProfileSlots();
+  }
+
+  void _loadProfileSlots() async {
+    final slot = await StorageService.getActiveProfileSlot();
+    final summaries = await StorageService.getAllProfileSummaries();
+    if (mounted) {
+      setState(() {
+        _activeSlot = slot;
+        _profileSummaries = summaries;
+      });
+    }
+  }
+
+  void _switchProfileSlot(int targetSlot) async {
+    if (targetSlot == _activeSlot) return;
+    HapticFeedback.mediumImpact();
+    // Save current edits to old slot before switching
+    final currentName = _nameController.text.trim();
+    if (currentName.isNotEmpty) {
+      await StorageService.saveChildName(currentName);
+    }
+    await StorageService.saveChildAvatar(_selectedAvatarId);
+
+    // Activate new slot and load its profile
+    await StorageService.setActiveProfileSlot(targetSlot);
+    final newName = await StorageService.getChildName();
+    final newAvatar = await StorageService.getChildAvatar();
+    final summaries = await StorageService.getAllProfileSummaries();
+
+    if (mounted) {
+      setState(() {
+        _activeSlot = targetSlot;
+        _selectedAvatarId = newAvatar;
+        _nameController.text = newName;
+        _profileSummaries = summaries;
+      });
+      _audio.playSfx('pop');
+      _audio.speak('Beralih ke Profil $targetSlot: $newName!');
+    }
   }
 
   @override
@@ -731,6 +773,134 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
       _audio.playSfx('star');
       _audio.speak('Profil berhasil disimpan! Senang bertualang bersamamu, $newName!');
     }
+  }
+
+  Widget _buildProfileSlotsBar() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '👨‍👩‍👧‍👦 Pilih Profil Petualang (Kakak / Adik):',
+              style: GoogleFonts.fredoka(
+                fontSize: 12.5,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF854D0E),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF86EFAC)),
+              ),
+              child: Text(
+                'Slot $_activeSlot Aktif',
+                style: GoogleFonts.fredoka(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF15803D),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: List.generate(3, (index) {
+            final slotNum = index + 1;
+            final summary = _profileSummaries.length >= slotNum
+                ? _profileSummaries[index]
+                : <String, dynamic>{
+                    'slot': slotNum,
+                    'name': slotNum == 1
+                        ? 'Juara Cilik'
+                        : (slotNum == 2 ? 'Adik Ceria' : 'Sahabat Kecil'),
+                    'avatarId': slotNum == 1 ? 'miko' : (slotNum == 2 ? 'cici' : 'kiki'),
+                    'stars': 20,
+                    'trophyCount': 0,
+                  };
+            final isSel = _activeSlot == slotNum;
+            final slotName = isSel ? (_nameController.text.trim().isEmpty ? summary['name'] : _nameController.text.trim()) : summary['name'];
+            final slotAvatar = isSel ? _selectedAvatarId : (summary['avatarId'] as String? ?? 'miko');
+            final slotStars = summary['stars'] ?? 20;
+
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: index < 2 ? 8.0 : 0.0),
+                child: GestureDetector(
+                  onTap: () => _switchProfileSlot(slotNum),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: isSel ? const Color(0xFFFEF08A) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSel ? const Color(0xFFD97706) : const Color(0xFFE2E8F0),
+                        width: isSel ? 2.5 : 1.5,
+                      ),
+                      boxShadow: isSel
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x30D97706),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ChildAvatarWidget(
+                              avatarId: slotAvatar,
+                              size: 24,
+                              showBorder: false,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                '$slotName',
+                                style: GoogleFonts.fredoka(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSel
+                                      ? const Color(0xFF78350F)
+                                      : const Color(0xFF475569),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '⭐ $slotStars Bintang',
+                          style: GoogleFonts.nunito(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: isSel
+                                ? const Color(0xFFB45309)
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
   }
 
   @override
@@ -839,6 +1009,10 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Multi-Profile Slot Selector (3 Slots: Kakak & Adik)
+                      _buildProfileSlotsBar(),
+                      const SizedBox(height: 12),
+
                       // Active Avatar Spotlight Banner
                       Container(
                         padding: const EdgeInsets.all(12),
