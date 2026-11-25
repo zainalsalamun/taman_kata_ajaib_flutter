@@ -7,6 +7,21 @@ import '../services/audio_service.dart';
 import '../services/storage_service.dart';
 import '../widgets/vector_illustrations.dart';
 import '../widgets/voice_record_dialog.dart';
+import '../widgets/victory_dialog.dart';
+
+class _MemoryCardItem {
+  final String uniqueId;
+  final String pairWord;
+  final String illustrationKey;
+  final bool isImageCard;
+
+  const _MemoryCardItem({
+    required this.uniqueId,
+    required this.pairWord,
+    required this.illustrationKey,
+    required this.isImageCard,
+  });
+}
 
 class DictionaryScreen extends StatefulWidget {
   final Function(int count) onVictory;
@@ -40,6 +55,15 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
   List<DictionaryWordItem> _customFlashcardList = [];
   late AnimationController _flipController;
   late Animation<double> _flipAnimation;
+
+  // Sight-Word Memory Match ("Memori Kembar") State
+  bool _isMemoryMode = false;
+  List<_MemoryCardItem> _memoryCards = [];
+  final Set<String> _matchedPairWords = {};
+  int? _firstRevealedIndex;
+  int? _secondRevealedIndex;
+  bool _isCheckingMemoryMatch = false;
+  int _memoryMoves = 0;
 
   @override
   void initState() {
@@ -171,6 +195,131 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
     if (_isCardFlipped) {
       _flipController.reset();
       _isCardFlipped = false;
+    }
+    if (_isMemoryMode) {
+      _startNewMemoryDeck(speakIntro: false);
+    }
+  }
+
+  void _startNewMemoryDeck({bool speakIntro = true}) {
+    final pool = List<DictionaryWordItem>.from(
+      _filteredWords.length >= 4 ? _filteredWords : DictionaryRepository.allWords,
+    )..shuffle();
+    final selectedWords = pool.take(4).toList();
+    final List<_MemoryCardItem> deck = [];
+
+    for (final w in selectedWords) {
+      deck.add(
+        _MemoryCardItem(
+          uniqueId: '${w.word}_img',
+          pairWord: w.word,
+          illustrationKey: w.illustrationKey,
+          isImageCard: true,
+        ),
+      );
+      deck.add(
+        _MemoryCardItem(
+          uniqueId: '${w.word}_txt',
+          pairWord: w.word,
+          illustrationKey: w.illustrationKey,
+          isImageCard: false,
+        ),
+      );
+    }
+    deck.shuffle();
+
+    setState(() {
+      _memoryCards = deck;
+      _matchedPairWords.clear();
+      _firstRevealedIndex = null;
+      _secondRevealedIndex = null;
+      _isCheckingMemoryMatch = false;
+      _memoryMoves = 0;
+    });
+
+    if (speakIntro) {
+      _audio.speak('Permainan Kartu Memori Kembar! Buka dan cocokkan kartu gambar dengan tulisannya!');
+    }
+  }
+
+  void _onMemoryCardTapped(int index) async {
+    if (_isCheckingMemoryMatch || index < 0 || index >= _memoryCards.length) return;
+    final card = _memoryCards[index];
+    if (_matchedPairWords.contains(card.pairWord)) return;
+    if (_firstRevealedIndex == index) return;
+
+    HapticFeedback.selectionClick();
+    _audio.playSfx('pop');
+    _audio.speak(card.pairWord);
+
+    if (_firstRevealedIndex == null) {
+      setState(() {
+        _firstRevealedIndex = index;
+      });
+      return;
+    }
+
+    // Second card tapped
+    final firstCard = _memoryCards[_firstRevealedIndex!];
+    setState(() {
+      _secondRevealedIndex = index;
+      _isCheckingMemoryMatch = true;
+      _memoryMoves++;
+    });
+
+    if (firstCard.pairWord == card.pairWord) {
+      // Match found!
+      HapticFeedback.heavyImpact();
+      _audio.playSfx('star');
+      setState(() {
+        _matchedPairWords.add(card.pairWord);
+        _firstRevealedIndex = null;
+        _secondRevealedIndex = null;
+        _isCheckingMemoryMatch = false;
+      });
+
+      await StorageService.markWordLearned(card.pairWord);
+      StorageService.updateDailyMissionProgress('dict', 1);
+      final updated = await StorageService.getLearnedWords();
+      if (mounted) {
+        setState(() {
+          _learnedWords = updated;
+        });
+      }
+
+      if (_matchedPairWords.length >= 4) {
+        // All 4 pairs matched!
+        widget.onVictory(5);
+        await StorageService.addTrophy('memory_match_master');
+        _audio.speak('Luar biasa! Kamu berhasil menemukan semua pasangan kartu memori!');
+        if (!mounted) return;
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => VictoryDialog(
+              title: '🧠 Juara Memori Kembar!',
+              subtitle:
+                  'Hebat! Kamu berhasil mencocokkan semua 4 pasang kartu gambar dan kata dalam $_memoryMoves langkah!\nKamu dapat +5 Bintang Juara!',
+              onNext: () {
+                _startNewMemoryDeck(speakIntro: false);
+              },
+            ),
+          );
+        });
+      }
+    } else {
+      // Mismatch - flip back after brief pause
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (mounted) {
+          setState(() {
+            _firstRevealedIndex = null;
+            _secondRevealedIndex = null;
+            _isCheckingMemoryMatch = false;
+          });
+        }
+      });
     }
   }
 
@@ -334,13 +483,15 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
           _buildCategoryRibbon(),
 
           // 3. A-Z ALPHABET QUICK FILTER BAR
-          if (!_isFlashcardMode) _buildAlphabetRibbon(availableLetters),
+          if (!_isFlashcardMode && !_isMemoryMode) _buildAlphabetRibbon(availableLetters),
 
-          // 4. MAIN WORD GRID OR 3D FLASHCARD
+          // 4. MAIN WORD GRID, 3D FLASHCARD, OR MEMORY MATCH
           Expanded(
-            child: _isFlashcardMode
-                ? _buildFlashcardView()
-                : (words.isEmpty ? _buildEmptyState() : _buildWordsGrid(words)),
+            child: _isMemoryMode
+                ? _buildMemoryMatchView()
+                : _isFlashcardMode
+                    ? _buildFlashcardView()
+                    : (words.isEmpty ? _buildEmptyState() : _buildWordsGrid(words)),
           ),
         ],
       ),
@@ -449,12 +600,13 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
                 _buildModePill(
                   icon: '📚',
                   label: isMobile ? 'Kamus' : 'Kamus Grid',
-                  isActive: !_isFlashcardMode,
+                  isActive: !_isFlashcardMode && !_isMemoryMode,
                   onTap: () {
-                    if (_isFlashcardMode) {
+                    if (_isFlashcardMode || _isMemoryMode) {
                       _audio.playSfx('ding');
                       setState(() {
                         _isFlashcardMode = false;
+                        _isMemoryMode = false;
                       });
                     }
                   },
@@ -462,15 +614,31 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
                 _buildModePill(
                   icon: '🃏',
                   label: isMobile ? 'Kartu' : 'Flashcard 3D',
-                  isActive: _isFlashcardMode,
+                  isActive: _isFlashcardMode && !_isMemoryMode,
                   onTap: () {
-                    if (!_isFlashcardMode) {
+                    if (!_isFlashcardMode || _isMemoryMode) {
                       _audio.playSfx('sparkle');
                       setState(() {
                         _isFlashcardMode = true;
+                        _isMemoryMode = false;
                         _resetFlashcardDeck();
                       });
                       _audio.speak('Mode Kartu Pintar! Tebak gambar dan balik kartunya!');
+                    }
+                  },
+                ),
+                _buildModePill(
+                  icon: '🧠',
+                  label: isMobile ? 'Memori' : 'Memori Kembar',
+                  isActive: _isMemoryMode,
+                  onTap: () {
+                    if (!_isMemoryMode) {
+                      _audio.playSfx('sparkle');
+                      setState(() {
+                        _isMemoryMode = true;
+                        _isFlashcardMode = false;
+                      });
+                      _startNewMemoryDeck();
                     }
                   },
                 ),
@@ -1013,6 +1181,265 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMemoryMatchView() {
+    if (_memoryCards.isEmpty) {
+      _startNewMemoryDeck(speakIntro: false);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        children: [
+          // Top Status Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(235),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFBAE6FD), width: 1.5),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🧠', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Buka 2 kartu untuk mencocokkan Gambar & Kata!',
+                          style: GoogleFonts.fredoka(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0369A1),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF86EFAC)),
+                      ),
+                      child: Text(
+                        'Cocok: ${_matchedPairWords.length}/4 ⭐',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF15803D),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        _audio.playSfx('sparkle');
+                        _startNewMemoryDeck();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFF59E0B)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🔀', style: TextStyle(fontSize: 11)),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Acak Baru',
+                              style: GoogleFonts.fredoka(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF92400E),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // 8 Cards Grid (2x4 in landscape, 4x2 in portrait)
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isPortrait = constraints.maxWidth < 560;
+                final cols = isPortrait ? 2 : 4;
+                final rows = isPortrait ? 4 : 2;
+                final spacing = 10.0;
+                final cardW = (constraints.maxWidth - (cols - 1) * spacing) / cols;
+                final cardH = (constraints.maxHeight - (rows - 1) * spacing) / rows;
+                final aspectRatio = (cardW / cardH).clamp(0.65, 2.2);
+
+                return GridView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: cols,
+                    childAspectRatio: aspectRatio,
+                    crossAxisSpacing: spacing,
+                    mainAxisSpacing: spacing,
+                  ),
+                  itemCount: _memoryCards.length,
+                  itemBuilder: (context, idx) {
+                    final card = _memoryCards[idx];
+                    final isMatched = _matchedPairWords.contains(card.pairWord);
+                    final isRevealed = isMatched ||
+                        _firstRevealedIndex == idx ||
+                        _secondRevealedIndex == idx;
+
+                    return GestureDetector(
+                      onTap: () => _onMemoryCardTapped(idx),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: isMatched
+                              ? const LinearGradient(
+                                  colors: [Color(0xFFDCFCE7), Color(0xFFBBF7D0)],
+                                )
+                              : isRevealed
+                                  ? const LinearGradient(
+                                      colors: [Colors.white, Color(0xFFFFFBEB)],
+                                    )
+                                  : const LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
+                                    ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isMatched
+                                ? const Color(0xFF22C55E)
+                                : isRevealed
+                                    ? const Color(0xFFF59E0B)
+                                    : const Color(0xFFBAE6FD),
+                            width: (isMatched || isRevealed) ? 3.0 : 2.5,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x18000000),
+                              blurRadius: 6,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: isRevealed
+                              ? FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: card.isImageCard
+                                      ? Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ObjectIllustrationWidget(
+                                              illustrationKey: card.illustrationKey,
+                                              size: 56,
+                                            ),
+                                            if (isMatched) ...[
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '✅ ${card.pairWord}',
+                                                style: GoogleFonts.fredoka(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: const Color(0xFF15803D),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        )
+                                      : Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFEF3C7),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: const Text(
+                                                '🔊 KATA',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Color(0xFFB45309),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              card.pairWord,
+                                              style: GoogleFonts.fredoka(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.w900,
+                                                color: isMatched
+                                                    ? const Color(0xFF15803D)
+                                                    : const Color(0xFF0369A1),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                )
+                              : FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withAlpha(45),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Text('🐾', style: TextStyle(fontSize: 24)),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Sentuh!',
+                                        style: GoogleFonts.fredoka(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
