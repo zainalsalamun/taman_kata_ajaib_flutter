@@ -216,6 +216,11 @@ class _TrainScreenState extends State<TrainScreen>
         });
       } else {
         // Wrong
+        StorageService.recordMistake(
+          word: _current.word,
+          illustrationKey: _current.illustrationKey,
+          source: 'Kereta Suku Kata',
+        );
         Future.delayed(const Duration(milliseconds: 800), () {
           _audio.speak('Ayo coba susun lagi ya!');
           _startWord();
