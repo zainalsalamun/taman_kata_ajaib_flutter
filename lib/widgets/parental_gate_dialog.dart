@@ -124,6 +124,14 @@ const List<TrophyDef> _allTrophies = [
     glowColor: Color(0xFF10B981),
   ),
   TrophyDef(
+    id: 'adaptive_review_champion',
+    title: 'Penakluk Kata Sulit',
+    icon: '🎯',
+    island: 'Kuis Sentuh Pintar',
+    desc: 'Tuntaskan sesi Latih Ulang Kata Sulit hingga semua kata dikuasai!',
+    glowColor: Color(0xFFEA580C),
+  ),
+  TrophyDef(
     id: 'story_comprehension_master',
     title: 'Mahkota Pendongeng Ajaib',
     icon: '👑',
@@ -209,12 +217,14 @@ class ParentalGateDialog extends StatefulWidget {
   final int totalStars;
   final Function(int newLimitMinutes)? onLimitChanged;
   final VoidCallback? onDataReset;
+  final VoidCallback? onStartAdaptiveReview;
 
   const ParentalGateDialog({
     super.key,
     required this.totalStars,
     this.onLimitChanged,
     this.onDataReset,
+    this.onStartAdaptiveReview,
   });
 
   @override
@@ -244,6 +254,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
   int _storiesCount = 0;
   int _stickersCount = 0;
   List<Map<String, dynamic>> _voiceRecordings = [];
+  List<Map<String, dynamic>> _needsPracticeWords = [];
   String? _activePlayingVoiceKey;
 
   @override
@@ -267,6 +278,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
     final name = await StorageService.getChildName();
     final avatar = await StorageService.getChildAvatar();
     final recordings = await StorageService.getVoiceRecordingMetas();
+    final practiceWords = await StorageService.getNeedsPracticeWords();
 
     if (stories.length >= 4 && !trophies.contains('story_comprehension_master')) {
       await StorageService.addTrophy('story_comprehension_master');
@@ -288,6 +300,7 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
         _childName = name;
         _childAvatar = avatar;
         _voiceRecordings = recordings;
+        _needsPracticeWords = practiceWords;
       });
     }
   }
@@ -1427,6 +1440,8 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
         _childAvatar = newAvatar;
         _childName = newName;
       });
+      _loadDashboardData();
+      widget.onDataReset?.call();
     }
   }
 
@@ -1652,6 +1667,10 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
           ),
           const SizedBox(height: 10),
 
+          // Diagnostic & Adaptive Review Card ("Kata yang Perlu Dilatih")
+          _buildDiagnosticNeedsPracticeCard(),
+          const SizedBox(height: 10),
+
           // Pedagogical Insights Card
           Container(
             padding: const EdgeInsets.all(10),
@@ -1679,6 +1698,179 @@ class _ParentalGateDialogState extends State<ParentalGateDialog> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiagnosticNeedsPracticeCard() {
+    final hasWords = _needsPracticeWords.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: hasWords ? const Color(0xFFFFF7ED) : const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasWords ? const Color(0xFFFDBA74) : const Color(0xFF86EFAC),
+          width: 1.8,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(hasWords ? '🎯' : '✅', style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hasWords
+                                ? 'Diagnostik: ${_needsPracticeWords.length} Kata Perlu Dilatih'
+                                : 'Diagnostik: Semua Kata Sudah Dikuasai!',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: hasWords
+                                  ? const Color(0xFF9A3412)
+                                  : const Color(0xFF166534),
+                            ),
+                          ),
+                          Text(
+                            hasWords
+                                ? 'Kata-kata yang sempat keliru saat anak bermain di pulau belajar:'
+                                : 'Belum ada kata yang sulit bagi ananda. Pertahankan semangat belajarnya!',
+                            style: GoogleFonts.nunito(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: hasWords
+                                  ? const Color(0xFFC2410C)
+                                  : const Color(0xFF15803D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasWords && widget.onStartAdaptiveReview != null) ...[
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    Navigator.of(context).pop();
+                    widget.onStartAdaptiveReview!();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEA580C),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ),
+                  icon: const Text('💪', style: TextStyle(fontSize: 12)),
+                  label: Text(
+                    'Latih Sekarang',
+                    style: GoogleFonts.fredoka(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (hasWords) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _needsPracticeWords.map((item) {
+                final word = (item['word'] as String? ?? '').toUpperCase();
+                final illKey = (item['illustrationKey'] as String? ?? 'apel').toLowerCase();
+                final missCount = (item['missCount'] as num?)?.toInt() ?? 1;
+                final source = item['source'] as String? ?? 'Latihan';
+
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    AudioService().speak('Kata $word. Tercatat $missCount kali perlu latihan di $source.');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFFED7AA), width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x0D000000), blurRadius: 3, offset: Offset(0, 1)),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ObjectIllustrationWidget(illustrationKey: illKey, size: 22),
+                        const SizedBox(width: 6),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  word,
+                                  style: GoogleFonts.fredoka(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF9A3412),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEE2E2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${missCount}x',
+                                    style: GoogleFonts.nunito(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      color: const Color(0xFFDC2626),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              source,
+                              style: GoogleFonts.nunito(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
         ],
       ),
     );
