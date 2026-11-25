@@ -132,6 +132,22 @@ const List<TrophyDef> _allTrophies = [
     glowColor: Color(0xFFEA580C),
   ),
   TrophyDef(
+    id: 'train_sentence_master',
+    title: 'Arsitek Kalimat Ajaib',
+    icon: '🌉',
+    island: 'Kereta Suku Kata',
+    desc: 'Susun gerbong kalimat utuh (Subjek + Predikat + Objek) di Kereta Kata!',
+    glowColor: Color(0xFF0284C7),
+  ),
+  TrophyDef(
+    id: 'memory_match_master',
+    title: 'Juara Memori Kembar',
+    icon: '🧠',
+    island: 'Kamus Ajaib',
+    desc: 'Temukan semua pasangan kartu gambar dan kata di mode Memori Kamus!',
+    glowColor: Color(0xFF10B981),
+  ),
+  TrophyDef(
     id: 'story_comprehension_master',
     title: 'Mahkota Pendongeng Ajaib',
     icon: '👑',
