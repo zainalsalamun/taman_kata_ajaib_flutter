@@ -283,6 +283,11 @@ class _BalloonScreenState extends State<BalloonScreen>
         }
       });
     } else {
+      StorageService.recordMistake(
+        word: _current.target,
+        illustrationKey: _current.illustrationKey,
+        source: 'Balon Kata Ajaib',
+      );
       _audio.speak('Itu kata ${item.word}. Ayo cari ${_current.target}!');
     }
   }
