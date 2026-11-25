@@ -39,12 +39,14 @@ class QuizScreen extends StatefulWidget {
   final Function(int starsAdded) onVictory;
   final VoidCallback onBack;
   final bool startInSpeedMode;
+  final bool startInReviewMode;
 
   const QuizScreen({
     super.key,
     required this.onVictory,
     required this.onBack,
     this.startInSpeedMode = false,
+    this.startInReviewMode = false,
   });
 
   @override
@@ -63,6 +65,10 @@ class _QuizScreenState extends State<QuizScreen>
   final AudioService _audio = AudioService();
   late AnimationController _wobbleController;
 
+  // Adaptive Review ("Latih Kata Sulit") Mode State
+  bool _isReviewMode = false;
+  List<Map<String, dynamic>> _needsPracticeWords = [];
+
   // Speed Rush Mode State
   bool _isSpeedMode = false;
   Timer? _rushTimer;
@@ -71,7 +77,6 @@ class _QuizScreenState extends State<QuizScreen>
   int _rushStreak = 0;
   int _rushBestStreak = 0;
   int _rushHighScore = 0;
-  int _rushBestCombo = 0;
   bool _isRushAnswered = false;
   String? _rushSelectedKey;
   String? _rushWobbleKey;
@@ -112,7 +117,7 @@ class _QuizScreenState extends State<QuizScreen>
     final idx = await StorageService.getGameLevelIndex('quiz', lvl);
     final questions = GameRepository.getQuizQuestions(lvl);
     final high = await StorageService.getSpeedRushHighScore();
-    final combo = await StorageService.getSpeedRushBestCombo();
+    final practiceWords = await StorageService.getNeedsPracticeWords();
 
     if (mounted) {
       setState(() {
@@ -121,18 +126,70 @@ class _QuizScreenState extends State<QuizScreen>
         _quizList = questions;
         _currentIndex = (idx < questions.length) ? idx : 0;
         _rushHighScore = high;
-        _rushBestCombo = combo;
+        _needsPracticeWords = practiceWords;
         if (widget.startInSpeedMode) {
           _isSpeedMode = true;
+          _isReviewMode = false;
+        } else if (widget.startInReviewMode && practiceWords.isNotEmpty) {
+          _isReviewMode = true;
+          _isSpeedMode = false;
         }
       });
 
       if (widget.startInSpeedMode) {
         _startSpeedRushSession();
+      } else if (widget.startInReviewMode && practiceWords.isNotEmpty) {
+        _startAdaptiveReviewSession();
       } else {
         _startQuestion();
       }
     }
+  }
+
+  void _startAdaptiveReviewSession() async {
+    final practiceWords = await StorageService.getNeedsPracticeWords();
+    if (!mounted) return;
+    if (practiceWords.isEmpty) {
+      setState(() {
+        _isReviewMode = false;
+        _needsPracticeWords = [];
+      });
+      _audio.speak('Hore! Semua kata sulit sudah kamu kuasai! Ayo lanjut kuis petualangan!');
+      _startQuestion();
+      return;
+    }
+
+    const fallbackPool = [
+      'apel', 'bola', 'buku', 'kucing', 'kuda', 'domba',
+      'mobil', 'rumah', 'pisang', 'roti', 'ceri', 'ikan',
+    ];
+    final rand = math.Random();
+    final List<QuizQuestionData> reviewQuestions = [];
+
+    for (final item in practiceWords) {
+      final word = (item['word'] as String? ?? 'APEL').toUpperCase();
+      final illKey = (item['illustrationKey'] as String? ?? 'apel').toLowerCase();
+      final distractors = fallbackPool.where((k) => k != illKey).toList()..shuffle(rand);
+      final choices = [illKey, distractors[0], distractors[1]]..shuffle(rand);
+      reviewQuestions.add(
+        QuizQuestionData(
+          question: 'Latih Ulang: Mana gambar $word?',
+          answerKey: illKey,
+          answerName: word,
+          choices: choices,
+        ),
+      );
+    }
+
+    setState(() {
+      _needsPracticeWords = practiceWords;
+      _isReviewMode = true;
+      _isSpeedMode = false;
+      _quizList = reviewQuestions;
+      _currentIndex = 0;
+    });
+
+    _startQuestion();
   }
 
   void _switchLevel(int newLevel) async {
@@ -195,6 +252,16 @@ class _QuizScreenState extends State<QuizScreen>
         final solvedQuestion = _current;
         _audio.speak('Benar! Ini ${solvedQuestion.answerName}! Hebat!');
 
+        if (_isReviewMode) {
+          await StorageService.markNeedsPracticeWordResolved(solvedQuestion.answerName);
+          final updatedPractice = await StorageService.getNeedsPracticeWords();
+          if (mounted) {
+            setState(() {
+              _needsPracticeWords = updatedPractice;
+            });
+          }
+        }
+
         if (!mounted) return;
 
         final hasMoreInLevel = _currentIndex + 1 < _quizList.length;
@@ -206,15 +273,43 @@ class _QuizScreenState extends State<QuizScreen>
             context: context,
             barrierDismissible: false,
             builder: (_) => VictoryDialog(
-              title: 'Hebat! ${solvedQuestion.answerName}!',
-              subtitle:
-                  'Kamu pintar sekali menemukan ${solvedQuestion.answerName}!',
+              title: _isReviewMode
+                  ? '🎯 Dikuasai! ${solvedQuestion.answerName}!'
+                  : 'Hebat! ${solvedQuestion.answerName}!',
+              subtitle: _isReviewMode
+                  ? 'Kata "${solvedQuestion.answerName}" berhasil kamu kuasai dan lulus dari daftar latihan!'
+                  : 'Kamu pintar sekali menemukan ${solvedQuestion.answerName}!',
               onNext: () {
                 setState(() {
                   _currentIndex++;
                 });
-                StorageService.saveGameLevelIndex(
-                    'quiz', _currentLevel, _currentIndex);
+                if (!_isReviewMode) {
+                  StorageService.saveGameLevelIndex(
+                      'quiz', _currentLevel, _currentIndex);
+                }
+                _startQuestion();
+              },
+            ),
+          );
+        } else if (_isReviewMode) {
+          // Adaptive Review Session Completed!
+          widget.onVictory(10);
+          await StorageService.addTrophy('adaptive_review_champion');
+
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => VictoryDialog(
+              title: '🏆 Semua Kata Sulit Dikuasai!',
+              subtitle:
+                  'Luar biasa! Kamu sudah menuntaskan latihan khusus dan menguasai semua kata yang tadinya sulit!\nBonus +10 Bintang Juara!',
+              onNext: () {
+                setState(() {
+                  _isReviewMode = false;
+                  _quizList = GameRepository.getQuizQuestions(_currentLevel);
+                  _currentIndex = 0;
+                });
                 _startQuestion();
               },
             ),
@@ -280,12 +375,24 @@ class _QuizScreenState extends State<QuizScreen>
     } else {
       // Wrong choice - Gentle wobble shake & encouraging voice guidance
       HapticFeedback.lightImpact();
+      StorageService.recordMistake(
+        word: _current.answerName,
+        illustrationKey: _current.answerKey,
+        source: 'Kuis Sentuh Pintar',
+      );
       setState(() {
         _wobbleKey = choiceKey;
       });
       _wobbleController.forward(from: 0.0);
 
       Future.delayed(const Duration(milliseconds: 250), () {
+        StorageService.getNeedsPracticeWords().then((list) {
+          if (mounted) {
+            setState(() {
+              _needsPracticeWords = list;
+            });
+          }
+        });
         _audio.speak(
             'Itu gambar ${choiceKey.toUpperCase()}. Coba cari ${_current.answerName} ya!');
       });
@@ -620,6 +727,11 @@ class _QuizScreenState extends State<QuizScreen>
         _generateNextRushQuestion();
       }
     } else {
+      StorageService.recordMistake(
+        word: _currentRushQuestion!.prompt.toUpperCase(),
+        illustrationKey: _currentRushQuestion!.illustrationKey,
+        source: 'Tantangan Kilat 60s',
+      );
       setState(() {
         _rushWobbleKey = choice;
         _rushStreak = 0;
@@ -650,12 +762,10 @@ class _QuizScreenState extends State<QuizScreen>
     }
 
     final updatedHigh = await StorageService.getSpeedRushHighScore();
-    final updatedCombo = await StorageService.getSpeedRushBestCombo();
 
     if (mounted) {
       setState(() {
         _rushHighScore = updatedHigh;
-        _rushBestCombo = updatedCombo;
       });
 
       _audio.speak(
@@ -929,13 +1039,16 @@ class _QuizScreenState extends State<QuizScreen>
         children: [
           _buildPillButton(
             title: 'Petualangan 🎯',
-            isActive: !_isSpeedMode,
+            isActive: !_isSpeedMode && !_isReviewMode,
             activeColor: const Color(0xFF7C3AED),
             onTap: () {
-              if (_isSpeedMode) {
+              if (_isSpeedMode || _isReviewMode) {
                 _rushTimer?.cancel();
                 setState(() {
                   _isSpeedMode = false;
+                  _isReviewMode = false;
+                  _quizList = GameRepository.getQuizQuestions(_currentLevel);
+                  _currentIndex = 0;
                 });
                 _startQuestion();
               }
@@ -950,11 +1063,26 @@ class _QuizScreenState extends State<QuizScreen>
               if (!_isSpeedMode) {
                 setState(() {
                   _isSpeedMode = true;
+                  _isReviewMode = false;
                 });
                 _startSpeedRushSession();
               }
             },
           ),
+          if (_needsPracticeWords.isNotEmpty || _isReviewMode) ...[
+            const SizedBox(width: 4),
+            _buildPillButton(
+              title: 'Latih Kata (${_needsPracticeWords.length}) 💪',
+              isActive: _isReviewMode,
+              activeColor: const Color(0xFFEA580C),
+              onTap: () {
+                if (!_isReviewMode) {
+                  _rushTimer?.cancel();
+                  _startAdaptiveReviewSession();
+                }
+              },
+            ),
+          ],
         ],
       ),
     );
