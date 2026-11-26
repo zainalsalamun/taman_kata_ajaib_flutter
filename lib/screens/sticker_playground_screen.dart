@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_models.dart';
@@ -25,6 +27,7 @@ class StickerPlaygroundScreen extends StatefulWidget {
 }
 
 class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with SingleTickerProviderStateMixin {
+  final GlobalKey _canvasBoundaryKey = GlobalKey();
   final AudioService _audio = AudioService();
   List<PlacedSticker> _placedStickers = [];
   String? _selectedUniqueId;
@@ -293,6 +296,114 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
     });
   }
 
+  Future<void> _capturePlaygroundArtwork() async {
+    HapticFeedback.heavyImpact();
+    setState(() {
+      _selectedUniqueId = null;
+    });
+    await Future.delayed(const Duration(milliseconds: 80));
+
+    try {
+      final boundary = _canvasBoundaryKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return;
+
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final pngBytes = byteData?.buffer.asUint8List();
+
+      if (pngBytes != null && mounted) {
+        _audio.playSfx('star');
+        _audio.speak('Wah, potret lukisan stiker tamanmu indah sekali!');
+
+        showDialog(
+          context: context,
+          builder: (ctx) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 540),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFF59E0B), width: 3),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 8)),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Text('📸', style: TextStyle(fontSize: 20)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Potret Karya Taman Stiker',
+                            style: GoogleFonts.fredoka(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        icon: const Icon(Icons.close_rounded, color: Color(0xFF64748B)),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Flexible(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.memory(
+                        pngBytes,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Karya seni stikermu telah dipotret bersih tanpa tombol menu!',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.nunito(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF475569),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    ),
+                    icon: const Icon(Icons.check_circle_rounded, size: 18),
+                    label: Text(
+                      'Keren Sekali! ⭐',
+                      style: GoogleFonts.fredoka(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -303,8 +414,10 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
       children: [
         // 1. Theme-Based Scenery & Interactive Canvas Area
         Positioned.fill(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
+          child: RepaintBoundary(
+            key: _canvasBoundaryKey,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
               return Stack(
                 children: [
                   // Dynamic Scenery Custom Background
@@ -385,6 +498,7 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
                 ],
               );
             },
+          ),
           ),
         ),
 
@@ -498,6 +612,25 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    ElevatedButton.icon(
+                      onPressed: _capturePlaygroundArtwork,
+                      icon: const Icon(Icons.camera_alt_rounded, color: Color(0xFF0369A1), size: 16),
+                      label: Text(
+                        'Potret',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0369A1),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE0F2FE),
+                        elevation: 1,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     if (_placedStickers.isNotEmpty) ...[
                       ElevatedButton.icon(
                         onPressed: _clearCanvas,
@@ -773,7 +906,7 @@ class _StickerPlaygroundScreenState extends State<StickerPlaygroundScreen> with 
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               itemCount: availableStickers.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 // Last item is button to buy more stickers
                 if (index == availableStickers.length) {
