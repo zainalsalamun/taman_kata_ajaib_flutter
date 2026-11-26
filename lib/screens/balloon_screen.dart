@@ -55,11 +55,35 @@ class _BalloonScreenState extends State<BalloonScreen>
     _loadLevelData();
   }
 
+  List<BalloonWordData> _mergeBalloonCustomWords(
+    List<BalloonWordData> base,
+    List<Map<String, dynamic>> customRaw,
+  ) {
+    if (customRaw.isEmpty) return base;
+    const distractors = ['BOLA', 'BUKU', 'ROTI', 'APEL', 'KUDA', 'RUMAH'];
+    final customBalloons = customRaw.map((m) {
+      final word = (m['word'] as String? ?? 'KATA').toUpperCase();
+      final ill = (m['illustrationKey'] as String? ?? 'bintang').toLowerCase();
+      final choices = <String>[word];
+      for (final d in distractors) {
+        if (choices.length >= 4) break;
+        if (!choices.contains(d)) choices.add(d);
+      }
+      return BalloonWordData(
+        target: word,
+        illustrationKey: ill,
+        choices: choices,
+      );
+    }).toList();
+    return [...customBalloons, ...base];
+  }
+
   void _loadLevelData() async {
     final lvl = await StorageService.getGameLevel('balloon');
     final unl = await StorageService.getUnlockedGameLevel('balloon');
     final idx = await StorageService.getGameLevelIndex('balloon', lvl);
-    final words = GameRepository.getBalloonWords(lvl);
+    final customRaw = await StorageService.getCustomWords();
+    final words = _mergeBalloonCustomWords(GameRepository.getBalloonWords(lvl), customRaw);
 
     if (mounted) {
       setState(() {
@@ -73,7 +97,8 @@ class _BalloonScreenState extends State<BalloonScreen>
   }
 
   void _switchLevel(int newLevel) async {
-    final words = GameRepository.getBalloonWords(newLevel);
+    final customRaw = await StorageService.getCustomWords();
+    final words = _mergeBalloonCustomWords(GameRepository.getBalloonWords(newLevel), customRaw);
     final idx = await StorageService.getGameLevelIndex('balloon', newLevel);
     await StorageService.saveGameLevel('balloon', newLevel);
 
@@ -231,6 +256,7 @@ class _BalloonScreenState extends State<BalloonScreen>
           await StorageService.addTrophy('balloon_master');
           await StorageService.saveGameLevelIndex('balloon', _currentLevel, 0);
 
+          if (!mounted) return;
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -262,6 +288,7 @@ class _BalloonScreenState extends State<BalloonScreen>
           await StorageService.addTrophy('balloon_l$_currentLevel');
           await StorageService.saveGameLevelIndex('balloon', _currentLevel, 0);
 
+          if (!mounted) return;
           showDialog(
             context: context,
             barrierDismissible: false,
