@@ -563,9 +563,20 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
                 ),
                 if (!isMatchPairsMode) ...[
                   const SizedBox(width: 6),
-                  _buildModeSwitcher(),
-                  const SizedBox(width: 6),
-                  _buildClearButton(),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildModeSwitcher(),
+                          const SizedBox(width: 6),
+                          _buildClearButton(),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -573,7 +584,11 @@ class _TracingScreenState extends State<TracingScreen> with SingleTickerProvider
 
             // 1b. Level 1 Letter Case & Matching Sub-Mode Selector
             if (_currentLevel == 1) ...[
-              _buildLetterSubModeRibbon(),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: _buildLetterSubModeRibbon(),
+              ),
               const SizedBox(height: 6),
             ],
 
