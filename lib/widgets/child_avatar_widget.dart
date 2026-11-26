@@ -30,7 +30,77 @@ class ChildAvatar {
   });
 }
 
+class AvatarAccessoryItem {
+  final String id;
+  final String name;
+  final String emoji;
+  final int cost;
+  final String voiceQuote;
+
+  const AvatarAccessoryItem({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.cost,
+    required this.voiceQuote,
+  });
+}
+
 class ChildAvatarData {
+  static String currentAccessoryId = 'none';
+
+  static const List<AvatarAccessoryItem> allAccessories = [
+    AvatarAccessoryItem(
+      id: 'none',
+      name: 'Polos',
+      emoji: '✨',
+      cost: 0,
+      voiceQuote: 'Tampilan polos yang rapi dan ceria!',
+    ),
+    AvatarAccessoryItem(
+      id: 'crown',
+      name: 'Mahkota Emas',
+      emoji: '👑',
+      cost: 10,
+      voiceQuote: 'Wah gagah sekali! Mahkota Emas Raja dan Ratu Membaca!',
+    ),
+    AvatarAccessoryItem(
+      id: 'grad_cap',
+      name: 'Topi Sarjana',
+      emoji: '🎓',
+      cost: 15,
+      voiceQuote: 'Keren! Topi Sarjana Cilik yang pintar dan rajin belajar!',
+    ),
+    AvatarAccessoryItem(
+      id: 'ribbon',
+      name: 'Pita Ajaib',
+      emoji: '🎀',
+      cost: 12,
+      voiceQuote: 'Manis sekali! Pita merah muda yang lucu dan menggemaskan!',
+    ),
+    AvatarAccessoryItem(
+      id: 'star_glasses',
+      name: 'Bintang Kejora',
+      emoji: '🌟',
+      cost: 20,
+      voiceQuote: 'Berkilau! Lencana Bintang Kejora Penjelajah Samudra!',
+    ),
+    AvatarAccessoryItem(
+      id: 'wizard_hat',
+      name: 'Topi Penyihir',
+      emoji: '🎩',
+      cost: 25,
+      voiceQuote: 'Abrakadabra! Topi Pesulap Kata Ajaib siap beraksi!',
+    ),
+  ];
+
+  static AvatarAccessoryItem getAccessory(String id) {
+    return allAccessories.firstWhere(
+      (a) => a.id == id,
+      orElse: () => allAccessories.first,
+    );
+  }
+
   static const List<ChildAvatar> allAvatars = [
     ChildAvatar(
       id: 'miko',
@@ -115,6 +185,7 @@ class ChildAvatarWidget extends StatelessWidget {
   final bool showBorder;
   final bool showGlow;
   final VoidCallback? onTap;
+  final String? accessoryOverride;
 
   const ChildAvatarWidget({
     super.key,
@@ -123,11 +194,14 @@ class ChildAvatarWidget extends StatelessWidget {
     this.showBorder = true,
     this.showGlow = false,
     this.onTap,
+    this.accessoryOverride,
   });
 
   @override
   Widget build(BuildContext context) {
     final avatar = ChildAvatarData.getAvatar(avatarId);
+    final accId = accessoryOverride ?? ChildAvatarData.currentAccessoryId;
+    final accItem = ChildAvatarData.getAccessory(accId);
 
     Widget avatarGraphic = SizedBox(
       width: size,
@@ -137,36 +211,57 @@ class ChildAvatarWidget extends StatelessWidget {
       ),
     );
 
-    Widget content = Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [avatar.primaryColor, avatar.secondaryColor],
+    Widget content = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [avatar.primaryColor, avatar.secondaryColor],
+            ),
+            border: showBorder
+                ? Border.all(color: avatar.borderColor, width: math.max(1.5, size * 0.05))
+                : null,
+            boxShadow: showGlow
+                ? [
+                    BoxShadow(
+                      color: avatar.borderColor.withAlpha(90),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                : [
+                    const BoxShadow(
+                      color: Color(0x18000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Center(child: avatarGraphic),
         ),
-        border: showBorder
-            ? Border.all(color: avatar.borderColor, width: math.max(1.5, size * 0.05))
-            : null,
-        boxShadow: showGlow
-            ? [
-                BoxShadow(
-                  color: avatar.borderColor.withAlpha(90),
-                  blurRadius: 10,
-                  spreadRadius: 2,
+        if (accItem.id != 'none')
+          Positioned(
+            top: -size * 0.18,
+            right: -size * 0.08,
+            child: IgnorePointer(
+              child: Text(
+                accItem.emoji,
+                style: TextStyle(
+                  fontSize: (size * 0.42).clamp(11.0, 28.0),
+                  shadows: const [
+                    Shadow(color: Color(0x55000000), blurRadius: 4, offset: Offset(0, 1)),
+                  ],
                 ),
-              ]
-            : [
-                const BoxShadow(
-                  color: Color(0x18000000),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
-      ),
-      child: Center(child: avatarGraphic),
+              ),
+            ),
+          ),
+      ],
     );
 
     if (onTap != null) {
@@ -696,6 +791,9 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
   final AudioService _audio = AudioService();
   int _activeSlot = 1;
   List<Map<String, dynamic>> _profileSummaries = [];
+  List<String> _unlockedAccessories = ['none'];
+  String _equippedAccessory = 'none';
+  int _currentStars = 20;
 
   @override
   void initState() {
@@ -708,10 +806,17 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
   void _loadProfileSlots() async {
     final slot = await StorageService.getActiveProfileSlot();
     final summaries = await StorageService.getAllProfileSummaries();
+    final unlockedAcc = await StorageService.getUnlockedAccessories();
+    final equippedAcc = await StorageService.getEquippedAccessory();
+    final stars = await StorageService.getStars();
+    ChildAvatarData.currentAccessoryId = equippedAcc;
     if (mounted) {
       setState(() {
         _activeSlot = slot;
         _profileSummaries = summaries;
+        _unlockedAccessories = unlockedAcc;
+        _equippedAccessory = equippedAcc;
+        _currentStars = stars;
       });
     }
   }
@@ -725,12 +830,17 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
       await StorageService.saveChildName(currentName);
     }
     await StorageService.saveChildAvatar(_selectedAvatarId);
+    await StorageService.saveEquippedAccessory(_equippedAccessory);
 
     // Activate new slot and load its profile
     await StorageService.setActiveProfileSlot(targetSlot);
     final newName = await StorageService.getChildName();
     final newAvatar = await StorageService.getChildAvatar();
     final summaries = await StorageService.getAllProfileSummaries();
+    final unlockedAcc = await StorageService.getUnlockedAccessories();
+    final equippedAcc = await StorageService.getEquippedAccessory();
+    final stars = await StorageService.getStars();
+    ChildAvatarData.currentAccessoryId = equippedAcc;
 
     if (mounted) {
       setState(() {
@@ -738,9 +848,44 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
         _selectedAvatarId = newAvatar;
         _nameController.text = newName;
         _profileSummaries = summaries;
+        _unlockedAccessories = unlockedAcc;
+        _equippedAccessory = equippedAcc;
+        _currentStars = stars;
       });
       _audio.playSfx('pop');
       _audio.speak('Beralih ke Profil $targetSlot: $newName!');
+    }
+  }
+
+  void _onTapAccessory(AvatarAccessoryItem acc) async {
+    HapticFeedback.selectionClick();
+    final isUnlocked = _unlockedAccessories.contains(acc.id);
+    if (isUnlocked) {
+      setState(() {
+        _equippedAccessory = acc.id;
+        ChildAvatarData.currentAccessoryId = acc.id;
+      });
+      await StorageService.saveEquippedAccessory(acc.id);
+      _audio.playSfx('pop');
+      _audio.speak(acc.voiceQuote);
+    } else if (_currentStars >= acc.cost) {
+      HapticFeedback.heavyImpact();
+      final newStars = _currentStars - acc.cost;
+      final newUnlocked = [..._unlockedAccessories, acc.id];
+      setState(() {
+        _currentStars = newStars;
+        _unlockedAccessories = newUnlocked;
+        _equippedAccessory = acc.id;
+        ChildAvatarData.currentAccessoryId = acc.id;
+      });
+      await StorageService.saveStars(newStars);
+      await StorageService.saveUnlockedAccessories(newUnlocked);
+      await StorageService.saveEquippedAccessory(acc.id);
+      _audio.playSfx('star');
+      _audio.speak('Hore! ${acc.name} berhasil dibuka! ${acc.voiceQuote}');
+    } else {
+      HapticFeedback.lightImpact();
+      _audio.speak('Bintangmu belum cukup untuk membuka ${acc.name}. Ayo kumpulkan ${acc.cost} bintang ya!');
     }
   }
 
@@ -773,6 +918,105 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
       _audio.playSfx('star');
       _audio.speak('Profil berhasil disimpan! Senang bertualang bersamamu, $newName!');
     }
+  }
+
+  Widget _buildAccessoriesShopBar() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '🎩 Kostum & Mahkota Avatar:',
+              style: GoogleFonts.fredoka(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF854D0E),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF08A),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFFACC15)),
+              ),
+              child: Text(
+                '⭐ $_currentStars Bintang',
+                style: GoogleFonts.fredoka(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFB45309),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            children: ChildAvatarData.allAccessories.map((acc) {
+              final isUnlocked = _unlockedAccessories.contains(acc.id);
+              final isEquipped = _equippedAccessory == acc.id;
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () => _onTapAccessory(acc),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: isEquipped
+                          ? const Color(0xFFFEF08A)
+                          : (isUnlocked ? Colors.white : const Color(0xFFF8FAFC)),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isEquipped
+                            ? const Color(0xFFD97706)
+                            : (isUnlocked ? const Color(0xFFCBD5E1) : const Color(0xFFE2E8F0)),
+                        width: isEquipped ? 2.5 : 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(acc.emoji, style: const TextStyle(fontSize: 20)),
+                        const SizedBox(height: 2),
+                        Text(
+                          acc.name,
+                          style: GoogleFonts.fredoka(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: isEquipped ? const Color(0xFF78350F) : const Color(0xFF334155),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isEquipped
+                              ? 'Dipakai ✅'
+                              : (isUnlocked ? 'Milikmu' : '⭐ ${acc.cost}'),
+                          style: GoogleFonts.nunito(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: isEquipped
+                                ? const Color(0xFF15803D)
+                                : (isUnlocked ? const Color(0xFF0284C7) : const Color(0xFFD97706)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildProfileSlotsBar() {
@@ -1189,6 +1433,7 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
                                         avatarId: avatar.id,
                                         size: 42,
                                         showBorder: isSelected,
+                                        accessoryOverride: isSelected ? _equippedAccessory : 'none',
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
@@ -1221,6 +1466,10 @@ class _AvatarSelectionDialogState extends State<AvatarSelectionDialog> {
                           );
                         },
                       ),
+                      const SizedBox(height: 14),
+
+                      // Toko Topi & Aksesori Avatar
+                      _buildAccessoriesShopBar(),
                     ],
                   ),
                 ),
