@@ -330,6 +330,7 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
       await StorageService.addTrophy('maze_master');
       await StorageService.saveGameLevelIndex('maze', _currentLevel, 0);
 
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -361,6 +362,7 @@ class _MazeScreenState extends State<MazeScreen> with TickerProviderStateMixin {
       await StorageService.addTrophy('maze_l$_currentLevel');
       await StorageService.saveGameLevelIndex('maze', _currentLevel, 0);
 
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
