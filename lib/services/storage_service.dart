@@ -35,6 +35,102 @@ class StorageService {
   static const String _keySpeedRushBestCombo = 'taman_kata_speed_rush_best_combo';
   static const String _keyNeedsPracticeWords = 'taman_kata_needs_practice_words';
   static const String _keyActiveProfileSlot = 'taman_kata_active_profile_slot';
+  static const String _keyCustomWords = 'taman_kata_custom_words';
+  static const String _keySyllableColorMode = 'taman_kata_syllable_color_mode';
+  static const String _keyUnlockedAccessories = 'taman_kata_unlocked_accessories';
+  static const String _keyEquippedAccessory = 'taman_kata_equipped_accessory';
+
+  // --- KOSTUM & AKSESORI SAHABAT (AVATAR DRESS-UP) ---
+  static Future<List<String>> getUnlockedAccessories() async {
+    final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
+    final raw = prefs.getString(_pKey(_keyUnlockedAccessories, slot));
+    if (raw == null || raw.isEmpty) return ['none'];
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      final res = list.map((e) => e.toString()).toList();
+      if (!res.contains('none')) res.insert(0, 'none');
+      return res;
+    } catch (_) {
+      return ['none'];
+    }
+  }
+
+  static Future<void> saveUnlockedAccessories(List<String> accIds) async {
+    final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyUnlockedAccessories, slot), jsonEncode(accIds));
+  }
+
+  static Future<String> getEquippedAccessory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
+    return prefs.getString(_pKey(_keyEquippedAccessory, slot)) ?? 'none';
+  }
+
+  static Future<void> saveEquippedAccessory(String accId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final slot = await getActiveProfileSlot();
+    await prefs.setString(_pKey(_keyEquippedAccessory, slot), accId);
+  }
+
+  // --- MODE WARNA SUKU KATA (RAMAH DISLEKSIA) ---
+  static Future<bool> getSyllableColorMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keySyllableColorMode) ?? true;
+  }
+
+  static Future<void> saveSyllableColorMode(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keySyllableColorMode, enabled);
+  }
+
+  // --- KATA KUSTOM ORANG TUA / GURU ---
+  static Future<List<Map<String, dynamic>>> getCustomWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyCustomWords);
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> addCustomWord({
+    required String rawSyllables,
+    required String illustrationKey,
+  }) async {
+    final parts = rawSyllables
+        .trim()
+        .toUpperCase()
+        .split(RegExp(r'[-\s]+'))
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return;
+
+    final fullWord = parts.join('');
+    final prefs = await SharedPreferences.getInstance();
+    final list = await getCustomWords();
+    list.removeWhere((m) => (m['word'] as String?)?.toUpperCase() == fullWord);
+
+    list.insert(0, {
+      'word': fullWord,
+      'syllables': parts,
+      'illustrationKey': illustrationKey,
+      'createdAt': DateTime.now().toIso8601String(),
+    });
+    await prefs.setString(_keyCustomWords, jsonEncode(list));
+  }
+
+  static Future<void> deleteCustomWord(String word) async {
+    final clean = word.trim().toUpperCase();
+    final prefs = await SharedPreferences.getInstance();
+    final list = await getCustomWords();
+    list.removeWhere((m) => (m['word'] as String?)?.toUpperCase() == clean);
+    await prefs.setString(_keyCustomWords, jsonEncode(list));
+  }
 
   // --- SISTEM MULTI-PROFIL ANAK (3 SLOT: KAKAK & ADIK) ---
   static String _pKey(String baseKey, int slot) =>
