@@ -56,11 +56,37 @@ class _TrainScreenState extends State<TrainScreen>
     _loadLevelData();
   }
 
+  List<TrainWordData> _mergeWithCustomWords(List<TrainWordData> base, List<Map<String, dynamic>> customRaw) {
+    if (customRaw.isEmpty) return base;
+    const fillerPool = ['MA', 'KU', 'BO', 'LA', 'SA', 'PI', 'RO', 'TI'];
+    final customTrain = customRaw.map((m) {
+      final word = (m['word'] as String? ?? 'KATA').toUpperCase();
+      final syls = (m['syllables'] as List<dynamic>?)
+              ?.map((e) => e.toString().toUpperCase())
+              .toList() ??
+          [word];
+      final ill = (m['illustrationKey'] as String? ?? 'bintang').toLowerCase();
+      final choices = List<String>.from(syls);
+      for (final f in fillerPool) {
+        if (choices.length >= 4) break;
+        if (!choices.contains(f)) choices.add(f);
+      }
+      return TrainWordData(
+        word: word,
+        syllables: syls,
+        illustrationKey: ill,
+        choices: choices,
+      );
+    }).toList();
+    return [...customTrain, ...base];
+  }
+
   void _loadLevelData() async {
     final lvl = await StorageService.getGameLevel('train');
     final unl = await StorageService.getUnlockedGameLevel('train');
     final idx = await StorageService.getGameLevelIndex('train', lvl);
-    final words = GameRepository.getTrainWords(lvl);
+    final customRaw = await StorageService.getCustomWords();
+    final words = _mergeWithCustomWords(GameRepository.getTrainWords(lvl), customRaw);
 
     if (mounted) {
       setState(() {
@@ -74,7 +100,11 @@ class _TrainScreenState extends State<TrainScreen>
   }
 
   void _switchLevel(int newLevel) async {
-    final words = GameRepository.getTrainWords(newLevel, isSentenceMode: false);
+    final customRaw = await StorageService.getCustomWords();
+    final words = _mergeWithCustomWords(
+      GameRepository.getTrainWords(newLevel, isSentenceMode: false),
+      customRaw,
+    );
     final idx = await StorageService.getGameLevelIndex('train', newLevel);
     await StorageService.saveGameLevel('train', newLevel);
 
@@ -90,13 +120,18 @@ class _TrainScreenState extends State<TrainScreen>
     _audio.speak('Tingkat $_currentLevel: ${titles[_currentLevel]}! Ayo susun kata ${_current.word}!');
   }
 
-  void _toggleSentenceMode(bool enableSentence) {
+  void _toggleSentenceMode(bool enableSentence) async {
     if (_isSentenceMode == enableSentence) return;
     HapticFeedback.mediumImpact();
     _audio.playSfx('pop');
+    final customRaw = enableSentence ? <Map<String, dynamic>>[] : await StorageService.getCustomWords();
+    if (!mounted) return;
     setState(() {
       _isSentenceMode = enableSentence;
-      _trainWords = GameRepository.getTrainWords(_currentLevel, isSentenceMode: enableSentence);
+      _trainWords = _mergeWithCustomWords(
+        GameRepository.getTrainWords(_currentLevel, isSentenceMode: enableSentence),
+        customRaw,
+      );
       _currentIndex = 0;
     });
     _startWord();
@@ -208,6 +243,7 @@ class _TrainScreenState extends State<TrainScreen>
               await StorageService.addTrophy('train_master');
               await StorageService.saveGameLevelIndex('train', _currentLevel, 0);
 
+              if (!mounted) return;
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -240,6 +276,7 @@ class _TrainScreenState extends State<TrainScreen>
               await StorageService.saveGameLevelIndex(
                   'train', _currentLevel, 0);
 
+              if (!mounted) return;
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -702,7 +739,7 @@ class _TrainScreenState extends State<TrainScreen>
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: SizedBox(
-                  width: 500,
+                  width: _isSentenceMode ? 570 : 500,
                   height: 135,
                   child: _buildTrainAssembly(),
                 ),
@@ -713,7 +750,9 @@ class _TrainScreenState extends State<TrainScreen>
 
             // Instruction prompt
             Text(
-              'Pilih gerbong suku kata untuk melengkapi kereta:',
+              _isSentenceMode
+                  ? 'Pilih kartu kata untuk merangkai kalimat (Subjek + Predikat + Objek):'
+                  : 'Pilih gerbong suku kata untuk melengkapi kereta:',
               style: GoogleFonts.fredoka(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
