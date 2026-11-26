@@ -65,8 +65,9 @@ class _QuizScreenState extends State<QuizScreen>
   final AudioService _audio = AudioService();
   late AnimationController _wobbleController;
 
-  // Adaptive Review ("Latih Kata Sulit") Mode State
+  // Adaptive Review ("Latih Kata Sulit") & Rhyme Mode State
   bool _isReviewMode = false;
+  bool _isRhymeMode = false;
   List<Map<String, dynamic>> _needsPracticeWords = [];
 
   // Speed Rush Mode State
@@ -198,6 +199,8 @@ class _QuizScreenState extends State<QuizScreen>
     await StorageService.saveGameLevel('quiz', newLevel);
 
     setState(() {
+      _isRhymeMode = false;
+      _isReviewMode = false;
       _currentLevel = newLevel;
       _quizList = questions;
       _currentIndex = (idx < questions.length) ? idx : 0;
@@ -210,6 +213,18 @@ class _QuizScreenState extends State<QuizScreen>
       3: 'Master Literasi'
     };
     _audio.speak('Tingkat $_currentLevel: ${titles[_currentLevel]}! ${_current.question}');
+  }
+
+  void _startRhymeModeSession() {
+    _rushTimer?.cancel();
+    setState(() {
+      _isRhymeMode = true;
+      _isSpeedMode = false;
+      _isReviewMode = false;
+      _quizList = GameRepository.getQuizQuestions(1, isRhymeMode: true);
+      _currentIndex = 0;
+    });
+    _startQuestion();
   }
 
   @override
@@ -275,18 +290,43 @@ class _QuizScreenState extends State<QuizScreen>
             builder: (_) => VictoryDialog(
               title: _isReviewMode
                   ? '🎯 Dikuasai! ${solvedQuestion.answerName}!'
-                  : 'Hebat! ${solvedQuestion.answerName}!',
+                  : _isRhymeMode
+                      ? '🎵 Berima! ${solvedQuestion.answerName}!'
+                      : 'Hebat! ${solvedQuestion.answerName}!',
               subtitle: _isReviewMode
                   ? 'Kata "${solvedQuestion.answerName}" berhasil kamu kuasai dan lulus dari daftar latihan!'
-                  : 'Kamu pintar sekali menemukan ${solvedQuestion.answerName}!',
+                  : _isRhymeMode
+                      ? 'Tepat sekali! Bunyi akhir kata ${solvedQuestion.answerName} berima indah!'
+                      : 'Kamu pintar sekali menemukan ${solvedQuestion.answerName}!',
               onNext: () {
                 setState(() {
                   _currentIndex++;
                 });
-                if (!_isReviewMode) {
+                if (!_isReviewMode && !_isRhymeMode) {
                   StorageService.saveGameLevelIndex(
                       'quiz', _currentLevel, _currentIndex);
                 }
+                _startQuestion();
+              },
+            ),
+          );
+        } else if (_isRhymeMode) {
+          // Completed all 10 Rhyme questions!
+          widget.onVictory(15);
+          await StorageService.addTrophy('rhyme_master');
+
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (_) => VictoryDialog(
+              title: '🎵 Maestro Rima Kata!',
+              subtitle:
+                  'Luar biasa! Kamu berhasil menuntaskan seluruh 10 kuis Tebak Rima & Bunyi Akhir!\nBonus +15 Bintang Juara!',
+              onNext: () {
+                setState(() {
+                  _currentIndex = 0;
+                });
                 _startQuestion();
               },
             ),
@@ -321,6 +361,7 @@ class _QuizScreenState extends State<QuizScreen>
           await StorageService.addTrophy('quiz_master');
           await StorageService.saveGameLevelIndex('quiz', _currentLevel, 0);
 
+          if (!mounted) return;
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -352,6 +393,7 @@ class _QuizScreenState extends State<QuizScreen>
           await StorageService.addTrophy('quiz_l$_currentLevel');
           await StorageService.saveGameLevelIndex('quiz', _currentLevel, 0);
 
+          if (!mounted) return;
           showDialog(
             context: context,
             barrierDismissible: false,
@@ -799,7 +841,7 @@ class _QuizScreenState extends State<QuizScreen>
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.18),
+                      color: Colors.black.withValues(alpha: 0.18),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -985,9 +1027,9 @@ class _QuizScreenState extends State<QuizScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
@@ -1023,12 +1065,12 @@ class _QuizScreenState extends State<QuizScreen>
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.92),
+        color: Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -1039,18 +1081,30 @@ class _QuizScreenState extends State<QuizScreen>
         children: [
           _buildPillButton(
             title: 'Petualangan 🎯',
-            isActive: !_isSpeedMode && !_isReviewMode,
+            isActive: !_isSpeedMode && !_isReviewMode && !_isRhymeMode,
             activeColor: const Color(0xFF7C3AED),
             onTap: () {
-              if (_isSpeedMode || _isReviewMode) {
+              if (_isSpeedMode || _isReviewMode || _isRhymeMode) {
                 _rushTimer?.cancel();
                 setState(() {
                   _isSpeedMode = false;
                   _isReviewMode = false;
+                  _isRhymeMode = false;
                   _quizList = GameRepository.getQuizQuestions(_currentLevel);
                   _currentIndex = 0;
                 });
                 _startQuestion();
+              }
+            },
+          ),
+          const SizedBox(width: 4),
+          _buildPillButton(
+            title: 'Tebak Rima 🎵',
+            isActive: _isRhymeMode,
+            activeColor: const Color(0xFF0284C7),
+            onTap: () {
+              if (!_isRhymeMode) {
+                _startRhymeModeSession();
               }
             },
           ),
@@ -1064,6 +1118,7 @@ class _QuizScreenState extends State<QuizScreen>
                 setState(() {
                   _isSpeedMode = true;
                   _isReviewMode = false;
+                  _isRhymeMode = false;
                 });
                 _startSpeedRushSession();
               }
@@ -1078,6 +1133,7 @@ class _QuizScreenState extends State<QuizScreen>
               onTap: () {
                 if (!_isReviewMode) {
                   _rushTimer?.cancel();
+                  setState(() => _isRhymeMode = false);
                   _startAdaptiveReviewSession();
                 }
               },
@@ -1108,7 +1164,7 @@ class _QuizScreenState extends State<QuizScreen>
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: activeColor.withOpacity(0.4),
+                    color: activeColor.withValues(alpha: 0.4),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -1176,7 +1232,7 @@ class _QuizScreenState extends State<QuizScreen>
             border: Border.all(color: borderColor, width: isSelected ? 3 : 2),
             boxShadow: [
               BoxShadow(
-                color: borderColor.withOpacity(0.25),
+                color: borderColor.withValues(alpha: 0.25),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
@@ -1236,7 +1292,7 @@ class _QuizScreenState extends State<QuizScreen>
             border: Border.all(color: borderColor, width: isSelected ? 3 : 2),
             boxShadow: [
               BoxShadow(
-                color: borderColor.withOpacity(0.3),
+                color: borderColor.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -1278,7 +1334,7 @@ class _QuizScreenState extends State<QuizScreen>
           border: Border.all(color: const Color(0xFFDDD6FE), width: 2),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF7C3AED).withOpacity(0.12),
+              color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -1330,7 +1386,7 @@ class _QuizScreenState extends State<QuizScreen>
           border: Border.all(color: const Color(0xFFDDD6FE), width: 2),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF7C3AED).withOpacity(0.12),
+              color: const Color(0xFF7C3AED).withValues(alpha: 0.12),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -1593,11 +1649,11 @@ class _QuizScreenState extends State<QuizScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -1679,8 +1735,12 @@ class _QuizScreenState extends State<QuizScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         child: Column(
           children: [
-            // Mode Switcher Pill
-            _buildModeTogglePill(),
+            // Mode Switcher Pill (Scrollable/Fitted for narrow mobile screens)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: _buildModeTogglePill(),
+            ),
             const SizedBox(height: 8),
 
             // Top Control Bar: LevelSelectorRibbon + Question Banner
