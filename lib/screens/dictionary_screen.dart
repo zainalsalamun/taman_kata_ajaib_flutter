@@ -46,6 +46,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
   String _searchQuery = '';
   List<String> _learnedWords = [];
   bool _isLoading = true;
+  bool _syllableColorMode = true;
 
   // Flashcard 3D Mode State
   bool _isFlashcardMode = false;
@@ -87,9 +88,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
 
   void _loadLearnedState() async {
     final learned = await StorageService.getLearnedWords();
+    final colorMode = await StorageService.getSyllableColorMode();
     if (mounted) {
       setState(() {
         _learnedWords = learned;
+        _syllableColorMode = colorMode;
         _isLoading = false;
       });
     }
@@ -501,9 +504,10 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
   Widget _buildTopBar(int learnedCount, int totalCount) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
+    final isNarrow = screenWidth < 430;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 16, vertical: 7),
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(220),
         boxShadow: const [
@@ -516,7 +520,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
           GestureDetector(
             onTap: widget.onBack,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 14, vertical: 7),
+              padding: EdgeInsets.symmetric(horizontal: isNarrow ? 8 : (isMobile ? 10 : 14), vertical: 6),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFFFEF08A), Color(0xFFFDE047)],
@@ -530,25 +534,29 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('⬅️', style: TextStyle(fontSize: 15)),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Peta',
-                    style: GoogleFonts.fredoka(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFFB45309),
+                  const Text('⬅️', style: TextStyle(fontSize: 14)),
+                  if (!isNarrow) ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      'Peta',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFB45309),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: isNarrow ? 6 : 10),
 
           // Title
-          MascotWidget(size: isMobile ? 30 : 38),
-          const SizedBox(width: 8),
+          if (!isNarrow) ...[
+            MascotWidget(size: isMobile ? 28 : 38),
+            const SizedBox(width: 6),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -559,17 +567,19 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
                   children: [
                     Flexible(
                       child: Text(
-                        isMobile ? 'Kamus Miko' : 'Kamus Bergambar & Suara Miko',
+                        isNarrow ? 'Kamus' : (isMobile ? 'Kamus Miko' : 'Kamus Bergambar & Suara Miko'),
                         style: GoogleFonts.fredoka(
-                          fontSize: isMobile ? 15 : 18,
+                          fontSize: isNarrow ? 13.5 : (isMobile ? 15 : 18),
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF0369A1),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    const Text('📚', style: TextStyle(fontSize: 16)),
+                    if (!isNarrow) ...[
+                      const SizedBox(width: 4),
+                      const Text('📚', style: TextStyle(fontSize: 15)),
+                    ],
                   ],
                 ),
                 if (!isMobile)
@@ -586,94 +596,106 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
             ),
           ),
 
-          // Mode Switcher Toggle Pill
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildModePill(
-                  icon: '📚',
-                  label: isMobile ? 'Kamus' : 'Kamus Grid',
-                  isActive: !_isFlashcardMode && !_isMemoryMode,
-                  onTap: () {
-                    if (_isFlashcardMode || _isMemoryMode) {
-                      _audio.playSfx('ding');
-                      setState(() {
-                        _isFlashcardMode = false;
-                        _isMemoryMode = false;
-                      });
-                    }
-                  },
-                ),
-                _buildModePill(
-                  icon: '🃏',
-                  label: isMobile ? 'Kartu' : 'Flashcard 3D',
-                  isActive: _isFlashcardMode && !_isMemoryMode,
-                  onTap: () {
-                    if (!_isFlashcardMode || _isMemoryMode) {
-                      _audio.playSfx('sparkle');
-                      setState(() {
-                        _isFlashcardMode = true;
-                        _isMemoryMode = false;
-                        _resetFlashcardDeck();
-                      });
-                      _audio.speak('Mode Kartu Pintar! Tebak gambar dan balik kartunya!');
-                    }
-                  },
-                ),
-                _buildModePill(
-                  icon: '🧠',
-                  label: isMobile ? 'Memori' : 'Memori Kembar',
-                  isActive: _isMemoryMode,
-                  onTap: () {
-                    if (!_isMemoryMode) {
-                      _audio.playSfx('sparkle');
-                      setState(() {
-                        _isMemoryMode = true;
-                        _isFlashcardMode = false;
-                      });
-                      _startNewMemoryDeck();
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: isMobile ? 6 : 10),
-
-          // Learned Words Pill Counter
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: 5),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFDCFCE7), Color(0xFFBBF7D0)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF86EFAC), width: 2),
-              boxShadow: const [
-                BoxShadow(color: Color(0xFF16A34A), offset: Offset(0, 2)),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🎯', style: TextStyle(fontSize: 14)),
-                const SizedBox(width: 4),
-                Text(
-                  isMobile ? '$learnedCount/$totalCount' : '$learnedCount / $totalCount Kata',
-                  style: GoogleFonts.fredoka(
-                    fontSize: isMobile ? 11 : 13,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF15803D),
+          // Mode Switcher Toggle Pill + Learned Counter wrapped in FittedBox for zero mobile overflow
+          Flexible(
+            flex: isMobile ? 2 : 0,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildModePill(
+                          icon: '📚',
+                          label: isMobile ? 'Kamus' : 'Kamus Grid',
+                          isActive: !_isFlashcardMode && !_isMemoryMode,
+                          onTap: () {
+                            if (_isFlashcardMode || _isMemoryMode) {
+                              _audio.playSfx('ding');
+                              setState(() {
+                                _isFlashcardMode = false;
+                                _isMemoryMode = false;
+                              });
+                            }
+                          },
+                        ),
+                        _buildModePill(
+                          icon: '🃏',
+                          label: isMobile ? 'Kartu' : 'Flashcard 3D',
+                          isActive: _isFlashcardMode && !_isMemoryMode,
+                          onTap: () {
+                            if (!_isFlashcardMode || _isMemoryMode) {
+                              _audio.playSfx('sparkle');
+                              setState(() {
+                                _isFlashcardMode = true;
+                                _isMemoryMode = false;
+                                _resetFlashcardDeck();
+                              });
+                              _audio.speak('Mode Kartu Pintar! Tebak gambar dan balik kartunya!');
+                            }
+                          },
+                        ),
+                        _buildModePill(
+                          icon: '🧠',
+                          label: isMobile ? 'Memori' : 'Memori Kembar',
+                          isActive: _isMemoryMode,
+                          onTap: () {
+                            if (!_isMemoryMode) {
+                              _audio.playSfx('sparkle');
+                              setState(() {
+                                _isMemoryMode = true;
+                                _isFlashcardMode = false;
+                              });
+                              _startNewMemoryDeck();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  SizedBox(width: isMobile ? 6 : 10),
+
+                  // Learned Words Pill Counter
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFDCFCE7), Color(0xFFBBF7D0)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF86EFAC), width: 2),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0xFF16A34A), offset: Offset(0, 2)),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🎯', style: TextStyle(fontSize: 13)),
+                        const SizedBox(width: 4),
+                        Text(
+                          isMobile ? '$learnedCount/$totalCount' : '$learnedCount / $totalCount Kata',
+                          style: GoogleFonts.fredoka(
+                            fontSize: isMobile ? 11 : 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF15803D),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -693,7 +715,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: DictionaryCategory.values.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final cat = DictionaryCategory.values[index];
                 final isSelected = cat == _selectedCategory;
@@ -748,11 +770,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
 
-          // Search Field
+          // Search Field (Responsive width for narrow mobile screens)
           SizedBox(
-            width: 170,
+            width: MediaQuery.of(context).size.width < 480 ? 128 : 170,
             height: 38,
             child: TextField(
               controller: _searchController,
@@ -809,7 +831,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: letters.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (context, index) {
           if (index == 0) {
             final isAll = _selectedLetter.isEmpty;
@@ -1056,16 +1078,40 @@ class _DictionaryScreenState extends State<DictionaryScreen> with TickerProvider
                         color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
-                        syllableText,
-                        style: GoogleFonts.fredoka(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF64748B),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: _syllableColorMode
+                          ? RichText(
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              text: TextSpan(
+                                children: List.generate(word.syllables.length, (i) {
+                                  const colors = [
+                                    Color(0xFF0284C7),
+                                    Color(0xFFDC2626),
+                                    Color(0xFF16A34A),
+                                    Color(0xFF9333EA),
+                                  ];
+                                  final sep = i < word.syllables.length - 1 ? ' • ' : '';
+                                  return TextSpan(
+                                    text: '${word.syllables[i]}$sep',
+                                    style: GoogleFonts.fredoka(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: colors[i % colors.length],
+                                    ),
+                                  );
+                                }),
+                              ),
+                            )
+                          : Text(
+                              syllableText,
+                              style: GoogleFonts.fredoka(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                     ),
 
                     const Spacer(),
