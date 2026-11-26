@@ -831,7 +831,7 @@ class _ConfettiPainter extends CustomPainter {
     for (final p in particles) {
       final dx = center.dx + p.velocity.dx * progress;
       final dy = center.dy + p.velocity.dy * progress + (180.0 * progress * progress); // Gravity
-      final paint = Paint()..color = p.color.withOpacity(opacity);
+      final paint = Paint()..color = p.color.withValues(alpha: opacity);
       canvas.drawCircle(Offset(dx, dy), p.size * (1.0 - progress * 0.3), paint);
     }
   }
