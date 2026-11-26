@@ -182,6 +182,17 @@ class TrophyRepository {
       sfx: 'fanfare',
     ),
     TrophyItem(
+      id: 'rhyme_master',
+      title: 'Maestro Rima Kata',
+      subtitle: 'Ahli Bunyi Akhir Berima',
+      category: TrophyCategory.special,
+      iconEmoji: '🎵',
+      badgeText: 'RIMA JUARA 🎵',
+      howToUnlock: 'Selesaikan kuis Tebak Rima & Bunyi Akhir di Kuil Sentuh Pintar!',
+      voicePraise: 'Luar biasa! Telingamu sangat peka mengenali irama dan bunyi akhir kata yang berima!',
+      sfx: 'fanfare',
+    ),
+    TrophyItem(
       id: 'trophy_speed_rush',
       title: 'Piala Kilat Petir Emas',
       subtitle: 'Juara Tantangan 60 Detik',
