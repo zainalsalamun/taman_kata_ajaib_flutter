@@ -123,6 +123,8 @@ class _MainTabletScreenState extends State<MainTabletScreen> {
     final canDaily = await StorageService.canClaimDailyReward();
     final avatar = await StorageService.getChildAvatar();
     final name = await StorageService.getChildName();
+    final equippedAcc = await StorageService.getEquippedAccessory();
+    ChildAvatarData.currentAccessoryId = equippedAcc;
     if (mounted) {
       setState(() {
         _stars = stars;
