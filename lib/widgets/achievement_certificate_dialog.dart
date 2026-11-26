@@ -43,7 +43,6 @@ class _AchievementCertificateDialogState
   int _totalStars = 0;
   int _masteredIslandsCount = 0;
   int _learnedWordsCount = 0;
-  int _storiesCount = 0;
   int _trophiesCount = 0;
   late String _completionDate;
   late String _certificateNumber;
@@ -115,7 +114,6 @@ class _AchievementCertificateDialogState
         _avatarId = avatar;
         _totalStars = stars;
         _learnedWordsCount = learnedWords.length;
-        _storiesCount = completedStories.length;
         _trophiesCount = trophies.length;
         _masteredIslandsCount = mastered;
         _certificateNumber = certNo;
@@ -214,6 +212,7 @@ class _AchievementCertificateDialogState
           ElevatedButton(
             onPressed: () async {
               final newName = controller.text.trim();
+              Navigator.of(ctx).pop();
               if (newName.isNotEmpty) {
                 await StorageService.saveChildName(newName);
                 if (mounted) {
@@ -224,7 +223,6 @@ class _AchievementCertificateDialogState
                   _audio.speak('Nama sertifikat diperbarui menjadi $newName!');
                 }
               }
-              Navigator.of(ctx).pop();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0284C7),
@@ -1122,7 +1120,6 @@ class _CertificateBorderPainter extends CustomPainter {
       ..color = secondaryColor
       ..style = PaintingStyle.fill;
 
-    const cornerOffset = 18.0;
     const cornerSize = 14.0;
 
     // Top-Left Corner
