@@ -48,6 +48,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
 
   // Tapped word feedback
   String? _lastTappedWord;
+  bool _syllableColorMode = true;
 
   // Reading Comprehension Quiz State
   bool _isInQuizMode = false;
@@ -66,9 +67,11 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
 
   void _loadCompletedStories() async {
     final list = await StorageService.getCompletedStories();
+    final colorMode = await StorageService.getSyllableColorMode();
     if (mounted) {
       setState(() {
         _completedStories = list.toSet();
+        _syllableColorMode = colorMode;
       });
     }
   }
@@ -185,6 +188,90 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
         }
       }
     });
+  }
+
+  List<String> _splitIndonesianSyllables(String rawWord) {
+    if (rawWord.length <= 2) return [rawWord];
+    final vowels = RegExp(r'[aiueoAIUEO]');
+    final List<String> result = [];
+    String buffer = '';
+
+    for (int i = 0; i < rawWord.length; i++) {
+      final ch = rawWord[i];
+      buffer += ch;
+      if (vowels.hasMatch(ch)) {
+        // Look ahead to see if next chars form a syllable boundary
+        if (i + 1 < rawWord.length) {
+          final next1 = rawWord[i + 1];
+          if (!vowels.hasMatch(next1)) {
+            if (i + 2 < rawWord.length) {
+              final next2 = rawWord[i + 2];
+              // Check for digraphs 'ng' or 'ny'
+              final pair = (next1 + next2).toLowerCase();
+              if (pair == 'ng' || pair == 'ny') {
+                if (i + 3 < rawWord.length && vowels.hasMatch(rawWord[i + 3])) {
+                  // Digraph starts next syllable (e.g. bu-nga)
+                  result.add(buffer);
+                  buffer = '';
+                } else {
+                  // Digraph closes current syllable (e.g. ku-cing)
+                  buffer += next1 + next2;
+                  i += 2;
+                  result.add(buffer);
+                  buffer = '';
+                }
+                continue;
+              }
+              if (vowels.hasMatch(next2)) {
+                // Single consonant between vowels goes to next syllable (CV-CV)
+                result.add(buffer);
+                buffer = '';
+              } else {
+                // Closed syllable (CVC-CV)
+                buffer += next1;
+                i += 1;
+                result.add(buffer);
+                buffer = '';
+              }
+            }
+          }
+        }
+      }
+    }
+    if (buffer.isNotEmpty) {
+      if (result.isNotEmpty && !vowels.hasMatch(buffer)) {
+        result[result.length - 1] += buffer;
+      } else {
+        result.add(buffer);
+      }
+    }
+    return result.isEmpty ? [rawWord] : result;
+  }
+
+  Widget _buildColorCodedWordRichText(String word) {
+    final syls = _splitIndonesianSyllables(word);
+    const palette = [
+      Color(0xFF0369A1), // Deep sky blue
+      Color(0xFFDC2626), // Warm crimson
+      Color(0xFF15803D), // Forest green
+      Color(0xFF7E22CE), // Royal purple
+    ];
+
+    return RichText(
+      text: TextSpan(
+        children: List.generate(syls.length, (i) {
+          return TextSpan(
+            text: syls[i],
+            style: GoogleFonts.fredoka(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: palette[i % palette.length],
+              height: 1.3,
+            ),
+          );
+        }),
+      ),
+    );
   }
 
   void _onWordTapped(String rawWord) {
@@ -483,7 +570,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.white.withOpacity(0.25) : const Color(0xFFF1F5F9),
+                              color: isSelected ? Colors.white.withValues(alpha: 0.25) : const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -552,7 +639,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
         border: Border.all(color: book.coverColor, width: 3.5),
         boxShadow: [
           BoxShadow(
-            color: book.coverColor.withOpacity(0.35),
+            color: book.coverColor.withValues(alpha: 0.35),
             offset: const Offset(0, 8),
             blurRadius: 10,
           ),
@@ -592,7 +679,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.25),
+                    color: Colors.white.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -638,7 +725,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
           // Illustration Art
           Expanded(
             child: Container(
-              color: book.accentColor.withOpacity(0.18),
+              color: book.accentColor.withValues(alpha: 0.18),
               child: Center(
                 child: Hero(
                   tag: 'book_cover_${book.id}',
@@ -765,7 +852,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: book.coverColor.withOpacity(0.15),
+                            color: book.coverColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -984,7 +1071,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.92),
+                          color: Colors.white.withValues(alpha: 0.92),
                           border: isTouched
                               ? Border.all(color: const Color(0xFFF59E0B), width: 3)
                               : null,
@@ -992,7 +1079,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                             BoxShadow(
                               color: isTouched
                                   ? const Color(0x66F59E0B)
-                                  : Colors.black.withOpacity(0.12),
+                                  : Colors.black.withValues(alpha: 0.12),
                               blurRadius: isTouched ? 10 : 6,
                               offset: const Offset(0, 3),
                             ),
@@ -1055,7 +1142,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -1129,10 +1216,52 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () async {
+                  HapticFeedback.selectionClick();
+                  final next = !_syllableColorMode;
+                  setState(() {
+                    _syllableColorMode = next;
+                  });
+                  await StorageService.saveSyllableColorMode(next);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _syllableColorMode
+                        ? const Color(0xFFE0F2FE)
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _syllableColorMode
+                          ? const Color(0xFF38BDF8)
+                          : const Color(0xFFCBD5E1),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🎨', style: TextStyle(fontSize: 11)),
+                      const SizedBox(width: 4),
+                      Text(
+                        _syllableColorMode ? 'Ejaan Berwarna' : 'Warna Biasa',
+                        style: GoogleFonts.fredoka(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: _syllableColorMode
+                              ? const Color(0xFF0369A1)
+                              : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const Spacer(),
               if (_lastTappedWord != null)
                 Text(
-                  'Lafal: "${_lastTappedWord}" 🔊',
+                  'Lafal: "$_lastTappedWord" 🔊',
                   style: GoogleFonts.fredoka(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -1181,17 +1310,19 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                               ]
                             : null,
                       ),
-                      child: Text(
-                        word,
-                        style: GoogleFonts.fredoka(
-                          fontSize: 20,
-                          fontWeight: isKaraokeActive ? FontWeight.w900 : FontWeight.w600,
-                          color: isKaraokeActive
-                              ? const Color(0xFF92400E)
-                              : const Color(0xFF1E293B),
-                          height: 1.3,
-                        ),
-                      ),
+                      child: _syllableColorMode && !isKaraokeActive
+                          ? _buildColorCodedWordRichText(word)
+                          : Text(
+                              word,
+                              style: GoogleFonts.fredoka(
+                                fontSize: 20,
+                                fontWeight: isKaraokeActive ? FontWeight.w900 : FontWeight.w600,
+                                color: isKaraokeActive
+                                    ? const Color(0xFF92400E)
+                                    : const Color(0xFF1E293B),
+                                height: 1.3,
+                              ),
+                            ),
                     ),
                   );
                 }),
@@ -1287,7 +1418,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: book.coverColor.withOpacity(0.15),
+                            color: book.coverColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -1428,7 +1559,7 @@ class _StorybookScreenState extends State<StorybookScreen> with TickerProviderSt
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
