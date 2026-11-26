@@ -1333,7 +1333,71 @@ class GameRepository {
     QuizQuestionData(question: "Kertas berjilid penuh cerita & ilmu!", answerKey: "buku", answerName: "BUKU", choices: ["buku", "topi", "bola"]),
   ];
 
-  static List<QuizQuestionData> getQuizQuestions(int level) {
+  static final List<QuizQuestionData> quizRhymeQuestions = [
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan BUKU (-KU)?",
+      answerKey: "duku",
+      answerName: "DUKU",
+      choices: ["duku", "apel", "roti"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan SAPI (-PI)?",
+      answerKey: "topi",
+      answerName: "TOPI",
+      choices: ["topi", "bola", "kuda"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan BINTANG (-ANG)?",
+      answerKey: "pisang",
+      answerName: "PISANG",
+      choices: ["pisang", "ceri", "meja"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan GAJAH (-AH)?",
+      answerKey: "rumah",
+      answerName: "RUMAH",
+      choices: ["rumah", "mobil", "buku"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan SEPEDA (-DA)?",
+      answerKey: "kuda",
+      answerName: "KUDA",
+      choices: ["kuda", "ikan", "domba"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan KERA (-RA)?",
+      answerKey: "zebra",
+      answerName: "ZEBRA",
+      choices: ["zebra", "roti", "apel"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan KERETA (-TA)?",
+      answerKey: "mata",
+      answerName: "MATA",
+      choices: ["mata", "pisang", "balon"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan LEMARI (-RI)?",
+      answerKey: "ceri",
+      answerName: "CERI",
+      choices: ["ceri", "domba", "bola"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan ELANG (-ANG)?",
+      answerKey: "udang",
+      answerName: "UDANG",
+      choices: ["udang", "topi", "kucing"],
+    ),
+    QuizQuestionData(
+      question: "Kata mana yang bunyi akhirnya berima sama dengan LEMON (-ON)?",
+      answerKey: "balon",
+      answerName: "BALON",
+      choices: ["balon", "rumah", "kuda"],
+    ),
+  ];
+
+  static List<QuizQuestionData> getQuizQuestions(int level, {bool isRhymeMode = false}) {
+    if (isRhymeMode) return quizRhymeQuestions;
     switch (level) {
       case 2:
         return quizQuestionsLevel2;
